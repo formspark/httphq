@@ -14,7 +14,6 @@ import (
 	"strconv"
 )
 
-const domain = "localhost" // TODO
 const port = 8080
 
 func main() {
@@ -88,6 +87,7 @@ func main() {
 	// TODO: disable in production
 	application.Get("/api/debug", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
+			"host":     string(c.Request().Host()),
 			"requests": len(database.GetRequests(db)),
 			"sockets":  len(database.GetSocketClients(db)),
 		})
@@ -102,11 +102,12 @@ func main() {
 
 	application.Get("/:endpoint", func(c *fiber.Ctx) error {
 		endpointID := c.Params("endpoint")
+		host := string(c.Request().Host())
 		return c.Render("endpoint", fiber.Map{
 			"Title":                "Endpoint",
 			"EndpointID":           endpointID,
-			"EndpointURL":          "http://" + domain + ":" + strconv.Itoa(port) + "/to/" + endpointID, // TODO: https
-			"EndpointWebSocketURL": "ws://" + domain + ":" + strconv.Itoa(port) + "/ws/" + endpointID,
+			"EndpointURL":          "http://" + host + "/to/" + endpointID, // TODO: https
+			"EndpointWebSocketURL": "ws://" + host + "/ws/" + endpointID,
 		})
 	})
 
