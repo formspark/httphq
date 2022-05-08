@@ -11,6 +11,8 @@ RUN go mod download
 COPY ./public ./public
 COPY ./src ./src
 
+ENV APPLICATION_ENV=production
+
 RUN go build -o ./bin/go-project ./src
 
 EXPOSE 8080

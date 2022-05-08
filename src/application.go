@@ -11,10 +11,13 @@ import (
 	"go-project/src/database"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 )
 
 const port = 8080
+
+var isProduction = os.Getenv("APPLICATION_ENV") == "production"
 
 func main() {
 	/* Database */
@@ -27,9 +30,10 @@ func main() {
 
 	engine := html.New("./src/views", ".html")
 
-	// TODO: disable in production
-	engine.Reload(true)
-	engine.Debug(true)
+	if !isProduction {
+		engine.Reload(true)
+		engine.Debug(true)
+	}
 
 	application := fiber.New(fiber.Config{
 		Views:       engine,
@@ -84,12 +88,13 @@ func main() {
 		return c.SendStatus(http.StatusNotFound)
 	})
 
-	// TODO: disable in production
+	// TODO: hide sensitive data in production
 	application.Get("/api/debug", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
-			"host":     string(c.Request().Host()),
-			"requests": len(database.GetRequests(db)),
-			"sockets":  len(database.GetSocketClients(db)),
+			"host":         string(c.Request().Host()),
+			"isProduction": isProduction,
+			"requests":     len(database.GetRequests(db)),
+			"sockets":      len(database.GetSocketClients(db)),
 		})
 	})
 
@@ -103,10 +108,11 @@ func main() {
 	application.Get("/:endpoint", func(c *fiber.Ctx) error {
 		endpointID := c.Params("endpoint")
 		host := string(c.Request().Host())
+		protocol := c.Protocol()
 		return c.Render("endpoint", fiber.Map{
 			"Title":                "Endpoint",
 			"EndpointID":           endpointID,
-			"EndpointURL":          "http://" + host + "/to/" + endpointID, // TODO: https
+			"EndpointURL":          protocol + "://" + host + "/to/" + endpointID,
 			"EndpointWebSocketURL": "ws://" + host + "/ws/" + endpointID,
 		})
 	})
@@ -148,6 +154,10 @@ func main() {
 	application.Use(func(c *fiber.Ctx) error {
 		return c.SendStatus(http.StatusNotFound)
 	})
-	// TODO: use ":localhost" instead of ":" in development mode
-	log.Fatalln(application.Listen(":" + strconv.Itoa(port)))
+
+	host := "localhost:"
+	if isProduction {
+		host = ":"
+	}
+	log.Fatalln(application.Listen(host + strconv.Itoa(port)))
 }
