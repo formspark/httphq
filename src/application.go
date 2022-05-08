@@ -147,7 +147,6 @@ func main() {
 	application.Use(func(c *fiber.Ctx) error {
 		return c.SendStatus(http.StatusNotFound)
 	})
-
-	// TODO: localhost
-	log.Fatalln(application.Listen("localhost:" + strconv.Itoa(port)))
+	// TODO: use ":localhost" instead of ":" in development mode
+	log.Fatalln(application.Listen(":" + strconv.Itoa(port)))
 }
