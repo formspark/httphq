@@ -109,11 +109,15 @@ func main() {
 		endpointID := c.Params("endpoint")
 		host := string(c.Request().Host())
 		protocol := c.Protocol()
+		websocketProtocol := "ws"
+		if protocol == "https" {
+			websocketProtocol = "wss"
+		}
 		return c.Render("endpoint", fiber.Map{
 			"Title":                "Endpoint",
 			"EndpointID":           endpointID,
 			"EndpointURL":          protocol + "://" + host + "/to/" + endpointID,
-			"EndpointWebSocketURL": "ws://" + host + "/ws/" + endpointID,
+			"EndpointWebSocketURL": websocketProtocol + "://" + host + "/ws/" + endpointID,
 		})
 	})
 
