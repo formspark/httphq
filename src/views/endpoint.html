@@ -27,15 +27,63 @@
 
     <!-- Some data -->
     <template x-for="request in $store.requests.data">
-      <div class="section">
-        <div x-text="request.uuid"></div>
-        <div x-text="request.endpointId"></div>
-        <div x-text="request.createdAt"></div>
-        <div x-text="request.ip"></div>
-        <div x-text="request.method"></div>
-        <div x-text="request.path"></div>
-        <div x-text="request.body"></div>
-        <div x-text="request.headers"></div>
+      <div
+        class="section"
+        style="padding-top: 1.5rem; border-top: solid 1px var(--border)"
+      >
+        <div class="flex">
+          <div style="width: 50%">
+            <b>Details</b>
+            <table>
+              <tbody>
+                <tr>
+                  <td>Created at</td>
+                  <td><div x-text="request.createdAt"></div></td>
+                </tr>
+                <tr>
+                  <td>IP</td>
+                  <td><div x-text="request.ip"></div></td>
+                </tr>
+                <tr>
+                  <td>Method</td>
+                  <td><div x-text="request.method"></div></td>
+                </tr>
+                <tr>
+                  <td>Path</td>
+                  <td><div x-text="request.path"></div></td>
+                </tr>
+                <tr>
+                  <td>Body</td>
+                  <td><div x-text="request.body"></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="width: 50%">
+            <b>Headers</b>
+            <table style="max-height: 300px; overflow: auto">
+              <tbody>
+                <!-- TODO: remove JSON.parse -->
+                <template
+                  x-for="[k, v] in Object.entries(JSON.parse(request.headers))"
+                >
+                  <tr>
+                    <td>
+                      <div x-text="k"></div>
+                    </td>
+                    <td>
+                      <div
+                        x-text="v"
+                        class="truncate"
+                        style="max-width: 250px"
+                      ></div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </template>
   </div>
@@ -76,7 +124,8 @@
 
   socket.addEventListener("message", function (payload) {
     console.debug("socket:message");
-    Alpine.store("requests").add(JSON.parse(payload.data));
+    const request = JSON.parse(payload.data);
+    Alpine.store("requests").add(request);
     console.log(Alpine.store("requests").data);
   });
 </script>
