@@ -1,5 +1,7 @@
 # go-project
 
+https://go-project.fly.dev/
+
 ## Scripts
 
 Run project locally:
@@ -20,7 +22,7 @@ Format project:
 go fmt ./src && npx prettier --write .
 ```
 
-Test build locally:
+Build and run binary locally:
 
 ```bash
 go build -o ./bin/go-project ./src
@@ -32,4 +34,10 @@ Build and run container locally:
 ```bash
 docker build . -t go-project
 docker run -dp 8080:8080 go-project
+```
+
+Deploy to Fly:
+
+```bash
+fly deploy
 ```
