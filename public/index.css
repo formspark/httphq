@@ -1,0 +1,79 @@
+:root {
+  --accent: #5850ec;
+  --accent-bg: #f5f8ff;
+  --border: #d8dae1;
+  --text: #212121;
+  --text-light: #585858;
+  --white: #ffffff;
+}
+
+body {
+  font-size: 16px;
+  grid-template-columns: 1fr min(60rem, 90%) 1fr;
+}
+
+p,
+.section {
+  margin-block-start: 1.5em !important;
+  margin-block-end: 1.5em !important;
+}
+
+.header {
+  padding: 0.5rem;
+}
+
+.brand {
+  display: flex;
+  justify-content: center;
+  color: var(--text-light) !important;
+  font-weight: bold;
+  font-size: 1.75rem;
+  line-height: 1.1;
+  text-decoration: none;
+  margin-block-start: 0.67em;
+  margin-block-end: 0.67em;
+}
+
+.endpoint {
+  display: inline-flex;
+  background: var(--accent-bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.35rem 0.45rem;
+}
+
+.terminal {
+  background: #2d2d2d;
+  color: var(--white);
+  font-size: 0.85rem;
+  border-radius: 5px;
+  padding: 0.35rem 0.45rem;
+}
+
+.flex {
+  display: flex;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-light {
+  color: var(--text-light);
+}
+
+.ml-2 {
+  margin-left: 0.5rem;
+}
+
+.select-all {
+  user-select: all;
+}

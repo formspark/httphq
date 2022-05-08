@@ -1,0 +1,91 @@
+{{template "partials/header" .}}
+
+<main>
+  <div class="section">
+    <div class="flex items-center">
+      <div>Your unique url:</div>
+      <div class="endpoint select-all ml-2">{{.EndpointURL}}</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="flex items-center">
+      <code class="terminal select-all">
+        curl -X POST -d 'Hello World!' {{.EndpointURL}}
+      </code>
+      <a href="javascript:;" onclick="sendTestData()" class="text-light ml-2"
+        >Send data</a
+      >
+    </div>
+  </div>
+
+  <div x-data>
+    <!-- No data -->
+    <template x-if="$store.requests.data.length === 0">
+      <div class="section">Waiting for requests...</div>
+    </template>
+
+    <!-- Some data -->
+    <template x-for="request in $store.requests.data">
+      <div class="section">
+        <div x-text="request.uuid"></div>
+        <div x-text="request.endpointId"></div>
+        <div x-text="request.createdAt"></div>
+        <div x-text="request.ip"></div>
+        <div x-text="request.method"></div>
+        <div x-text="request.path"></div>
+        <div x-text="request.body"></div>
+        <div x-text="request.headers"></div>
+      </div>
+    </template>
+  </div>
+</main>
+
+{{template "partials/footer" .}}
+
+<script>
+  document.addEventListener("alpine:init", () => {
+    Alpine.store("requests", {
+      init() {
+        fetch("/api/endpoints/{{.EndpointID}}/requests")
+          .then((response) => response.json())
+          .then((data) => this.add(...data.requests));
+      },
+      data: [],
+      add(...items) {
+        this.data = [...items, ...this.data];
+      },
+    });
+  });
+</script>
+
+<script>
+  const socket = new WebSocket("{{.EndpointWebSocketURL}}");
+
+  socket.addEventListener("open", function () {
+    console.debug("socket:open");
+  });
+
+  socket.addEventListener("close", function () {
+    console.debug("socket:close");
+  });
+
+  socket.addEventListener("error", function () {
+    console.debug("socket:error");
+  });
+
+  socket.addEventListener("message", function (payload) {
+    console.debug("socket:message");
+    Alpine.store("requests").add(JSON.parse(payload.data));
+    console.log(Alpine.store("requests").data);
+  });
+</script>
+
+<script>
+  const sendTestData = async function () {
+    await fetch("/to/{{.EndpointID}}", {
+      method: "POST",
+      body: "Hello, World!",
+    });
+  };
+</script>
