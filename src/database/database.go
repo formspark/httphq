@@ -48,7 +48,7 @@ func Connect() *gorm.DB {
 
 func GetRequests(db *gorm.DB) []Request {
 	var items []Request
-	result := db.Find(&items) // TODO: order by CreatedAt
+	result := db.Order("created_at DESC").Find(&items)
 	if result.Error != nil {
 		log.Println(result.Error)
 	}
@@ -57,7 +57,7 @@ func GetRequests(db *gorm.DB) []Request {
 
 func GetRequestsForEndpointID(db *gorm.DB, endpointID string) []Request {
 	var items []Request
-	result := db.Where(&Request{EndpointID: endpointID}).Find(&items) // TODO: order by CreatedAt
+	result := db.Where(&Request{EndpointID: endpointID}).Order("created_at DESC").Find(&items)
 	if result.Error != nil {
 		log.Println(result.Error)
 	}
@@ -73,7 +73,7 @@ func CreateRequest(db *gorm.DB, request *Request) {
 
 func GetSocketClients(db *gorm.DB) []SocketClient {
 	var items []SocketClient
-	result := db.Find(&items) // TODO: order by CreatedAt
+	result := db.Order("created_at DESC").Find(&items)
 	if result.Error != nil {
 		log.Println(result.Error)
 	}
@@ -82,7 +82,7 @@ func GetSocketClients(db *gorm.DB) []SocketClient {
 
 func GetSocketClientsForEndpointID(db *gorm.DB, endpointID string) []SocketClient {
 	var items []SocketClient
-	result := db.Where(&SocketClient{EndpointID: endpointID}).Find(&items) // TODO: order by CreatedAt
+	result := db.Where(&SocketClient{EndpointID: endpointID}).Order("created_at DESC").Find(&items)
 	if result.Error != nil {
 		log.Println(result.Error)
 	}
