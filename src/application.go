@@ -5,6 +5,8 @@ import (
 	"github.com/antoniodipinto/ikisocket"
 	"github.com/atrox/haikunatorgo/v2"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/compress"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/template/html"
 	"github.com/gofiber/websocket/v2"
 	"github.com/google/uuid"
@@ -13,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 )
 
 const port = 8080
@@ -39,6 +42,14 @@ func main() {
 		Views:       engine,
 		ViewsLayout: "layouts/main",
 	})
+
+	application.Use(limiter.New(
+		limiter.Config{
+			Max:        125,
+			Expiration: 1 * time.Minute,
+		}))
+
+	application.Use(compress.New())
 
 	// Static handling
 
