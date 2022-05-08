@@ -8,6 +8,7 @@ require (
 	github.com/gofiber/fiber/v2 v2.32.0
 	github.com/gofiber/template v1.6.27
 	github.com/gofiber/websocket/v2 v2.0.21
+	github.com/google/uuid v1.3.0
 	gorm.io/driver/sqlite v1.3.2
 	gorm.io/gorm v1.23.5
 )
@@ -15,7 +16,6 @@ require (
 require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/fasthttp/websocket v1.5.0 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/klauspost/compress v1.15.2 // indirect
