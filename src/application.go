@@ -143,7 +143,6 @@ func main() {
 		endpointID := c.Params("endpoint")
 		method := c.Method()
 		path := c.Path()
-		ip := c.IP()
 		body := c.Body()
 		// TODO: handle error
 		headers, _ := json.Marshal(c.GetReqHeaders())
@@ -152,7 +151,6 @@ func main() {
 			EndpointID: endpointID,
 			Method:     method,
 			Path:       path,
-			IP:         ip,
 			Body:       string(body),
 			Headers:    string(headers),
 		}

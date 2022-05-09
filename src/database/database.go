@@ -12,7 +12,6 @@ type Request struct {
 	EndpointID string    `json:"endpointId"`
 	Method     string    `json:"method"`
 	Path       string    `json:"path"`
-	IP         string    `json:"ip"`
 	Body       string    `json:"body"`
 	CreatedAt  time.Time `json:"createdAt"`
 	Headers    string    `json:"headers"`
