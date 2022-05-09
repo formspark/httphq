@@ -35,8 +35,8 @@ func main() {
 	/* Cron */
 
 	cron := cron.New()
-	
-	cron.AddFunc("* * * * *", func() {
+
+	cron.AddFunc("*/5 * * * *", func() {
 		database.DeleteOldRequests(db)
 		database.DeleteOldSocketClients(db)
 	}) // TODO: handle error
