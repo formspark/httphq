@@ -12,6 +12,7 @@ COPY ./public ./public
 COPY ./src ./src
 
 ENV APPLICATION_ENV=production
+ENV GIT_SHA=${GIT_SHA}
 
 RUN go build -o ./bin/go-project ./src
 
