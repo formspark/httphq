@@ -24,10 +24,14 @@ type SocketClient struct {
 	CreatedAt  time.Time `json:"createdAt"`
 }
 
+var db *gorm.DB
+
 func Connect() *gorm.DB {
 	log.Println("Connecting to database...")
 
-	db, err := gorm.Open(sqlite.Open("local.db"), &gorm.Config{})
+	var err error
+
+	db, err = gorm.Open(sqlite.Open("local.db"), &gorm.Config{})
 
 	if err != nil {
 		panic("failed to connect database")
@@ -46,7 +50,7 @@ func Connect() *gorm.DB {
 	return db
 }
 
-func GetRequests(db *gorm.DB) []Request {
+func GetRequests() []Request {
 	var items []Request
 	result := db.Order("created_at DESC").Find(&items)
 	if result.Error != nil {
@@ -55,7 +59,7 @@ func GetRequests(db *gorm.DB) []Request {
 	return items
 }
 
-func GetRequestsForEndpointID(db *gorm.DB, endpointID string) []Request {
+func GetRequestsForEndpointID(endpointID string) []Request {
 	var items []Request
 	result := db.Where(&Request{EndpointID: endpointID}).Order("created_at DESC").Find(&items)
 	if result.Error != nil {
@@ -64,14 +68,14 @@ func GetRequestsForEndpointID(db *gorm.DB, endpointID string) []Request {
 	return items
 }
 
-func CreateRequest(db *gorm.DB, request *Request) {
+func CreateRequest(request *Request) {
 	result := db.Create(&request)
 	if result.Error != nil {
 		log.Println(result.Error)
 	}
 }
 
-func DeleteOldRequests(db *gorm.DB) {
+func DeleteOldRequests() {
 	result := db.Where("created_at < ?", time.Now().Add(-1*4*time.Hour)).Delete(&Request{})
 	if result.Error != nil {
 		log.Println(result.Error)
@@ -79,7 +83,7 @@ func DeleteOldRequests(db *gorm.DB) {
 	log.Println("Deleted " + strconv.Itoa(int(result.RowsAffected)) + " old requests")
 }
 
-func GetSocketClients(db *gorm.DB) []SocketClient {
+func GetSocketClients() []SocketClient {
 	var items []SocketClient
 	result := db.Order("created_at DESC").Find(&items)
 	if result.Error != nil {
@@ -88,7 +92,7 @@ func GetSocketClients(db *gorm.DB) []SocketClient {
 	return items
 }
 
-func GetSocketClientsForEndpointID(db *gorm.DB, endpointID string) []SocketClient {
+func GetSocketClientsForEndpointID(endpointID string) []SocketClient {
 	var items []SocketClient
 	result := db.Where(&SocketClient{EndpointID: endpointID}).Order("created_at DESC").Find(&items)
 	if result.Error != nil {
@@ -97,21 +101,21 @@ func GetSocketClientsForEndpointID(db *gorm.DB, endpointID string) []SocketClien
 	return items
 }
 
-func CreateSocketClient(db *gorm.DB, socketClient *SocketClient) {
+func CreateSocketClient(socketClient *SocketClient) {
 	result := db.Create(&socketClient)
 	if result.Error != nil {
 		log.Println(result.Error)
 	}
 }
 
-func DeleteSocketClientForUUID(db *gorm.DB, UUID string) {
+func DeleteSocketClientForUUID(UUID string) {
 	result := db.Where("uuid = ?", UUID).Delete(&SocketClient{})
 	if result.Error != nil {
 		log.Println(result.Error)
 	}
 }
 
-func DeleteOldSocketClients(db *gorm.DB) {
+func DeleteOldSocketClients() {
 	result := db.Where("created_at < ?", time.Now().Add(-1*4*time.Hour)).Delete(&SocketClient{})
 	if result.Error != nil {
 		log.Println(result.Error)
