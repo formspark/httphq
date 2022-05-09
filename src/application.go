@@ -117,7 +117,6 @@ func main() {
 	application.Get("/api/debug", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"host":         string(c.Request().Host()),
-			"sha":          os.Getenv("GIT_SHA"),
 			"isProduction": isProduction,
 			"requests":     len(database.GetRequests()),
 			"sockets":      len(database.GetSocketClients()),
