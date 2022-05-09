@@ -67,7 +67,7 @@ p,
 }
 
 .text-light {
-  color: var(--text-light);
+  color: var(--text-light) !important;
 }
 
 .ml-2 {

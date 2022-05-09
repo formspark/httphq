@@ -1,6 +1,6 @@
 {{template "partials/header" .}}
 
-<main>
+<main x-data>
   <div class="section">
     <div class="flex items-center">
       <div>Your unique url:</div>
@@ -19,7 +19,7 @@
     </div>
   </div>
 
-  <div x-data>
+  <div>
     <!-- No data -->
     <template x-if="$store.requests.data.length === 0">
       <div class="section">Waiting for requests...</div>
@@ -69,7 +69,12 @@
                 >
                   <tr>
                     <td>
-                      <div x-text="k"></div>
+                      <a
+                        :href="`https://www.google.com/search?q=${k}+Header`"
+                        target="_blank"
+                        x-text="k"
+                        class="text-light"
+                      ></a>
                     </td>
                     <td>
                       <div
