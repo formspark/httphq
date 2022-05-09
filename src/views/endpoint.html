@@ -42,6 +42,7 @@
                   <td>Time</td>
                   <td>
                     <div class="with-tooltip">
+                      <!-- TODO: re-use Date instances -->
                       <div
                         x-text="formatTimeAgo(new Date(request.createdAt))"
                       ></div>
