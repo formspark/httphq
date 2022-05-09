@@ -10,6 +10,7 @@ import (
 	"github.com/gofiber/template/html"
 	"github.com/gofiber/websocket/v2"
 	"github.com/google/uuid"
+	"github.com/robfig/cron/v3"
 	"go-project/src/database"
 	"log"
 	"net/http"
@@ -24,10 +25,23 @@ var isProduction = os.Getenv("APPLICATION_ENV") == "production"
 
 func main() {
 	/* Database */
+
 	db := database.Connect()
 
 	/* Haiku maker */
+
 	haikuMaker := haikunator.New()
+
+	/* Cron */
+
+	cron := cron.New()
+	
+	cron.AddFunc("* * * * *", func() {
+		database.DeleteOldRequests(db)
+		database.DeleteOldSocketClients(db)
+	}) // TODO: handle error
+
+	cron.Start()
 
 	/* Server */
 

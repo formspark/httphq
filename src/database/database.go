@@ -4,6 +4,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"log"
+	"strconv"
 	"time"
 )
 
@@ -70,6 +71,14 @@ func CreateRequest(db *gorm.DB, request *Request) {
 	}
 }
 
+func DeleteOldRequests(db *gorm.DB) {
+	result := db.Where("created_at < ?", time.Now().Add(-1*4*time.Hour)).Delete(&Request{})
+	if result.Error != nil {
+		log.Println(result.Error)
+	}
+	log.Println("Deleted " + strconv.Itoa(int(result.RowsAffected)) + " old requests")
+}
+
 func GetSocketClients(db *gorm.DB) []SocketClient {
 	var items []SocketClient
 	result := db.Order("created_at DESC").Find(&items)
@@ -100,4 +109,12 @@ func DeleteSocketClientForUUID(db *gorm.DB, UUID string) {
 	if result.Error != nil {
 		log.Println(result.Error)
 	}
+}
+
+func DeleteOldSocketClients(db *gorm.DB) {
+	result := db.Where("created_at < ?", time.Now().Add(-1*4*time.Hour)).Delete(&SocketClient{})
+	if result.Error != nil {
+		log.Println(result.Error)
+	}
+	log.Println("Deleted " + strconv.Itoa(int(result.RowsAffected)) + " old socket clients")
 }
