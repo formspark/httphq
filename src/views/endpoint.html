@@ -33,7 +33,9 @@
       >
         <div class="flex">
           <div style="width: 50%">
-            <b>Details</b>
+            <div class="table-title">
+              <b>Headers</b>
+            </div>
             <table>
               <tbody>
                 <tr>
@@ -58,42 +60,46 @@
                   <td>Path</td>
                   <td><div x-text="request.path"></div></td>
                 </tr>
-                <tr>
-                  <td>Body</td>
-                  <td><div x-text="request.body"></div></td>
-                </tr>
               </tbody>
             </table>
           </div>
-          <div style="width: 50%">
-            <b>Headers</b>
-            <table style="max-height: 300px; overflow: auto">
-              <tbody>
-                <!-- TODO: remove JSON.parse -->
-                <template
-                  x-for="[k, v] in Object.entries(JSON.parse(request.headers))"
-                >
-                  <tr>
-                    <td>
-                      <a
-                        :href="`https://www.google.com/search?q=${k}+Header`"
-                        target="_blank"
-                        x-text="k"
-                        class="text-light"
-                      ></a>
-                    </td>
-                    <td>
-                      <div
-                        x-text="v"
-                        class="truncate"
-                        style="max-width: 250px"
-                      ></div>
-                    </td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
+          <div style="width: 50%; padding-left: 2rem">
+            <div class="table-title">
+              <b>Headers</b>
+            </div>
+            <div style="max-height: 300px; overflow: auto">
+              <table>
+                <tbody>
+                  <!-- TODO: remove JSON.parse -->
+                  <template
+                    x-for="[k, v] in Object.entries(JSON.parse(request.headers))"
+                  >
+                    <tr>
+                      <td>
+                        <a
+                          :href="`https://www.google.com/search?q=${k}+Header`"
+                          target="_blank"
+                          x-text="k"
+                          class="text-light"
+                        ></a>
+                      </td>
+                      <td>
+                        <div
+                          x-text="v"
+                          class="truncate"
+                          style="max-width: 250px"
+                        ></div>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
           </div>
+        </div>
+        <div>
+          <b>Body</b>
+          <pre x-text="formatBody(request.body)"></pre>
         </div>
       </div>
     </template>

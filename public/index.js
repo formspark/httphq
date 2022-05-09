@@ -1,3 +1,5 @@
+/* Time formatting */
+
 const timeFormatter = new Intl.RelativeTimeFormat("en", {
   numeric: "auto",
 });
@@ -14,17 +16,21 @@ const TIME_DIVISIONS = [
 
 function formatTimeAgo(date) {
   let duration = (date - new Date()) / 1000;
-  console.log(
-    JSON.stringify({
-      date,
-      duration,
-    })
-  );
   for (let i = 0; i <= TIME_DIVISIONS.length; i++) {
     const division = TIME_DIVISIONS[i];
     if (Math.abs(duration) < division.amount) {
       return timeFormatter.format(Math.round(duration), division.name);
     }
     duration /= division.amount;
+  }
+}
+
+/* Body formatting */
+
+function formatBody(body) {
+  try {
+    return JSON.stringify(JSON.parse(body), null, 2);
+  } catch {
+    return body;
   }
 }
