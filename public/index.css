@@ -4,6 +4,7 @@
   --border: #d8dae1;
   --text: #212121;
   --text-light: #585858;
+  --black: #000000;
   --white: #ffffff;
 }
 
@@ -86,4 +87,25 @@ p,
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.with-tooltip {
+  position: relative;
+  display: inline-block;
+  border-bottom: 2px dotted var(--border);
+}
+
+.with-tooltip .tooltip {
+  visibility: hidden;
+  background-color: var(--black);
+  opacity: 0.8;
+  color: var(--white);
+  padding: 0.35rem 0.45rem;
+  border-radius: 5px;
+  position: absolute;
+  z-index: 1;
+}
+
+.with-tooltip:hover .tooltip {
+  visibility: visible;
 }

@@ -37,8 +37,18 @@
             <table>
               <tbody>
                 <tr>
-                  <td>Created at</td>
-                  <td><div x-text="request.createdAt"></div></td>
+                  <td>Time</td>
+                  <td>
+                    <div class="with-tooltip">
+                      <div
+                        x-text="formatTimeAgo(new Date(request.createdAt))"
+                      ></div>
+                      <div
+                        x-text="new Date(request.createdAt).toLocaleString()"
+                        class="tooltip"
+                      ></div>
+                    </div>
+                  </td>
                 </tr>
                 <tr>
                   <td>Method</td>
