@@ -105,6 +105,10 @@ func main() {
 		})
 	})
 
+	application.Get("/health", func(c *fiber.Ctx) error {
+		return c.SendStatus(http.StatusOK)
+	})
+
 	application.Get("/favicon", func(c *fiber.Ctx) error {
 		return c.SendStatus(http.StatusNotFound)
 	})
