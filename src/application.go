@@ -175,6 +175,14 @@ func main() {
 	application.Use("/to/:endpoint", func(c *fiber.Ctx) error {
 		UUID := uuid.NewString()
 		endpointID := c.Params("endpoint")
+		log.Println("IP:")
+		log.Println(c.IP()) // TODO
+		log.Println("IPs:")
+		log.Println(c.IPs()) // TODO
+		log.Println("X-Forwarded-For")
+		log.Println(c.Get("X-Forwarded-For")) // TODO
+		log.Println("X-Forwarded-For with default")
+		log.Println(c.Get("X-Forwarded-For"), c.IP()) // TODO
 		method := c.Method()
 		path := c.Path()
 		body := c.Body()
