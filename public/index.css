@@ -93,12 +93,6 @@ p,
   user-select: all;
 }
 
-.truncate {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .with-tooltip {
   position: relative;
   display: inline-block;
