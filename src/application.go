@@ -24,6 +24,21 @@ const port = 8080
 
 var isProduction = os.Getenv("APPLICATION_ENV") == "production"
 
+var omittedHeaders = [...]string{
+	"Fly-Client-Ip",
+	"Fly-Dispatch-Start",
+	"Fly-Forwarded-Port",
+	"Fly-Forwarded-Proto",
+	"Fly-Forwarded-Ssl",
+	"Fly-Region",
+	"Fly-Request-Id",
+	"X-Forwarded-For",
+	"X-Forwarded-Port",
+	"X-Forwarded-Proto",
+	"X-Forwarded-Ssl",
+	"X-Request-Start",
+}
+
 func main() {
 	/* Database */
 
@@ -163,15 +178,18 @@ func main() {
 		method := c.Method()
 		path := c.Path()
 		body := c.Body()
-		// TODO: handle error
-		headers, _ := json.Marshal(c.GetReqHeaders())
+		headers := c.GetReqHeaders()
+		for _, omittedHeader := range omittedHeaders {
+			delete(headers, omittedHeader)
+		}
+		jsonHeaders, _ := json.Marshal(headers)
 		request := database.Request{
 			UUID:       UUID,
 			EndpointID: endpointID,
 			Method:     method,
 			Path:       path,
 			Body:       string(body),
-			Headers:    datatypes.JSON(headers),
+			Headers:    datatypes.JSON(jsonHeaders),
 		}
 		database.CreateRequest(&request)
 		socketClients := database.GetSocketClientsForEndpointID(endpointID)
