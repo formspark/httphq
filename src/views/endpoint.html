@@ -55,7 +55,14 @@
                 </tr>
                 <tr>
                   <td>Client IP</td>
-                  <td><div x-text="request.ip"></div></td>
+                  <td>
+                    <a
+                      :href="`https://www.whois.com/whois/${request.ip}`"
+                      target="_blank"
+                      x-text="request.ip"
+                      class="text-light"
+                    ></a>
+                  </td>
                 </tr>
                 <tr>
                   <td>Method</td>
