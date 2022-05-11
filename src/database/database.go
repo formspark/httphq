@@ -1,6 +1,7 @@
 package database
 
 import (
+	"gorm.io/datatypes"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"log"
@@ -9,13 +10,13 @@ import (
 )
 
 type Request struct {
-	UUID       string    `json:"name" gorm:"primaryKey"`
-	EndpointID string    `json:"endpointId"`
-	Method     string    `json:"method"`
-	Path       string    `json:"path"`
-	Body       string    `json:"body"`
-	CreatedAt  time.Time `json:"createdAt"`
-	Headers    string    `json:"headers"`
+	UUID       string         `json:"name" gorm:"primaryKey"`
+	EndpointID string         `json:"endpointId"`
+	Method     string         `json:"method"`
+	Path       string         `json:"path"`
+	Body       string         `json:"body"`
+	CreatedAt  time.Time      `json:"createdAt"`
+	Headers    datatypes.JSON `json:"headers"`
 }
 
 type SocketClient struct {

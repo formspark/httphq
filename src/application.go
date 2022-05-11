@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/robfig/cron/v3"
 	"go-project/src/database"
+	"gorm.io/datatypes"
 	"log"
 	"net/http"
 	"os"
@@ -170,7 +171,7 @@ func main() {
 			Method:     method,
 			Path:       path,
 			Body:       string(body),
-			Headers:    string(headers),
+			Headers:    datatypes.JSON(headers),
 		}
 		database.CreateRequest(&request)
 		socketClients := database.GetSocketClientsForEndpointID(endpointID)

@@ -10,6 +10,7 @@ require (
 	github.com/gofiber/websocket/v2 v2.0.21
 	github.com/google/uuid v1.3.0
 	github.com/robfig/cron/v3 v3.0.0
+	gorm.io/datatypes v1.0.6
 	gorm.io/driver/sqlite v1.3.2
 	gorm.io/gorm v1.23.5
 )
@@ -17,6 +18,7 @@ require (
 require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/fasthttp/websocket v1.5.0 // indirect
+	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/klauspost/compress v1.15.2 // indirect
@@ -26,4 +28,5 @@ require (
 	github.com/valyala/fasthttp v1.36.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6 // indirect
+	gorm.io/driver/mysql v1.3.2 // indirect
 )
