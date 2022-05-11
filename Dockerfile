@@ -1,4 +1,6 @@
-FROM golang:1.18-alpine
+# ***** Builder *****
+
+FROM golang:1.18-alpine as builder
 
 WORKDIR /usr/src/app
 
@@ -11,10 +13,18 @@ RUN go mod download
 COPY ./public ./public
 COPY ./src ./src
 
-ENV APPLICATION_ENV=production
-
 RUN go build -o ./bin/go-project ./src
+
+# ***** Application *****
+
+FROM alpine
+
+COPY --from=builder ./usr/src/app/bin ./bin
+COPY --from=builder ./usr/src/app/public ./public
+COPY --from=builder ./usr/src/app/src ./src
+
+ENV APPLICATION_ENV=production
 
 EXPOSE 8080
 
-CMD [ "./bin/go-project" ]
+CMD ["./bin/go-project"]

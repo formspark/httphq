@@ -34,6 +34,7 @@ Build and run container locally:
 ```bash
 docker build . -t go-project
 docker run -dp 8080:8080 go-project
+docker container ls -s
 ```
 
 Deploy to Fly:
