@@ -37,6 +37,7 @@ var omittedHeaders = [...]string{
 	"X-Forwarded-Proto",
 	"X-Forwarded-Ssl",
 	"X-Request-Start",
+	"Via",
 }
 
 func main() {
@@ -175,14 +176,11 @@ func main() {
 	application.Use("/to/:endpoint", func(c *fiber.Ctx) error {
 		UUID := uuid.NewString()
 		endpointID := c.Params("endpoint")
-		log.Println("IP:")
-		log.Println(c.IP()) // TODO
-		log.Println("IPs:")
-		log.Println(c.IPs()) // TODO
-		log.Println("X-Forwarded-For")
-		log.Println(c.Get("X-Forwarded-For")) // TODO
-		log.Println("X-Forwarded-For with default")
-		log.Println(c.Get("X-Forwarded-For"), c.IP()) // TODO
+		IP := c.IP()
+		forwardedIPs := c.IPs()
+		if len(forwardedIPs) > 0 {
+			IP = forwardedIPs[0]
+		}
 		method := c.Method()
 		path := c.Path()
 		body := c.Body()
@@ -194,6 +192,7 @@ func main() {
 		request := database.Request{
 			UUID:       UUID,
 			EndpointID: endpointID,
+			IP:         IP,
 			Method:     method,
 			Path:       path,
 			Body:       string(body),

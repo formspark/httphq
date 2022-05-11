@@ -12,6 +12,7 @@ import (
 type Request struct {
 	UUID       string         `json:"name" gorm:"primaryKey"`
 	EndpointID string         `json:"endpointId"`
+	IP         string         `json:"ip"`
 	Method     string         `json:"method"`
 	Path       string         `json:"path"`
 	Body       string         `json:"body"`

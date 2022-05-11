@@ -41,3 +41,9 @@ Deploy to Fly:
 ```bash
 fly deploy
 ```
+
+View Fly application logs:
+
+```bash
+fly logs
+```
