@@ -12,4 +12,4 @@ jobs:
           working-directory: e2e
           browser: chrome
           headless: true
-          start: npm run prepare
+          start: npm run start-server
