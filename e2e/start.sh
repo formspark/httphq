@@ -4,4 +4,4 @@ echo "Hello World"
 
 ls -a
 stat go-project
-go-project
+(cd .. && ./bin/go-project)
