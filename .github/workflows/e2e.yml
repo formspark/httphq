@@ -7,11 +7,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: go build -o ./bin/go-project ./src
-      - run: ls
       - run: tree
       - uses: cypress-io/github-action@v2
         with:
           working-directory: e2e
           browser: chrome
           headless: true
-          start: ../bin/go-project
+          start: ../bin/go-project || ./bin/go-project || /bin/go-project || go-project
