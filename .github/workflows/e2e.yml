@@ -13,4 +13,4 @@ jobs:
           working-directory: e2e
           browser: chrome
           headless: true
-          start: tree
+          start: ./bin/go-project
