@@ -6,9 +6,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - run: go build -o ./bin/go-project ./src
       - uses: cypress-io/github-action@v2
         with:
           working-directory: e2e
           browser: chrome
           headless: true
-          start: go run ../src/application.go
+          start: go run ../bin/go-project
