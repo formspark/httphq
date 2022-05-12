@@ -1,0 +1,7 @@
+{
+  "name": "go-project-e2e",
+  "private": true,
+  "devDependencies": {
+    "cypress": "^9.6.1"
+  }
+}

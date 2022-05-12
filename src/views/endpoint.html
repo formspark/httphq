@@ -4,7 +4,9 @@
   <div class="section">
     <div class="flex items-center">
       <div>Your unique url:</div>
-      <div class="endpoint select-all ml-2">{{.EndpointURL}}</div>
+      <div data-test="unique-endpoint-url" class="endpoint select-all ml-2">
+        {{.EndpointURL}}
+      </div>
     </div>
   </div>
 
@@ -19,7 +21,7 @@
     </div>
   </div>
 
-  <div>
+  <div data-test="requests">
     <!-- No data -->
     <template x-if="$store.requests.data.length === 0">
       <div class="section">Waiting for requests...</div>
