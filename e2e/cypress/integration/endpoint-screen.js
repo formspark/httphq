@@ -9,7 +9,7 @@ describe("Endpoint screen", () => {
     it("should be visible", () => {
       cy.location().then((location) => {
         cy.get('[data-test="unique-endpoint-url').should(
-          "have.text",
+          "contain.text",
           `${location.protocol}//${location.host}/to/${TEST_ID}`
         );
       });

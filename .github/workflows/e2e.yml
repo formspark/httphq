@@ -12,4 +12,4 @@ jobs:
           working-directory: e2e
           browser: chrome
           headless: true
-          start: bash start.sh
+          start: (cd .. && ./bin/go-project)
