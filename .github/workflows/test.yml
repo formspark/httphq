@@ -1,11 +1,11 @@
-name: E2E
+name: test
 on:
-  workflow_call:
   schedule:
     - cron: "0 0 * * *"
   pull_request:
     types:
       - opened
+      - synchronize
     branches:
       - develop
       - master
