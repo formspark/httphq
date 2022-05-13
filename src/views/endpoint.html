@@ -27,13 +27,23 @@
       <div class="section">Waiting for requests...</div>
     </template>
 
-    <!-- Some data -->
+    <!-- Data -->
     <template x-for="request in $store.requests.data">
       <div
+        :id="`request-${request.uuid}`"
         class="section"
         style="padding-top: 1.5rem; border-top: solid 1px var(--border)"
       >
+        <!-- UUID -->
+        <div style="padding-bottom: 1rem">
+          <a
+            :href="`#request-${request.uuid}`"
+            x-text="request.uuid"
+            class="text-light"
+          ></a>
+        </div>
         <div class="flex">
+          <!-- Details -->
           <div style="width: 50%">
             <div class="table-title">
               <b>Details</b>
@@ -59,7 +69,7 @@
                   <td>Client IP</td>
                   <td>
                     <a
-                      :href="`https://www.whois.com/whois/${request.ip}`"
+                      :href="`https://www.google.com/search?q=${request.ip}+WHOIS`"
                       target="_blank"
                       x-text="request.ip"
                       class="text-light"
@@ -77,6 +87,7 @@
               </tbody>
             </table>
           </div>
+          <!-- Headers -->
           <div style="width: 50%; padding-left: 2rem">
             <div class="table-title">
               <b>Headers</b>
@@ -104,6 +115,7 @@
             </div>
           </div>
         </div>
+        <!-- Body -->
         <div>
           <b>Body</b>
           <pre x-text="formatBody(request.body)"></pre>
@@ -121,7 +133,18 @@
       init() {
         fetch("/api/endpoints/{{.EndpointID}}/requests")
           .then((response) => response.json())
-          .then((data) => this.add(...data.requests));
+          .then((data) => {
+            this.add(...data.requests);
+            if (window.location.hash) {
+              setTimeout(() => {
+                const id = window.location.hash.substring(1);
+                const el = document.getElementById(id);
+                if (el) {
+                  el.scrollIntoView();
+                }
+              }, 125);
+            }
+          });
       },
       data: [],
       add(...items) {
