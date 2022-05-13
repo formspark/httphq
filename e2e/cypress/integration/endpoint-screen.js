@@ -19,10 +19,21 @@ describe("Endpoint screen", () => {
   });
 
   describe("Requests", () => {
-    it("should show a text message if no requests are found", () => {
+    it("should show a waiting message if no requests are found", () => {
       cy.get('[data-test="requests').should(
         "contain.text",
         "Waiting for requests..."
+      );
+    });
+
+    it("should not show a waiting message if some requests are found", () => {
+      cy.exec(`curl -X POST -d 'Hello World!' ${TEST_ENDPOINT_URL}`).then(
+        () => {
+          cy.get('[data-test="requests').should(
+            "not.contain.text",
+            "Waiting for requests..."
+          );
+        }
       );
     });
 
@@ -35,41 +46,18 @@ describe("Endpoint screen", () => {
       );
     });
 
-    describe("Details", () => {
-      it("should display the 'Time'", () => {
-        cy.exec(`curl -X POST -d 'Hello World!' ${TEST_ENDPOINT_URL}`).then(
-          () => {
-            cy.get('[data-test="requests').should("contain.text", "now");
-          }
-        );
-      });
-
-      it("should display the 'Client IP'", () => {
-        cy.exec(`curl -X POST -d 'Hello World!' ${TEST_ENDPOINT_URL}`).then(
-          () => {
-            cy.get('[data-test="requests').should("contain.text", "127.0.0.1");
-          }
-        );
-      });
-
-      it("should display the 'Method'", () => {
-        cy.exec(`curl -X POST -d 'Hello World!' ${TEST_ENDPOINT_URL}`).then(
-          () => {
-            cy.get('[data-test="requests').should("contain.text", "POST");
-          }
-        );
-      });
-
-      it("should display the 'Path'", () => {
-        cy.exec(`curl -X POST -d 'Hello World!' ${TEST_ENDPOINT_URL}`).then(
-          () => {
-            cy.get('[data-test="requests').should(
-              "contain.text",
-              TEST_ENDPOINT_PATH
-            );
-          }
-        );
-      });
+    it("should display the details of each request", () => {
+      cy.exec(`curl -X POST -d 'Hello World!' ${TEST_ENDPOINT_URL}`).then(
+        () => {
+          cy.get('[data-test="requests').should("contain.text", "now");
+          cy.get('[data-test="requests').should("contain.text", "127.0.0.1");
+          cy.get('[data-test="requests').should("contain.text", "POST");
+          cy.get('[data-test="requests').should(
+            "contain.text",
+            TEST_ENDPOINT_PATH
+          );
+        }
+      );
     });
   });
 });
