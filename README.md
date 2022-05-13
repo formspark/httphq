@@ -40,7 +40,7 @@ docker container ls -s
 Run E2E tests:
 
 ```bash
-go run ./src/application.go & (cd e2e && npx cypress open)
+cd e2e && npx cypress open
 ```
 
 Deploy to Fly:
