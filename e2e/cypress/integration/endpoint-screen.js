@@ -1,5 +1,6 @@
 const TEST_ID = Math.random().toString(36).slice(2, 7);
-const TEST_ENDPOINT_URL = `${location.protocol}//${location.host}/to/${TEST_ID}`;
+const TEST_ENDPOINT_PATH = `/to/${TEST_ID}`;
+const TEST_ENDPOINT_URL = `${location.protocol}//${location.host}${TEST_ENDPOINT_PATH}`;
 
 describe("Endpoint screen", () => {
   beforeEach(() => {
@@ -34,12 +35,41 @@ describe("Endpoint screen", () => {
       );
     });
 
-    it("should display the time of the request", () => {
-      cy.exec(`curl -X POST -d 'Hello World!' ${TEST_ENDPOINT_URL}`).then(
+    describe("Details", () => {
+      it("should display the 'Time'", () => {
+        cy.exec(`curl -X POST -d 'Hello World!' ${TEST_ENDPOINT_URL}`).then(
           () => {
-            cy.get('[data-test="requests').should("contain.text", 'now');
+            cy.get('[data-test="requests').should("contain.text", "now");
           }
-      );
+        );
+      });
+
+      it("should display the 'Client IP'", () => {
+        cy.exec(`curl -X POST -d 'Hello World!' ${TEST_ENDPOINT_URL}`).then(
+          () => {
+            cy.get('[data-test="requests').should("contain.text", "127.0.0.1");
+          }
+        );
+      });
+
+      it("should display the 'Method'", () => {
+        cy.exec(`curl -X POST -d 'Hello World!' ${TEST_ENDPOINT_URL}`).then(
+          () => {
+            cy.get('[data-test="requests').should("contain.text", "POST");
+          }
+        );
+      });
+
+      it("should display the 'Path'", () => {
+        cy.exec(`curl -X POST -d 'Hello World!' ${TEST_ENDPOINT_URL}`).then(
+          () => {
+            cy.get('[data-test="requests').should(
+              "contain.text",
+              TEST_ENDPOINT_PATH
+            );
+          }
+        );
+      });
     });
   });
 });
