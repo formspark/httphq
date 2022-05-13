@@ -33,5 +33,13 @@ describe("Endpoint screen", () => {
         }
       );
     });
+
+    it("should display the time of the request", () => {
+      cy.exec(`curl -X POST -d 'Hello World!' ${TEST_ENDPOINT_URL}`).then(
+          () => {
+            cy.get('[data-test="requests').should("contain.text", 'now');
+          }
+      );
+    });
   });
 });

@@ -54,12 +54,11 @@
                   <td>Time</td>
                   <td>
                     <div class="with-tooltip">
-                      <!-- TODO: re-use Date instances -->
                       <div
-                        x-text="formatTimeAgo(new Date(request.createdAt))"
+                        x-text="formatTimeAgo(request.createdAt)"
                       ></div>
                       <div
-                        x-text="new Date(request.createdAt).toLocaleString()"
+                        x-text="request.createdAt.toLocaleString()"
                         class="tooltip"
                       ></div>
                     </div>
@@ -148,6 +147,9 @@
       },
       data: [],
       add(...items) {
+        for (const item of items) {
+          item.createdAt = new Date(item.createdAt)
+        }
         this.data = [...items, ...this.data];
       },
     });
