@@ -1,16 +1,16 @@
 name: Deploy
 on:
-  workflow_run:
-    workflows: ["E2E"]
-    types:
-      - completed
+  push:
+    branches:
+      - master
 env:
   FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 jobs:
+  e2e:
+    uses: ./.github/workflows/e2e.yml
   deploy:
-    name: Deploy
+    needs: e2e
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v2
       - uses: superfly/flyctl-actions/setup-flyctl@master

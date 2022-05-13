@@ -1,8 +1,16 @@
 name: E2E
-on: [push]
+on:
+  workflow_call:
+  schedule:
+    - cron: "0 0 * * *"
+  pull_request:
+    types:
+      - opened
+    branches:
+      - develop
+      - master
 jobs:
   e2e:
-    name: E2E
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
