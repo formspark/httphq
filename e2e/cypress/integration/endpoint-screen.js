@@ -46,13 +46,30 @@ describe("Endpoint screen", () => {
       );
     });
 
-    it("should display the details of each request", () => {
+    it("should display the request details", () => {
       cy.exec(`curl -X POST -d 'Hello World!' ${TEST_ENDPOINT_URL}`).then(
         () => {
-          cy.get('[data-test="requests').contains(/now|seconds? ago/);
-          cy.get('[data-test="requests').contains("127.0.0.1");
-          cy.get('[data-test="requests').contains("POST");
-          cy.get('[data-test="requests').contains(TEST_ENDPOINT_PATH);
+          cy.get('[data-test="request-details').contains(/now|seconds? ago/);
+          cy.get('[data-test="request-details').contains("127.0.0.1");
+          cy.get('[data-test="request-details').contains("POST");
+          cy.get('[data-test="request-details').contains(TEST_ENDPOINT_PATH);
+        }
+      );
+    });
+
+    it("should display the request headers", () => {
+      cy.exec(`curl -X POST -d 'Hello World!' ${TEST_ENDPOINT_URL}`).then(
+        () => {
+          cy.get('[data-test="request-headers').contains("Content-Type");
+        }
+      );
+    });
+
+    it("should display the request body", () => {
+      const requestBody = "Hello World!";
+      cy.exec(`curl -X POST -d '${requestBody}' ${TEST_ENDPOINT_URL}`).then(
+        () => {
+          cy.get('[data-test="body-body').contains(requestBody);
         }
       );
     });

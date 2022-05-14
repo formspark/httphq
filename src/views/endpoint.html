@@ -31,11 +31,12 @@
     <template x-for="request in $store.requests.data">
       <div
         :id="`request-${request.uuid}`"
+        data-test="request"
         class="section"
         style="padding-top: 1.5rem; border-top: solid 1px var(--border)"
       >
         <!-- UUID -->
-        <div style="padding-bottom: 1rem">
+        <div data-test="request-uuid" style="padding-bottom: 1rem">
           <a
             :href="`#request-${request.uuid}`"
             x-text="request.uuid"
@@ -44,7 +45,7 @@
         </div>
         <div class="flex">
           <!-- Details -->
-          <div style="width: 50%">
+          <div data-test="request-details" style="width: 50%">
             <div class="table-title">
               <b>Details</b>
             </div>
@@ -85,7 +86,10 @@
             </table>
           </div>
           <!-- Headers -->
-          <div style="width: 50%; padding-left: 2rem">
+          <div
+            data-test="request-headers"
+            style="width: 50%; padding-left: 2rem"
+          >
             <div class="table-title">
               <b>Headers</b>
             </div>
@@ -113,7 +117,7 @@
           </div>
         </div>
         <!-- Body -->
-        <div>
+        <div data-test="request-body">
           <b>Body</b>
           <pre x-text="formatBody(request.body)"></pre>
         </div>
