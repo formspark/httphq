@@ -69,7 +69,7 @@ describe("Endpoint screen", () => {
       const requestBody = "Hello World!";
       cy.exec(`curl -X POST -d '${requestBody}' ${TEST_ENDPOINT_URL}`).then(
         () => {
-          cy.get('[data-test="body-body').contains(requestBody);
+          cy.get('[data-test="request-body').contains(requestBody);
         }
       );
     });
