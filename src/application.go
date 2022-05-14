@@ -51,14 +51,16 @@ func main() {
 
 	/* Cron */
 
-	cron := cron.New()
+	c := cron.New()
 
-	cron.AddFunc("*/5 * * * *", func() {
+	if _, err := c.AddFunc("*/5 * * * *", func() {
 		database.DeleteOldRequests()
 		database.DeleteOldSocketClients()
-	}) // TODO: handle error
+	}); err != nil {
+		log.Fatalln(err)
+	}
 
-	cron.Start()
+	c.Start()
 
 	/* Server */
 
@@ -98,7 +100,6 @@ func main() {
 
 	application.Get("/ws/:endpoint", ikisocket.New(func(kws *ikisocket.Websocket) {
 		endpointID := kws.Params("endpoint")
-		// TODO: create or update
 		database.CreateSocketClient(&database.SocketClient{
 			UUID:       kws.UUID,
 			EndpointID: endpointID,
@@ -134,13 +135,12 @@ func main() {
 		return c.SendStatus(http.StatusNotFound)
 	})
 
-	// TODO: hide sensitive data in production
 	application.Get("/api/debug", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"host":         string(c.Request().Host()),
 			"isProduction": isProduction,
-			"requests":     len(database.GetRequests()),
-			"sockets":      len(database.GetSocketClients()),
+			"requests":     database.CountRequests(),
+			"sockets":      database.CountSocketClients(),
 		})
 	})
 
@@ -175,20 +175,30 @@ func main() {
 
 	application.Use("/to/:endpoint", func(c *fiber.Ctx) error {
 		UUID := uuid.NewString()
+
 		endpointID := c.Params("endpoint")
+
 		IP := c.IP()
 		forwardedIPs := c.IPs()
 		if len(forwardedIPs) > 0 {
 			IP = forwardedIPs[0]
 		}
+
 		method := c.Method()
+
 		path := c.Path()
+
 		body := c.Body()
+
 		headers := c.GetReqHeaders()
 		for _, omittedHeader := range omittedHeaders {
 			delete(headers, omittedHeader)
 		}
-		jsonHeaders, _ := json.Marshal(headers)
+		jsonHeaders, err := json.Marshal(headers)
+		if err != nil {
+			log.Println(err)
+		}
+
 		request := database.Request{
 			UUID:       UUID,
 			EndpointID: endpointID,
@@ -199,12 +209,20 @@ func main() {
 			Headers:    datatypes.JSON(jsonHeaders),
 		}
 		database.CreateRequest(&request)
+
 		socketClients := database.GetSocketClientsForEndpointID(endpointID)
 		for _, socketClient := range socketClients {
-			// TODO: error handling
-			marshalled, _ := json.Marshal(request)
-			ikisocket.EmitTo(socketClient.UUID, marshalled)
+			marshalled, marshalErr := json.Marshal(request)
+			if marshalErr != nil {
+				log.Println(marshalErr)
+			} else {
+				emitErr := ikisocket.EmitTo(socketClient.UUID, marshalled)
+				if emitErr != nil {
+					log.Println(emitErr)
+				}
+			}
 		}
+
 		return c.SendStatus(http.StatusOK)
 	})
 
