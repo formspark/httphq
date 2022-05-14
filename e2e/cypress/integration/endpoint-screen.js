@@ -49,13 +49,10 @@ describe("Endpoint screen", () => {
     it("should display the details of each request", () => {
       cy.exec(`curl -X POST -d 'Hello World!' ${TEST_ENDPOINT_URL}`).then(
         () => {
-          cy.get('[data-test="requests').should("contain.text", "now");
-          cy.get('[data-test="requests').should("contain.text", "127.0.0.1");
-          cy.get('[data-test="requests').should("contain.text", "POST");
-          cy.get('[data-test="requests').should(
-            "contain.text",
-            TEST_ENDPOINT_PATH
-          );
+          cy.get('[data-test="requests').contains(/now|seconds? ago/)
+          cy.get('[data-test="requests').contains("127.0.0.1")
+          cy.get('[data-test="requests').contains("POST")
+          cy.get('[data-test="requests').contains(TEST_ENDPOINT_PATH)
         }
       );
     });
