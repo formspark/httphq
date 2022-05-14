@@ -134,13 +134,12 @@ func main() {
 		return c.SendStatus(http.StatusNotFound)
 	})
 
-	// TODO: hide sensitive data in production
 	application.Get("/api/debug", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"host":         string(c.Request().Host()),
 			"isProduction": isProduction,
-			"requests":     len(database.GetRequests()),
-			"sockets":      len(database.GetSocketClients()),
+			"requests":     database.CountRequests(),
+			"sockets":      database.CountSocketClients(),
 		})
 	})
 

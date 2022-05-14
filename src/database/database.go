@@ -52,6 +52,15 @@ func Connect() *gorm.DB {
 	return db
 }
 
+func CountRequests() int64 {
+	var count int64
+	result := db.Model(&Request{}).Count(&count)
+	if result.Error != nil {
+		log.Println(result.Error)
+	}
+	return count
+}
+
 func GetRequests() []Request {
 	var items []Request
 	result := db.Order("created_at DESC").Find(&items)
@@ -83,6 +92,15 @@ func DeleteOldRequests() {
 		log.Println(result.Error)
 	}
 	log.Println("Deleted " + strconv.Itoa(int(result.RowsAffected)) + " old requests")
+}
+
+func CountSocketClients() int64 {
+	var count int64
+	result := db.Model(&SocketClient{}).Count(&count)
+	if result.Error != nil {
+		log.Println(result.Error)
+	}
+	return count
 }
 
 func GetSocketClients() []SocketClient {
