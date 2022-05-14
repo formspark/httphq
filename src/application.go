@@ -51,14 +51,16 @@ func main() {
 
 	/* Cron */
 
-	cron := cron.New()
+	c := cron.New()
 
-	cron.AddFunc("*/5 * * * *", func() {
+	if _, err := c.AddFunc("*/5 * * * *", func() {
 		database.DeleteOldRequests()
 		database.DeleteOldSocketClients()
-	}) // TODO: handle error
+	}); err != nil {
+		log.Fatalln(err)
+	}
 
-	cron.Start()
+	c.Start()
 
 	/* Server */
 
@@ -98,7 +100,6 @@ func main() {
 
 	application.Get("/ws/:endpoint", ikisocket.New(func(kws *ikisocket.Websocket) {
 		endpointID := kws.Params("endpoint")
-		// TODO: create or update
 		database.CreateSocketClient(&database.SocketClient{
 			UUID:       kws.UUID,
 			EndpointID: endpointID,
