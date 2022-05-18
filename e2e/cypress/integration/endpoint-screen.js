@@ -7,6 +7,12 @@ describe("Endpoint screen", () => {
     cy.visit(`/${TEST_ID}`);
   });
 
+  describe("Title", () => {
+    it("should be correct", () => {
+      cy.title().should("eq", `${TEST_ID} | go-project`);
+    });
+  });
+
   describe("Unique URL", () => {
     it("should be visible", () => {
       cy.location().then((location) => {
