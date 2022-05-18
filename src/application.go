@@ -147,13 +147,13 @@ func main() {
 
 	application.Get("/", func(c *fiber.Ctx) error {
 		return c.Render("index", fiber.Map{
-			"Title": "Home",
+			"Title": "Home | go-project",
 		})
 	})
 
 	application.Get("/contact", func(c *fiber.Ctx) error {
 		return c.Render("contact", fiber.Map{
-			"Title": "Contact",
+			"Title": "Contact | go-project",
 		})
 	})
 
@@ -166,7 +166,7 @@ func main() {
 			websocketProtocol = "wss"
 		}
 		return c.Render("endpoint", fiber.Map{
-			"Title":                "Endpoint",
+			"Title":                endpointID + " | go-project",
 			"EndpointID":           endpointID,
 			"EndpointURL":          protocol + "://" + host + "/to/" + endpointID,
 			"EndpointWebSocketURL": websocketProtocol + "://" + host + "/ws/" + endpointID,
