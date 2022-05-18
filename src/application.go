@@ -53,9 +53,11 @@ func main() {
 
 	c := cron.New()
 
-	if _, err := c.AddFunc("*/5 * * * *", func() {
-		database.DeleteOldRequests()
-		database.DeleteOldSocketClients()
+	everyFiveMinutes := "*/5 * * * *"
+	if _, err := c.AddFunc(everyFiveMinutes, func() {
+		threshold := time.Now().Add(-1 * 4 * time.Hour)
+		database.DeleteOldRequests(threshold)
+		database.DeleteOldSocketClients(threshold)
 	}); err != nil {
 		log.Fatalln(err)
 	}
