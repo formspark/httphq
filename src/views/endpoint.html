@@ -34,11 +34,10 @@
       <div
         :id="`request-${request.uuid}`"
         data-test="request"
-        class="section"
-        style="padding-top: 1.5rem; border-top: solid 1px var(--border)"
+        class="section border-t pt-6"
       >
         <!-- UUID -->
-        <div data-test="request-uuid" style="padding-bottom: 1rem">
+        <div data-test="request-uuid" class="pb-4">
           <a
             :href="`#request-${request.uuid}`"
             x-text="request.uuid"
@@ -47,7 +46,7 @@
         </div>
         <div class="flex">
           <!-- Details -->
-          <div data-test="request-details" style="width: 50%">
+          <div data-test="request-details" class="w-1/2">
             <div class="table-title">
               <b>Details</b>
             </div>
@@ -88,14 +87,11 @@
             </table>
           </div>
           <!-- Headers -->
-          <div
-            data-test="request-headers"
-            style="width: 50%; padding-left: 2rem"
-          >
+          <div data-test="request-headers" class="w-1/2 pl-8">
             <div class="table-title">
               <b>Headers</b>
             </div>
-            <div style="max-height: 300px; overflow: auto">
+            <div class="overflow-auto" style="max-height: 250px;">
               <table>
                 <tbody>
                   <template x-for="[k, v] in Object.entries(request.headers)">
@@ -109,7 +105,7 @@
                         ></a>
                       </td>
                       <td>
-                        <div x-text="v" style="max-width: 250px"></div>
+                        <div x-text="v" style="max-width: 250px;"></div>
                       </td>
                     </tr>
                   </template>

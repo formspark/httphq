@@ -61,6 +61,14 @@ p,
   padding: 0.35rem 0.45rem;
 }
 
+.w-1\/2 {
+  width: 50%;
+}
+
+.overflow-auto {
+  overflow: auto;
+}
+
 .flex {
   display: flex;
 }
@@ -87,6 +95,22 @@ p,
 
 .ml-4 {
   margin-left: 1rem;
+}
+
+.pt-6 {
+  padding-top: 1.5rem;
+}
+
+.pl-8 {
+  padding-left: 2rem;
+}
+
+.pb-4 {
+  padding-bottom: 1rem;
+}
+
+.border-t {
+  border-top: solid 1px var(--border);
 }
 
 .select-all {
