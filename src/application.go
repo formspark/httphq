@@ -53,9 +53,11 @@ func main() {
 
 	c := cron.New()
 
-	if _, err := c.AddFunc("*/5 * * * *", func() {
-		database.DeleteOldRequests()
-		database.DeleteOldSocketClients()
+	everyFiveMinutes := "*/5 * * * *"
+	if _, err := c.AddFunc(everyFiveMinutes, func() {
+		threshold := time.Now().Add(-1 * 4 * time.Hour)
+		database.DeleteOldRequests(threshold)
+		database.DeleteOldSocketClients(threshold)
 	}); err != nil {
 		log.Fatalln(err)
 	}
@@ -117,12 +119,6 @@ func main() {
 
 	// HTTP handling
 
-	application.Get("/", func(c *fiber.Ctx) error {
-		return c.Render("index", fiber.Map{
-			"Title": "Home",
-		})
-	})
-
 	application.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendStatus(http.StatusOK)
 	})
@@ -151,6 +147,18 @@ func main() {
 		})
 	})
 
+	application.Get("/", func(c *fiber.Ctx) error {
+		return c.Render("index", fiber.Map{
+			"Title": "Home | go-project",
+		})
+	})
+
+	application.Get("/contact", func(c *fiber.Ctx) error {
+		return c.Render("contact", fiber.Map{
+			"Title": "Contact | go-project",
+		})
+	})
+
 	application.Get("/:endpoint", func(c *fiber.Ctx) error {
 		endpointID := c.Params("endpoint")
 		host := string(c.Request().Host())
@@ -160,7 +168,7 @@ func main() {
 			websocketProtocol = "wss"
 		}
 		return c.Render("endpoint", fiber.Map{
-			"Title":                "Endpoint",
+			"Title":                endpointID + " | go-project",
 			"EndpointID":           endpointID,
 			"EndpointURL":          protocol + "://" + host + "/to/" + endpointID,
 			"EndpointWebSocketURL": websocketProtocol + "://" + host + "/ws/" + endpointID,

@@ -86,8 +86,8 @@ func CreateRequest(request *Request) {
 	}
 }
 
-func DeleteOldRequests() {
-	result := db.Where("created_at < ?", time.Now().Add(-1*4*time.Hour)).Delete(&Request{})
+func DeleteOldRequests(threshold time.Time) {
+	result := db.Where("created_at < ?", threshold).Delete(&Request{})
 	if result.Error != nil {
 		log.Println(result.Error)
 	}
@@ -135,8 +135,8 @@ func DeleteSocketClientForUUID(UUID string) {
 	}
 }
 
-func DeleteOldSocketClients() {
-	result := db.Where("created_at < ?", time.Now().Add(-1*4*time.Hour)).Delete(&SocketClient{})
+func DeleteOldSocketClients(threshold time.Time) {
+	result := db.Where("created_at < ?", threshold).Delete(&SocketClient{})
 	if result.Error != nil {
 		log.Println(result.Error)
 	}
