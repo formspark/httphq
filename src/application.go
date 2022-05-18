@@ -117,12 +117,6 @@ func main() {
 
 	// HTTP handling
 
-	application.Get("/", func(c *fiber.Ctx) error {
-		return c.Render("index", fiber.Map{
-			"Title": "Home",
-		})
-	})
-
 	application.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendStatus(http.StatusOK)
 	})
@@ -148,6 +142,18 @@ func main() {
 		endpointID := c.Params("endpoint")
 		return c.JSON(fiber.Map{
 			"requests": database.GetRequestsForEndpointID(endpointID),
+		})
+	})
+
+	application.Get("/", func(c *fiber.Ctx) error {
+		return c.Render("index", fiber.Map{
+			"Title": "Home",
+		})
+	})
+
+	application.Get("/contact", func(c *fiber.Ctx) error {
+		return c.Render("contact", fiber.Map{
+			"Title": "Contact",
 		})
 	})
 
