@@ -152,9 +152,7 @@
           "/api/endpoints/{{.EndpointID}}/requests" + `?search=${this.search}`
         )
           .then((response) => response.json())
-          .then((data) => {
-            this.setRequests(data.requests);
-          })
+          .then((data) => this.setRequests(data.requests))
           .catch((error) => console.error(error));
       },
       setRequests(requests) {
