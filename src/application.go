@@ -142,8 +142,9 @@ func main() {
 
 	application.Get("/api/endpoints/:endpoint/requests", func(c *fiber.Ctx) error {
 		endpointID := c.Params("endpoint")
+		search := c.Query("search")
 		return c.JSON(fiber.Map{
-			"requests": database.GetRequestsForEndpointID(endpointID, 128),
+			"requests": database.GetRequestsForEndpointID(endpointID, search, 128),
 		})
 	})
 
@@ -226,6 +227,7 @@ func main() {
 			} else {
 				emitErr := ikisocket.EmitTo(socketClient.UUID, marshalled)
 				if emitErr != nil {
+					// TODO: delete faulty socket client
 					log.Println(emitErr)
 				}
 			}

@@ -21,16 +21,27 @@
     </div>
   </div>
 
-  <div class="section">⚠️️️ Requests are deleted after 4 hours</div>
+  <div class="section">
+    <i>⚠️️️ Requests are deleted after 4 hours</i>
+  </div>
+
+  <!-- Search -->
+  <div class="section">
+    <input
+      type="text"
+      x-model.debounce="$store.main.search"
+      placeholder="Search..."
+    />
+  </div>
 
   <div data-test="requests">
     <!-- No data -->
-    <template x-if="$store.requests.data.length === 0">
+    <template x-if="$store.main.requests.length === 0">
       <div class="section">Waiting for requests...</div>
     </template>
 
     <!-- Data -->
-    <template x-for="request in $store.requests.data">
+    <template x-for="request in $store.main.requests">
       <div
         :id="`request-${request.uuid}`"
         data-test="request"
@@ -128,27 +139,48 @@
 
 <script>
   document.addEventListener("alpine:init", () => {
-    Alpine.store("requests", {
+    Alpine.store("main", {
       init() {
-        fetch("/api/endpoints/{{.EndpointID}}/requests")
+        Alpine.effect(() => {
+          this.getRequests();
+        });
+      },
+      search: "",
+      requests: [],
+      getRequests() {
+        return fetch(
+          "/api/endpoints/{{.EndpointID}}/requests" + `?search=${this.search}`
+        )
           .then((response) => response.json())
           .then((data) => {
-            this.add(...data.requests);
-            setTimeout(() => {
-              const id = window.location.hash.substring(1);
-              const el = document.getElementById(id);
-              if (el) {
-                el.scrollIntoView();
-              }
-            }, 125);
-          });
+            this.setRequests(data.requests);
+          })
+          .catch((error) => console.error(error));
       },
-      data: [],
-      add(...items) {
-        for (const item of items) {
-          item.createdAt = new Date(item.createdAt);
+      transformRequest(request) {
+        if (
+          this.search &&
+          !(JSON.stringify(request.headers) + JSON.stringify(request.body))
+            .toLowerCase()
+            .includes(this.search.toLowerCase())
+        ) {
+          return null;
         }
-        this.data = [...items, ...this.data];
+        const result = { ...request };
+        result.createdAt = new Date(result.createdAt);
+        return result;
+      },
+      setRequests(requests) {
+        this.requests = requests
+          .map(this.transformRequest)
+          .filter((request) => request !== null);
+      },
+      addRequest(request) {
+        const r = this.transformRequest(request);
+        if (r === null) {
+          return;
+        }
+        this.requests = [r, ...this.requests];
       },
     });
   });
@@ -172,8 +204,7 @@
   socket.addEventListener("message", function (payload) {
     console.debug("socket:message");
     const request = JSON.parse(payload.data);
-    Alpine.store("requests").add(request);
-    console.log(Alpine.store("requests").data);
+    Alpine.store("main").addRequest(request);
   });
 </script>
 
