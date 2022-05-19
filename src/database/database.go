@@ -61,18 +61,9 @@ func CountRequests() int64 {
 	return count
 }
 
-func GetRequests() []Request {
+func GetRequestsForEndpointID(endpointID string, limit int) []Request {
 	var items []Request
-	result := db.Order("created_at DESC").Find(&items)
-	if result.Error != nil {
-		log.Println(result.Error)
-	}
-	return items
-}
-
-func GetRequestsForEndpointID(endpointID string) []Request {
-	var items []Request
-	result := db.Where(&Request{EndpointID: endpointID}).Order("created_at DESC").Find(&items)
+	result := db.Where(&Request{EndpointID: endpointID}).Limit(limit).Order("created_at DESC").Find(&items)
 	if result.Error != nil {
 		log.Println(result.Error)
 	}
@@ -103,18 +94,9 @@ func CountSocketClients() int64 {
 	return count
 }
 
-func GetSocketClients() []SocketClient {
+func GetSocketClientsForEndpointID(endpointID string, limit int) []SocketClient {
 	var items []SocketClient
-	result := db.Order("created_at DESC").Find(&items)
-	if result.Error != nil {
-		log.Println(result.Error)
-	}
-	return items
-}
-
-func GetSocketClientsForEndpointID(endpointID string) []SocketClient {
-	var items []SocketClient
-	result := db.Where(&SocketClient{EndpointID: endpointID}).Order("created_at DESC").Find(&items)
+	result := db.Where(&SocketClient{EndpointID: endpointID}).Limit(limit).Order("created_at DESC").Find(&items)
 	if result.Error != nil {
 		log.Println(result.Error)
 	}
