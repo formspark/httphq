@@ -157,6 +157,18 @@
           })
           .catch((error) => console.error(error));
       },
+      setRequests(requests) {
+        this.requests = requests
+          .map(this.transformRequest)
+          .filter((request) => request !== null);
+      },
+      addRequest(request) {
+        const r = this.transformRequest(request);
+        if (r === null) {
+          return;
+        }
+        this.requests = [r, ...this.requests];
+      },
       transformRequest(request) {
         if (
           this.search &&
@@ -169,18 +181,6 @@
         const result = { ...request };
         result.createdAt = new Date(result.createdAt);
         return result;
-      },
-      setRequests(requests) {
-        this.requests = requests
-          .map(this.transformRequest)
-          .filter((request) => request !== null);
-      },
-      addRequest(request) {
-        const r = this.transformRequest(request);
-        if (r === null) {
-          return;
-        }
-        this.requests = [r, ...this.requests];
       },
     });
   });
