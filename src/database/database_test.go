@@ -6,10 +6,10 @@ import (
 )
 
 func TestConnect(t *testing.T) {
-	var result []string
 	Connect(":memory:")
 
 	// It should create all tables
-	DB.Raw(`SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name`).Scan(&result)
-	assert.Equal(t, []string{"requests", "socket_clients"}, result)
+	var tables []string
+	DB.Raw(`SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name`).Scan(&tables)
+	assert.Equal(t, []string{"requests", "socket_clients"}, tables)
 }
