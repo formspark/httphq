@@ -10,6 +10,12 @@ Run project locally:
 go run ./src/application.go
 ```
 
+Run tests locally:
+
+```bash
+watchman-make -p 'src/**/*.go' --make=go -t test ./...
+```
+
 Upkeep project dependencies:
 
 ```bash

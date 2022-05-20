@@ -43,7 +43,7 @@ var omittedHeaders = [...]string{
 func main() {
 	/* Database */
 
-	database.Connect()
+	database.Connect("local.db")
 
 	/* Haiku maker */
 
