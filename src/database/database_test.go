@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
-	"time"
 )
 
 func TestConnect(t *testing.T) {
@@ -19,24 +18,77 @@ func TestConnect(t *testing.T) {
 func TestCountRequests(t *testing.T) {
 	Connect(":memory:")
 
-	// It should return 0 if no requests exist
+	// It should return 0 if no items exist
 	assert.Equal(t, int64(0), CountRequests())
 
-	// It should return the amount of existing requests
+	// It should return the amount of existing items
 	var n = 3
 	for i := 0; i < n; i++ {
 		ID := fmt.Sprint(i)
-		request := Request{
+		CreateRequest(&Request{
 			UUID:       ID,
 			EndpointID: ID,
 			IP:         ID,
 			Method:     "GET",
 			Path:       "/test",
 			Body:       "test",
-			CreatedAt:  time.Time{},
-			Headers:    nil,
-		}
-		CreateRequest(&request)
+		})
 	}
 	assert.Equal(t, int64(n), CountRequests())
+}
+
+func TestGetRequestsForEndpointID(t *testing.T) {
+	Connect(":memory:")
+
+	endpointID := "test-id"
+
+	var items []Request
+
+	// It should return an empty array if no items exist
+	items = GetRequestsForEndpointID(endpointID, "", 32)
+	assert.Equal(t, []Request{}, items)
+
+	CreateRequest(&Request{
+		UUID:       "uuid-1",
+		EndpointID: endpointID,
+		IP:         "test-ip",
+		Method:     "GET",
+		Path:       "/test",
+		Body:       "test-body-1",
+	})
+	CreateRequest(&Request{
+		UUID:       "uuid-2",
+		EndpointID: endpointID,
+		IP:         "test-ip",
+		Method:     "GET",
+		Path:       "/test",
+		Body:       "test-body-2",
+	})
+	CreateRequest(&Request{
+		UUID:       "uuid-3",
+		EndpointID: "other-id",
+		IP:         "test-ip",
+		Method:     "GET",
+		Path:       "/test",
+		Body:       "test-body-3",
+	})
+
+	// It should only return items with the specified endpoint id
+	items = GetRequestsForEndpointID(endpointID, "", 32)
+	assert.Equal(t, 2, len(items))
+
+	// It should not return more items than the limit
+	items = GetRequestsForEndpointID(endpointID, "", 1)
+	assert.Equal(t, 1, len(items))
+
+	// It should not apply any additional filtering if the search string is empty
+	items = GetRequestsForEndpointID(endpointID, "", 32)
+	assert.Equal(t, 2, len(items))
+
+	// It should search headers and body based on the search string
+	items = GetRequestsForEndpointID(endpointID, "test-body", 32)
+	assert.Equal(t, 2, len(items))
+
+	items = GetRequestsForEndpointID(endpointID, "test-body-1", 32)
+	assert.Equal(t, 1, len(items))
 }
