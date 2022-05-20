@@ -73,6 +73,9 @@ func TestGetRequestsForEndpointID(t *testing.T) {
 		Body:       "test-body-3",
 	})
 
+	// It should return items with the correct shape
+	// TODO
+
 	// It should only return items with the specified endpoint id
 	items = GetRequestsForEndpointID(endpointID, "", 32)
 	assert.Equal(t, 2, len(items))
@@ -80,6 +83,9 @@ func TestGetRequestsForEndpointID(t *testing.T) {
 	// It should not return more items than the limit
 	items = GetRequestsForEndpointID(endpointID, "", 1)
 	assert.Equal(t, 1, len(items))
+
+	// It should return return items ordered by creation date
+	// TODO
 
 	// It should not apply any additional filtering if the search string is empty
 	items = GetRequestsForEndpointID(endpointID, "", 32)
