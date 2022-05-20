@@ -74,7 +74,15 @@ func TestGetRequestsForEndpointID(t *testing.T) {
 	})
 
 	// It should return items with the correct shape
-	// TODO
+	items = GetRequestsForEndpointID(endpointID, "", 1)
+	assert.Equal(t, "uuid-2", items[0].UUID)
+	assert.Equal(t, endpointID, items[0].EndpointID)
+	assert.Equal(t, "test-ip", items[0].IP)
+	assert.Equal(t, "GET", items[0].Method)
+	assert.Equal(t, "/test", items[0].Path)
+	assert.Equal(t, "test-body-2", items[0].Body)
+	// TODO: headers
+	// TODO: created_at
 
 	// It should only return items with the specified endpoint id
 	items = GetRequestsForEndpointID(endpointID, "", 32)
@@ -84,8 +92,10 @@ func TestGetRequestsForEndpointID(t *testing.T) {
 	items = GetRequestsForEndpointID(endpointID, "", 1)
 	assert.Equal(t, 1, len(items))
 
-	// It should return return items ordered by creation date
-	// TODO
+	// It should return return items ordered by creation date, newest first
+	items = GetRequestsForEndpointID(endpointID, "", 32)
+	assert.Equal(t, "test-body-2", items[0].Body)
+	assert.Equal(t, "test-body-1", items[1].Body)
 
 	// It should not apply any additional filtering if the search string is empty
 	items = GetRequestsForEndpointID(endpointID, "", 32)
