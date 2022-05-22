@@ -227,8 +227,8 @@ func main() {
 			} else {
 				emitErr := ikisocket.EmitTo(socketClient.UUID, marshalled)
 				if emitErr != nil {
-					// TODO: delete faulty socket client
 					log.Println(emitErr)
+					database.DeleteSocketClientForUUID(socketClient.UUID)
 				}
 			}
 		}
