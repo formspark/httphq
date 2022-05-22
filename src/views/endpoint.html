@@ -96,7 +96,13 @@
                 </tr>
                 <tr>
                   <td>Method</td>
-                  <td><div x-text="request.method"></div></td>
+                  <td>
+                    <div
+                      x-text="request.method"
+                      class="request-method"
+                      :class="request.method.toLowerCase()"
+                    ></div>
+                  </td>
                 </tr>
                 <tr>
                   <td>Path</td>
