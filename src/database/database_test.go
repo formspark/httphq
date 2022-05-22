@@ -120,3 +120,24 @@ func TestGetRequestsForEndpointID(t *testing.T) {
 	items = GetRequestsForEndpointID(endpointID, "Test-Header-1", 32)
 	assert.Equal(t, 1, len(items))
 }
+
+func TestCreateRequest(t *testing.T) {
+	Connect(":memory:")
+
+	endpointID := "test-id"
+
+	CreateRequest(&Request{
+		UUID:       "test-uuid",
+		EndpointID: endpointID,
+		IP:         "test-ip",
+		Method:     "GET",
+		Path:       "/test",
+		Body:       "test-body",
+		Headers:    datatypes.JSON(`{ "Test": "Test-Header" }`),
+	})
+
+	items := GetRequestsForEndpointID(endpointID, "", 1)
+
+	assert.Equal(t, "test-uuid", items[0].UUID)
+	assert.Equal(t, time.Now().Format(time.ANSIC), items[0].CreatedAt.Format(time.ANSIC))
+}
