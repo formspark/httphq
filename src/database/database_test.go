@@ -141,3 +141,39 @@ func TestCreateRequest(t *testing.T) {
 	assert.Equal(t, "test-uuid", items[0].UUID)
 	assert.Equal(t, time.Now().Format(time.ANSIC), items[0].CreatedAt.Format(time.ANSIC))
 }
+
+func TestDeleteOldRequests(t *testing.T) {
+	Connect(":memory:")
+
+	endpointID := "test-id"
+
+	threshold := time.Now().Add(-1 * 4 * time.Hour)
+
+	// It should delete items created before the threshold
+	CreateRequest(&Request{
+		UUID:       "uuid-delete",
+		EndpointID: endpointID,
+		IP:         "test-ip",
+		Method:     "GET",
+		Path:       "/test",
+		Body:       "test-body",
+		Headers:    datatypes.JSON(`{ "Test": "Test-Header" }`),
+		CreatedAt:  threshold.Add(-1 * time.Hour),
+	})
+	DeleteOldRequests(threshold)
+	assert.Equal(t, int64(0), CountRequests())
+
+	// It should not delete items created after the threshold
+	CreateRequest(&Request{
+		UUID:       "uuid-keep",
+		EndpointID: endpointID,
+		IP:         "test-ip",
+		Method:     "GET",
+		Path:       "/test",
+		Body:       "test-body",
+		Headers:    datatypes.JSON(`{ "Test": "Test-Header" }`),
+		CreatedAt:  threshold.Add(1 * time.Hour),
+	})
+	DeleteOldRequests(threshold)
+	assert.Equal(t, int64(1), CountRequests())
+}
