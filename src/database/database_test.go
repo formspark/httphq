@@ -5,6 +5,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gorm.io/datatypes"
 	"testing"
+	"time"
 )
 
 func TestConnect(t *testing.T) {
@@ -86,7 +87,7 @@ func TestGetRequestsForEndpointID(t *testing.T) {
 	assert.Equal(t, "/test", items[0].Path)
 	assert.Equal(t, "test-body-2", items[0].Body)
 	assert.Equal(t, datatypes.JSON(`{ "Test": "Test-Header-2" }`), items[0].Headers)
-	// TODO: created_at
+	assert.Equal(t, time.Now().Format(time.ANSIC), items[0].CreatedAt.Format(time.ANSIC))
 
 	// It should only return items with the specified endpoint id
 	items = GetRequestsForEndpointID(endpointID, "", 32)
