@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"gorm.io/datatypes"
 	"testing"
 )
 
@@ -55,6 +56,7 @@ func TestGetRequestsForEndpointID(t *testing.T) {
 		Method:     "GET",
 		Path:       "/test",
 		Body:       "test-body-1",
+		Headers:    datatypes.JSON(`{ "Test": "Test-Header-1" }`),
 	})
 	CreateRequest(&Request{
 		UUID:       "uuid-2",
@@ -63,6 +65,7 @@ func TestGetRequestsForEndpointID(t *testing.T) {
 		Method:     "GET",
 		Path:       "/test",
 		Body:       "test-body-2",
+		Headers:    datatypes.JSON(`{ "Test": "Test-Header-2" }`),
 	})
 	CreateRequest(&Request{
 		UUID:       "uuid-3",
@@ -71,6 +74,7 @@ func TestGetRequestsForEndpointID(t *testing.T) {
 		Method:     "GET",
 		Path:       "/test",
 		Body:       "test-body-3",
+		Headers:    datatypes.JSON(`{ "Test": "Test-Header-3" }`),
 	})
 
 	// It should return items with the correct shape
@@ -81,7 +85,7 @@ func TestGetRequestsForEndpointID(t *testing.T) {
 	assert.Equal(t, "GET", items[0].Method)
 	assert.Equal(t, "/test", items[0].Path)
 	assert.Equal(t, "test-body-2", items[0].Body)
-	// TODO: headers
+	assert.Equal(t, datatypes.JSON(`{ "Test": "Test-Header-2" }`), items[0].Headers)
 	// TODO: created_at
 
 	// It should only return items with the specified endpoint id
@@ -101,10 +105,17 @@ func TestGetRequestsForEndpointID(t *testing.T) {
 	items = GetRequestsForEndpointID(endpointID, "", 32)
 	assert.Equal(t, 2, len(items))
 
-	// It should search headers and body based on the search string
+	// It should search the body based on the search string
 	items = GetRequestsForEndpointID(endpointID, "test-body", 32)
 	assert.Equal(t, 2, len(items))
 
 	items = GetRequestsForEndpointID(endpointID, "test-body-1", 32)
+	assert.Equal(t, 1, len(items))
+
+	// It should search the headers based on the search string
+	items = GetRequestsForEndpointID(endpointID, "Test-Header", 32)
+	assert.Equal(t, 2, len(items))
+
+	items = GetRequestsForEndpointID(endpointID, "Test-Header-1", 32)
 	assert.Equal(t, 1, len(items))
 }
