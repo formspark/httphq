@@ -81,6 +81,10 @@ p,
   justify-content: center;
 }
 
+.justify-between {
+  justify-content: space-between;
+}
+
 .text-center {
   text-align: center;
 }
