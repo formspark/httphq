@@ -26,12 +26,20 @@
   </div>
 
   <!-- Search -->
-  <div class="section">
+  <div class="section flex items-center justify-between border-t pt-6">
     <input
       type="text"
       x-model.debounce="$store.main.search"
       placeholder="Search headers and body..."
     />
+
+    <div class="text-light">
+      <span x-text="$store.main.requests.length"></span>
+      <span
+        x-text="$store.main.requests.length === 1 ? 'result' : 'results'"
+      ></span>
+      (<span x-text="$store.main.searchMilliseconds"></span> ms)
+    </div>
   </div>
 
   <div data-test="requests">
@@ -88,7 +96,13 @@
                 </tr>
                 <tr>
                   <td>Method</td>
-                  <td><div x-text="request.method"></div></td>
+                  <td>
+                    <div
+                      x-text="request.method"
+                      class="request-method"
+                      :class="request.method.toLowerCase()"
+                    ></div>
+                  </td>
                 </tr>
                 <tr>
                   <td>Path</td>
@@ -146,13 +160,17 @@
         });
       },
       search: "",
+      searchMilliseconds: 0,
       requests: [],
       getRequests() {
         return fetch(
           "/api/endpoints/{{.EndpointID}}/requests" + `?search=${this.search}`
         )
           .then((response) => response.json())
-          .then((data) => this.setRequests(data.requests))
+          .then((data) => {
+            this.setRequests(data.requests);
+            this.searchMilliseconds = data.milliseconds;
+          })
           .catch((error) => console.error(error));
       },
       setRequests(requests) {

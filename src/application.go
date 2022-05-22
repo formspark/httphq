@@ -143,8 +143,13 @@ func main() {
 	application.Get("/api/endpoints/:endpoint/requests", func(c *fiber.Ctx) error {
 		endpointID := c.Params("endpoint")
 		search := c.Query("search")
+		start := time.Now()
+		requests := database.GetRequestsForEndpointID(endpointID, search, 128)
+		duration := time.Since(start)
+		milliseconds := duration.Milliseconds()
 		return c.JSON(fiber.Map{
-			"requests": database.GetRequestsForEndpointID(endpointID, search, 128),
+			"requests":     requests,
+			"milliseconds": milliseconds,
 		})
 	})
 
@@ -227,8 +232,8 @@ func main() {
 			} else {
 				emitErr := ikisocket.EmitTo(socketClient.UUID, marshalled)
 				if emitErr != nil {
-					// TODO: delete faulty socket client
 					log.Println(emitErr)
+					database.DeleteSocketClientForUUID(socketClient.UUID)
 				}
 			}
 		}
