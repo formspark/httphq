@@ -79,5 +79,76 @@ describe("Endpoint screen", () => {
         }
       );
     });
+
+    it("should be possible to filter based on the request body", () => {
+      const requestBody = "Hello World!";
+      cy.exec(`curl -X POST -d '${requestBody}' ${TEST_ENDPOINT_URL}`).then(
+        () => {
+          cy.get('[data-test="requests').should("contain.text", requestBody);
+
+          cy.get('[data-test="requests-search').clear().type("Hello");
+          cy.get('[data-test="requests').should("contain.text", requestBody);
+
+          cy.get('[data-test="requests-search').clear().type("Test");
+          cy.get('[data-test="requests').should(
+            "not.contain.text",
+            requestBody
+          );
+        }
+      );
+    });
+
+    it("should be possible to filter based on the request headers", () => {
+      const requestHeaderKey = "A-Test";
+      const requestHeaderValue = "Hello World!";
+
+      cy.exec(
+        `curl -X POST -H '${requestHeaderKey}: ${requestHeaderValue}' ${TEST_ENDPOINT_URL}`
+      ).then(() => {
+        cy.get('[data-test="requests').should("contain.text", requestHeaderKey);
+        cy.get('[data-test="requests').should(
+          "contain.text",
+          requestHeaderValue
+        );
+
+        // Positive key search
+        cy.get('[data-test="requests-search').clear().type("A-");
+        cy.get('[data-test="requests').should("contain.text", requestHeaderKey);
+        cy.get('[data-test="requests').should(
+          "contain.text",
+          requestHeaderValue
+        );
+
+        // Negative key search
+        cy.get('[data-test="requests-search').clear().type("B-");
+        cy.get('[data-test="requests').should(
+          "not.contain.text",
+          requestHeaderKey
+        );
+        cy.get('[data-test="requests').should(
+          "not.contain.text",
+          requestHeaderValue
+        );
+
+        // Positive value search
+        cy.get('[data-test="requests-search').clear().type("Hello");
+        cy.get('[data-test="requests').should("contain.text", requestHeaderKey);
+        cy.get('[data-test="requests').should(
+          "contain.text",
+          requestHeaderValue
+        );
+
+        // Negative value search
+        cy.get('[data-test="requests-search').clear().type("Not");
+        cy.get('[data-test="requests').should(
+          "not.contain.text",
+          requestHeaderKey
+        );
+        cy.get('[data-test="requests').should(
+          "not.contain.text",
+          requestHeaderValue
+        );
+      });
+    });
   });
 });
