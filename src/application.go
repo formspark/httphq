@@ -205,6 +205,9 @@ func main() {
 		body := c.Body()
 
 		headers := c.GetReqHeaders()
+		if hideIp, ok := headers["Hide-Ip"]; ok && hideIp == "true" {
+			IP = "Hidden"
+		}
 		for _, omittedHeader := range omittedHeaders {
 			delete(headers, omittedHeader)
 		}
