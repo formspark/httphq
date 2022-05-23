@@ -13,7 +13,7 @@
   <div class="section">
     <div class="flex items-center">
       <code class="terminal select-all">
-        curl -X POST -d 'Hello World!' {{.EndpointURL}}
+        curl -X POST -H "Hide-Ip: true" -d 'Hello, World!' {{.EndpointURL}}
       </code>
       <a href="javascript:;" onclick="sendTestData()" class="text-light ml-2"
         >Send data</a
@@ -28,6 +28,7 @@
   <!-- Search -->
   <div class="section flex items-center justify-between border-t pt-6">
     <input
+      data-test="requests-search"
       type="text"
       x-model.debounce="$store.main.search"
       placeholder="Search headers and body..."
@@ -38,7 +39,6 @@
       <span
         x-text="$store.main.requests.length === 1 ? 'result' : 'results'"
       ></span>
-      (<span x-text="$store.main.searchMilliseconds"></span> ms)
     </div>
   </div>
 
@@ -160,17 +160,13 @@
         });
       },
       search: "",
-      searchMilliseconds: 0,
       requests: [],
       getRequests() {
         return fetch(
           "/api/endpoints/{{.EndpointID}}/requests" + `?search=${this.search}`
         )
           .then((response) => response.json())
-          .then((data) => {
-            this.setRequests(data.requests);
-            this.searchMilliseconds = data.milliseconds;
-          })
+          .then((data) => this.setRequests(data.requests))
           .catch((error) => console.error(error));
       },
       setRequests(requests) {
@@ -229,6 +225,9 @@
     await fetch("/to/{{.EndpointID}}", {
       method: "POST",
       body: "Hello, World!",
+      headers: {
+        "Hide-Ip": true,
+      },
     });
   };
 </script>

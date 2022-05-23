@@ -143,13 +143,9 @@ func main() {
 	application.Get("/api/endpoints/:endpoint/requests", func(c *fiber.Ctx) error {
 		endpointID := c.Params("endpoint")
 		search := c.Query("search")
-		start := time.Now()
 		requests := database.GetRequestsForEndpointID(endpointID, search, 128)
-		duration := time.Since(start)
-		milliseconds := duration.Milliseconds()
 		return c.JSON(fiber.Map{
-			"requests":     requests,
-			"milliseconds": milliseconds,
+			"requests": requests,
 		})
 	})
 
@@ -205,6 +201,9 @@ func main() {
 		body := c.Body()
 
 		headers := c.GetReqHeaders()
+		if hideIp, ok := headers["Hide-Ip"]; ok && hideIp == "true" {
+			IP = "Hidden"
+		}
 		for _, omittedHeader := range omittedHeaders {
 			delete(headers, omittedHeader)
 		}
