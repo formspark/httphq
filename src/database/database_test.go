@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+/* General */
+
 func TestConnect(t *testing.T) {
 	database.Connect(":memory:")
 
@@ -17,6 +19,8 @@ func TestConnect(t *testing.T) {
 	database.DB.Raw(`SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name`).Scan(&tables)
 	assert.Equal(t, []string{"requests", "socket_clients"}, tables)
 }
+
+/* Request */
 
 func TestCountRequests(t *testing.T) {
 	database.Connect(":memory:")
@@ -177,4 +181,68 @@ func TestDeleteOldRequests(t *testing.T) {
 	})
 	database.DeleteOldRequests(threshold)
 	assert.Equal(t, int64(1), database.CountRequests())
+}
+
+/* SocketClient */
+
+func TestCountSocketClients(t *testing.T) {
+	database.Connect(":memory:")
+
+	// It should return 0 if no items exist
+	assert.Equal(t, int64(0), database.CountSocketClients())
+
+	// It should return the amount of existing items
+	var n = 3
+	for i := 0; i < n; i++ {
+		ID := fmt.Sprint(i)
+		database.CreateSocketClient(&database.SocketClient{
+			UUID:       ID,
+			EndpointID: ID,
+		})
+	}
+	assert.Equal(t, int64(n), database.CountSocketClients())
+}
+
+func TestGetSocketClientsForEndpointID(t *testing.T) {
+	database.Connect(":memory:")
+
+	endpointID := "test-id"
+
+	var items []database.SocketClient
+
+	// It should return an empty array if no items exist
+	items = database.GetSocketClientsForEndpointID(endpointID, 32)
+	assert.Equal(t, []database.SocketClient{}, items)
+
+	database.CreateSocketClient(&database.SocketClient{
+		UUID:       "uuid-1",
+		EndpointID: endpointID,
+	})
+	database.CreateSocketClient(&database.SocketClient{
+		UUID:       "uuid-2",
+		EndpointID: endpointID,
+	})
+	database.CreateSocketClient(&database.SocketClient{
+		UUID:       "uuid-3",
+		EndpointID: "other-id",
+	})
+
+	// It should return items with the correct shape
+	items = database.GetSocketClientsForEndpointID(endpointID, 1)
+	assert.Equal(t, "uuid-2", items[0].UUID)
+	assert.Equal(t, endpointID, items[0].EndpointID)
+	assert.Equal(t, time.Now().Format(time.ANSIC), items[0].CreatedAt.Format(time.ANSIC))
+
+	// It should only return items with the specified endpoint id
+	items = database.GetSocketClientsForEndpointID(endpointID, 32)
+	assert.Equal(t, 2, len(items))
+
+	// It should not return more items than the limit
+	items = database.GetSocketClientsForEndpointID(endpointID, 1)
+	assert.Equal(t, 1, len(items))
+
+	// It should return return items ordered by creation date, newest first
+	items = database.GetSocketClientsForEndpointID(endpointID, 32)
+	assert.Equal(t, "uuid-2", items[0].UUID)
+	assert.Equal(t, "uuid-1", items[1].UUID)
 }
