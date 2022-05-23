@@ -38,7 +38,6 @@
       <span
         x-text="$store.main.requests.length === 1 ? 'result' : 'results'"
       ></span>
-      (<span x-text="$store.main.searchMilliseconds"></span> ms)
     </div>
   </div>
 
@@ -160,17 +159,13 @@
         });
       },
       search: "",
-      searchMilliseconds: 0,
       requests: [],
       getRequests() {
         return fetch(
           "/api/endpoints/{{.EndpointID}}/requests" + `?search=${this.search}`
         )
           .then((response) => response.json())
-          .then((data) => {
-            this.setRequests(data.requests);
-            this.searchMilliseconds = data.milliseconds;
-          })
+          .then((data) => this.setRequests(data.requests))
           .catch((error) => console.error(error));
       },
       setRequests(requests) {
