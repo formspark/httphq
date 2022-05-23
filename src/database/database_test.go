@@ -262,3 +262,33 @@ func TestCreateSocketClient(t *testing.T) {
 	assert.Equal(t, "test-uuid", items[0].UUID)
 	assert.Equal(t, time.Now().Format(time.ANSIC), items[0].CreatedAt.Format(time.ANSIC))
 }
+
+func TestDeleteSocketClientForUUID(t *testing.T) {
+	// TODO
+}
+
+func TestDeleteOldSocketClients(t *testing.T) {
+	database.Connect(":memory:")
+
+	endpointID := "test-id"
+
+	threshold := time.Now().Add(-1 * 4 * time.Hour)
+
+	// It should delete items created before the threshold
+	database.CreateSocketClient(&database.SocketClient{
+		UUID:       "uuid-delete",
+		EndpointID: endpointID,
+		CreatedAt:  threshold.Add(-1 * time.Hour),
+	})
+	database.DeleteOldSocketClients(threshold)
+	assert.Equal(t, int64(0), database.CountSocketClients())
+
+	// It should not delete items created after the threshold
+	database.CreateSocketClient(&database.SocketClient{
+		UUID:       "uuid-keep",
+		EndpointID: endpointID,
+		CreatedAt:  threshold.Add(1 * time.Hour),
+	})
+	database.DeleteOldSocketClients(threshold)
+	assert.Equal(t, int64(1), database.CountSocketClients())
+}
