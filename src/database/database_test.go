@@ -264,7 +264,24 @@ func TestCreateSocketClient(t *testing.T) {
 }
 
 func TestDeleteSocketClientForUUID(t *testing.T) {
-	// TODO
+	database.Connect(":memory:")
+
+	endpointID := "test-id"
+
+	database.CreateSocketClient(&database.SocketClient{
+		UUID:       "uuid-delete",
+		EndpointID: endpointID,
+	})
+
+	database.CreateSocketClient(&database.SocketClient{
+		UUID:       "uuid-keep",
+		EndpointID: endpointID,
+	})
+
+	database.DeleteSocketClientForUUID("uuid-delete")
+
+	assert.Equal(t, int64(1), database.CountSocketClients())
+	assert.Equal(t, "uuid-keep", database.GetSocketClientsForEndpointID(endpointID, 1)[0].UUID)
 }
 
 func TestDeleteOldSocketClients(t *testing.T) {
