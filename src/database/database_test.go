@@ -246,3 +246,19 @@ func TestGetSocketClientsForEndpointID(t *testing.T) {
 	assert.Equal(t, "uuid-2", items[0].UUID)
 	assert.Equal(t, "uuid-1", items[1].UUID)
 }
+
+func TestCreateSocketClient(t *testing.T) {
+	database.Connect(":memory:")
+
+	endpointID := "test-id"
+
+	database.CreateSocketClient(&database.SocketClient{
+		UUID:       "test-uuid",
+		EndpointID: endpointID,
+	})
+
+	items := database.GetSocketClientsForEndpointID(endpointID, 1)
+
+	assert.Equal(t, "test-uuid", items[0].UUID)
+	assert.Equal(t, time.Now().Format(time.ANSIC), items[0].CreatedAt.Format(time.ANSIC))
+}
