@@ -61,40 +61,32 @@ p,
   padding: 0.35rem 0.45rem;
 }
 
-.request-method {
-  color: var(--white);
-  background: var(--black);
-  display: inline-flex;
-  border-radius: 5px;
-  padding: 0.1rem 0.3rem;
-}
-
 .request-method.get {
-  background: blue;
+  color: blue;
 }
 
 .request-method.post {
-  background: darkgreen;
+  color: darkgreen;
 }
 
 .request-method.patch {
-  background: green;
+  color: green;
 }
 
 .request-method.put {
-  background: darkorange;
+  color: darkorange;
 }
 
 .request-method.head {
-  background: purple;
+  color: purple;
 }
 
 .request-method.delete {
-  background: red;
+  color: darkred;
 }
 
 .request-method.options {
-  background: darkblue;
+  color: darkblue;
 }
 
 .w-1\/2 {
