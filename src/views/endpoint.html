@@ -22,7 +22,15 @@
   </div>
 
   <div class="section">
-    <i>⚠️️️ Requests are deleted after 4 hours</i>
+    <div class="flex items-center">
+      <i>⚠️️️ Requests are deleted after 4 hours</i>
+      <a
+        href="javascript:;"
+        @click="$store.main.deleteRequests()"
+        class="text-light ml-2"
+        >Delete now</a
+      >
+    </div>
   </div>
 
   <!-- Search -->
@@ -183,6 +191,14 @@
           return;
         }
         this.requests = [r, ...this.requests];
+      },
+      deleteRequests() {
+        fetch("/api/endpoints/{{.EndpointID}}/requests", {
+          method: "DELETE",
+        })
+          // TODO: update requests array
+          .then(() => location.reload())
+          .catch((error) => console.error(error));
       },
       transformRequest(request) {
         if (
