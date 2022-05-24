@@ -76,6 +76,15 @@ func CreateRequest(request *Request) {
 	}
 }
 
+func DeleteRequestsForEndpointID(endpointID string) {
+	result := DB.Where(&Request{EndpointID: endpointID}).Where(&Request{
+		EndpointID: endpointID,
+	}).Delete(&Request{})
+	if result.Error != nil {
+		log.Println(result.Error)
+	}
+}
+
 func DeleteOldRequests(threshold time.Time) {
 	result := DB.Where("created_at < ?", threshold).Delete(&Request{})
 	if result.Error != nil {

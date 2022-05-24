@@ -61,6 +61,12 @@ p,
   padding: 0.35rem 0.45rem;
 }
 
+.search-box {
+  background: #f3f5f7;
+  border: solid 1px var(--border);
+  z-index: 2;
+}
+
 .request-method.get {
   color: blue;
 }
@@ -97,6 +103,14 @@ p,
   overflow: auto;
 }
 
+.sticky {
+  position: sticky;
+}
+
+.top-0 {
+  top: 0;
+}
+
 .flex {
   display: flex;
 }
@@ -129,16 +143,30 @@ p,
   margin-left: 1rem;
 }
 
-.pt-6 {
-  padding-top: 1.5rem;
-}
-
-.pl-8 {
-  padding-left: 2rem;
+.px-4 {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
 }
 
 .pb-4 {
   padding-bottom: 1rem;
+}
+
+.py-6 {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+.pt-6 {
+  padding-top: 1.5rem;
+}
+
+.pb-6 {
+  padding-bottom: 1.5rem;
+}
+
+.pl-8 {
+  padding-left: 2rem;
 }
 
 .border-t {
