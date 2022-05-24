@@ -26,12 +26,15 @@
   </div>
 
   <!-- Search -->
-  <div class="section flex items-center justify-between border-t pt-6">
+  <div
+    class="search-box section sticky top-0 flex items-center justify-between px-4 py-6"
+  >
     <input
       data-test="requests-search"
       type="search"
       x-model.debounce="$store.main.search"
       placeholder="Search headers and body..."
+      style="margin: 0"
     />
 
     <div class="text-light">
