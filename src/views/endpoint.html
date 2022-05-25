@@ -196,8 +196,7 @@
         fetch("/api/endpoints/{{.EndpointID}}/requests", {
           method: "DELETE",
         })
-          // TODO: update requests array
-          .then(() => location.reload())
+          .then(() => this.requests = [])
           .catch((error) => console.error(error));
       },
       transformRequest(request) {
