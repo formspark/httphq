@@ -176,6 +176,35 @@ func TestDeleteRequestsForEndpointID(t *testing.T) {
 	assert.Equal(t, "keep-id", database.GetRequestsForEndpointID("keep-id", "", 1)[0].EndpointID)
 }
 
+func TestDeleteRequestForUUID(t *testing.T) {
+	database.Connect(":memory:")
+
+	database.CreateRequest(&database.Request{
+		UUID:       "delete-uuid",
+		EndpointID: "test-id",
+		IP:         "test-ip",
+		Method:     "GET",
+		Path:       "/test",
+		Body:       "test-body",
+		Headers:    datatypes.JSON(`{ "Test": "Test-Header" }`),
+	})
+
+	database.CreateRequest(&database.Request{
+		UUID:       "keep-uuid",
+		EndpointID: "test-id",
+		IP:         "test-ip",
+		Method:     "GET",
+		Path:       "/test",
+		Body:       "test-body",
+		Headers:    datatypes.JSON(`{ "Test": "Test-Header" }`),
+	})
+
+	database.DeleteRequestForUUID("delete-uuid")
+
+	assert.Equal(t, int64(1), database.CountRequests())
+	assert.Equal(t, "keep-uuid", database.GetRequestsForEndpointID("test-id", "", 1)[0].UUID)
+}
+
 func TestDeleteOldRequests(t *testing.T) {
 	database.Connect(":memory:")
 
