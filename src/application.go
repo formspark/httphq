@@ -155,6 +155,12 @@ func main() {
 		return c.SendStatus(http.StatusOK)
 	})
 
+	application.Delete("/api/endpoints/:endpoint/requests/:request", func(c *fiber.Ctx) error {
+		requestUUID := c.Params("request")
+		database.DeleteRequestForUUID(requestUUID)
+		return c.SendStatus(http.StatusOK)
+	})
+
 	application.Get("/", func(c *fiber.Ctx) error {
 		return c.Render("index", fiber.Map{
 			"Title": "Home | go-project",

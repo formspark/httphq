@@ -77,9 +77,14 @@ func CreateRequest(request *Request) {
 }
 
 func DeleteRequestsForEndpointID(endpointID string) {
-	result := DB.Where(&Request{EndpointID: endpointID}).Where(&Request{
-		EndpointID: endpointID,
-	}).Delete(&Request{})
+	result := DB.Where(&Request{EndpointID: endpointID}).Delete(&Request{})
+	if result.Error != nil {
+		log.Println(result.Error)
+	}
+}
+
+func DeleteRequestForUUID(UUID string) {
+	result := DB.Where(&Request{UUID: UUID}).Delete(&Request{})
 	if result.Error != nil {
 		log.Println(result.Error)
 	}

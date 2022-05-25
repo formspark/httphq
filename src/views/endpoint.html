@@ -66,13 +66,24 @@
         data-test="request"
         class="section border-t pt-6"
       >
-        <!-- UUID -->
-        <div data-test="request-uuid" class="pb-4">
-          <a
-            :href="`#request-${request.uuid}`"
-            x-text="request.uuid"
-            class="text-light"
-          ></a>
+        <div class="flex justify-between pb-4">
+          <!-- UUID -->
+          <div data-test="request-uuid">
+            <a
+              :href="`#request-${request.uuid}`"
+              x-text="request.uuid"
+              class="text-light"
+            ></a>
+          </div>
+          <!-- Delete -->
+          <div>
+            <a
+              href="javascript:;"
+              @click="$store.main.deleteRequest(request.uuid)"
+              class="text-light"
+              >Delete</a
+            >
+          </div>
         </div>
         <div class="flex">
           <!-- Details -->
@@ -196,7 +207,19 @@
         fetch("/api/endpoints/{{.EndpointID}}/requests", {
           method: "DELETE",
         })
-          .then(() => this.requests = [])
+          .then(() => (this.requests = []))
+          .catch((error) => console.error(error));
+      },
+      deleteRequest(uuid) {
+        fetch("/api/endpoints/{{.EndpointID}}/requests" + `/${uuid}`, {
+          method: "DELETE",
+        })
+          .then(
+            () =>
+              (this.requests = this.requests.filter(
+                (request) => request.uuid !== uuid
+              ))
+          )
           .catch((error) => console.error(error));
       },
       transformRequest(request) {
