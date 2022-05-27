@@ -249,6 +249,7 @@ func main() {
 			}
 		}
 
+		c.Set("Go-Project-Request-UUID", UUID)
 		return c.SendStatus(http.StatusOK)
 	})
 

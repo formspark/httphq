@@ -16,6 +16,13 @@ Run tests locally:
 watchman-make -p 'src/**/*.go' --make=go -t test ./...
 ```
 
+View test coverage:
+
+```bash
+go test ./... -coverprofile=coverage.out
+go tool cover -html=coverage.out
+```
+
 Upkeep project dependencies:
 
 ```bash

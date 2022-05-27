@@ -25,6 +25,7 @@
     <div class="flex items-center">
       <i>⚠️️️ Requests are deleted after 4 hours</i>
       <a
+        data-test="delete-requests"
         href="javascript:;"
         @click="$store.main.deleteRequests()"
         class="text-light ml-2"
@@ -45,12 +46,11 @@
       style="margin: 0"
     />
 
-    <div class="text-light">
-      <span x-text="$store.main.requests.length"></span>
-      <span
-        x-text="$store.main.requests.length === 1 ? 'result' : 'results'"
-      ></span>
-    </div>
+    <div
+      data-test="results-count"
+      x-text="`${$store.main.requests.length} ${$store.main.requests.length === 1 ? 'result' : 'results'}`"
+      class="text-light"
+    ></div>
   </div>
 
   <div data-test="requests">
@@ -78,6 +78,7 @@
           <!-- Delete -->
           <div>
             <a
+              data-test="delete-request"
               href="javascript:;"
               @click="$store.main.deleteRequest(request.uuid)"
               class="text-light"
