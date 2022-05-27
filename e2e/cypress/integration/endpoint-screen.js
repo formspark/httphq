@@ -153,7 +153,7 @@ describe("Endpoint screen", () => {
       cy.exec(`curl -X POST -d 'Hello World!' ${testEndpointUrl}`).then(() => {
         cy.exec(`curl -X POST -d 'Hello World!' ${testEndpointUrl}`).then(
           () => {
-            cy.get('a[data-test="delete-requests-button').click();
+            cy.get('a[data-test="delete-requests').click();
             cy.get('[data-test="requests').should(
               "contain.text",
               "Waiting for requests..."
