@@ -162,5 +162,20 @@ describe("Endpoint screen", () => {
         );
       });
     });
+
+    it("should be possible to delete a specific request", () => {
+      cy.exec(`curl -X POST -d 'Hello World!' ${testEndpointUrl}`).then(() => {
+        cy.request("POST", testEndpointUrl, { message: "Hello World!" }).then(
+          (response) => {
+            const uuid = response.headers["go-project-request-uuid"];
+            cy.get(`#request-${uuid}`).should("exist");
+            cy.get(`#request-${uuid}`).within(() => {
+              cy.get('a[data-test="delete-request"]').click({ force: true });
+            });
+            cy.get(`#request-${uuid}`).should("not.exist");
+          }
+        );
+      });
+    });
   });
 });
