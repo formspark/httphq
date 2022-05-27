@@ -148,5 +148,19 @@ describe("Endpoint screen", () => {
         );
       });
     });
+
+    it("should be possible to delete all requests", () => {
+      cy.exec(`curl -X POST -d 'Hello World!' ${testEndpointUrl}`).then(() => {
+        cy.exec(`curl -X POST -d 'Hello World!' ${testEndpointUrl}`).then(
+          () => {
+            cy.get('a[data-test="delete-requests-button').click();
+            cy.get('[data-test="requests').should(
+              "contain.text",
+              "Waiting for requests..."
+            );
+          }
+        );
+      });
+    });
   });
 });
