@@ -86,11 +86,19 @@ describe("Endpoint screen", () => {
 
           cy.get('[data-test="requests-search').clear().type("Hello");
           cy.get('[data-test="requests').should("contain.text", requestBody);
+          cy.get('[data-test="results-count').should(
+            "contain.text",
+            "1 result"
+          );
 
           cy.get('[data-test="requests-search').clear().type("Test");
           cy.get('[data-test="requests').should(
             "not.contain.text",
             requestBody
+          );
+          cy.get('[data-test="results-count').should(
+            "contain.text",
+            "0 results"
           );
         }
       );
@@ -116,6 +124,7 @@ describe("Endpoint screen", () => {
           "contain.text",
           requestHeaderValue
         );
+        cy.get('[data-test="results-count').should("contain.text", "1 result");
 
         // Negative key search
         cy.get('[data-test="requests-search').clear().type("B-");
@@ -127,6 +136,7 @@ describe("Endpoint screen", () => {
           "not.contain.text",
           requestHeaderValue
         );
+        cy.get('[data-test="results-count').should("contain.text", "0 results");
 
         // Positive value search
         cy.get('[data-test="requests-search').clear().type("Hello");
@@ -135,6 +145,7 @@ describe("Endpoint screen", () => {
           "contain.text",
           requestHeaderValue
         );
+        cy.get('[data-test="results-count').should("contain.text", "1 result");
 
         // Negative value search
         cy.get('[data-test="requests-search').clear().type("Not");
@@ -146,6 +157,7 @@ describe("Endpoint screen", () => {
           "not.contain.text",
           requestHeaderValue
         );
+        cy.get('[data-test="results-count').should("contain.text", "0 results");
       });
     });
 
