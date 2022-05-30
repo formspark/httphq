@@ -4,6 +4,19 @@ https://httphq.com
 
 ## Scripts
 
+Install project dependencies:
+
+```bash
+go mod download
+cd e2e && npm install
+````
+
+Run project locally:
+
+```bash
+go run ./src/application.go
+```
+
 Run project locally:
 
 ```bash
