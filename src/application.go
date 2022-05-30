@@ -123,10 +123,6 @@ func main() {
 		return c.SendStatus(http.StatusOK)
 	})
 
-	application.Get("/favicon", func(c *fiber.Ctx) error {
-		return c.SendStatus(http.StatusNotFound)
-	})
-
 	application.Get("/robots", func(c *fiber.Ctx) error {
 		return c.SendStatus(http.StatusNotFound)
 	})
