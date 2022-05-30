@@ -11,8 +11,8 @@ import (
 	"github.com/gofiber/websocket/v2"
 	"github.com/google/uuid"
 	"github.com/robfig/cron/v3"
-	"go-project/src/database"
 	"gorm.io/datatypes"
+	"httphq/src/database"
 	"log"
 	"net/http"
 	"os"
@@ -163,13 +163,13 @@ func main() {
 
 	application.Get("/", func(c *fiber.Ctx) error {
 		return c.Render("index", fiber.Map{
-			"Title": "Home | go-project",
+			"Title": "Home | httphq",
 		})
 	})
 
 	application.Get("/contact", func(c *fiber.Ctx) error {
 		return c.Render("contact", fiber.Map{
-			"Title": "Contact | go-project",
+			"Title": "Contact | httphq",
 		})
 	})
 
@@ -182,7 +182,7 @@ func main() {
 			websocketProtocol = "wss"
 		}
 		return c.Render("endpoint", fiber.Map{
-			"Title":                endpointID + " | go-project",
+			"Title":                endpointID + " | httphq",
 			"EndpointID":           endpointID,
 			"EndpointURL":          protocol + "://" + host + "/to/" + endpointID,
 			"EndpointWebSocketURL": websocketProtocol + "://" + host + "/ws/" + endpointID,
@@ -266,7 +266,7 @@ func main() {
 			}
 		}
 
-		c.Set("Go-Project-Request-UUID", UUID)
+		c.Set("HTTPHQ-Request-UUID", UUID)
 		return c.SendStatus(http.StatusOK)
 	})
 

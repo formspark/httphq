@@ -5,7 +5,7 @@ describe("Home screen", () => {
 
   describe("Title", () => {
     it("should be correct", () => {
-      cy.title().should("eq", `Home | go-project`);
+      cy.title().should("eq", `Home | httphq`);
     });
   });
 

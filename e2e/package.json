@@ -1,8 +1,8 @@
 {
-  "name": "go-project-e2e",
+  "name": "httphq-e2e",
   "private": true,
   "scripts": {
-    "start-server": "(cd .. && ./bin/go-project)"
+    "start-server": "(cd .. && ./bin/httphq)"
   },
   "devDependencies": {
     "cypress": "^9.7.0"

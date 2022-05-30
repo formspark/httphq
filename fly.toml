@@ -1,4 +1,6 @@
-app = "go-project"
+# fly.toml file generated for httphq on 2022-05-30T17:35:37+02:00
+
+app = "httphq"
 
 kill_signal = "SIGINT"
 kill_timeout = 5
@@ -21,6 +23,17 @@ processes = []
     soft_limit = 20
     type = "connections"
 
+  [[services.http_checks]]
+    grace_period = "5s"
+    interval = 10000
+    method = "get"
+    path = "/health"
+    protocol = "http"
+    restart_limit = 6
+    timeout = 2000
+
+    [services.http_checks.headers]
+
   [[services.ports]]
     force_https = true
     handlers = ["http"]
@@ -35,13 +48,3 @@ processes = []
     interval = "15s"
     restart_limit = 0
     timeout = "2s"
-
-  [[services.http_checks]]
-    interval = 10000
-    grace_period = "5s"
-    method = "get"
-    path = "/health"
-    protocol = "http"
-    timeout = 2000
-    restart_limit = 6
-    [services.http_checks.headers]
