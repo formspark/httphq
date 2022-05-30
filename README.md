@@ -9,7 +9,7 @@ Install project dependencies:
 ```bash
 go mod download
 cd e2e && npm install
-````
+```
 
 Run project locally:
 
