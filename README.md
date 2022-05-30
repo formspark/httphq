@@ -1,6 +1,6 @@
-# go-project
+# httphq
 
-https://go-project.fly.dev/
+https://httphq.com
 
 ## Scripts
 
@@ -38,15 +38,15 @@ go fmt ./src && npx prettier --write .
 Build and run binary locally:
 
 ```bash
-go build -o ./bin/go-project ./src
-./bin/go-project
+go build -o ./bin/httphq ./src
+./bin/httphq
 ```
 
 Build and run container locally:
 
 ```bash
-docker build . -t go-project
-docker run -dp 8080:8080 go-project
+docker build . -t httphq
+docker run -dp 8080:8080 httphq
 docker container ls -s
 ```
 

@@ -3,8 +3,8 @@ package database_test
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"go-project/src/database"
 	"gorm.io/datatypes"
+	"httphq/src/database"
 	"testing"
 	"time"
 )

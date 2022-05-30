@@ -13,7 +13,7 @@ describe("Endpoint screen", () => {
 
   describe("Title", () => {
     it("should be correct", () => {
-      cy.title().should("eq", `${testId} | go-project`);
+      cy.title().should("eq", `${testId} | httphq`);
     });
   });
 
@@ -179,7 +179,7 @@ describe("Endpoint screen", () => {
       cy.exec(`curl -X POST -d 'Hello World!' ${testEndpointUrl}`).then(() => {
         cy.request("POST", testEndpointUrl, { message: "Hello World!" }).then(
           (response) => {
-            const uuid = response.headers["go-project-request-uuid"];
+            const uuid = response.headers["httphq-request-uuid"];
             cy.get(`#request-${uuid}`).should("exist");
             cy.get(`#request-${uuid}`).within(() => {
               cy.get('a[data-test="delete-request"]').click({ force: true });

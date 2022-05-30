@@ -1,4 +1,4 @@
-module go-project
+module httphq
 
 go 1.18
 

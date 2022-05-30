@@ -13,7 +13,7 @@ RUN go mod download
 COPY ./public ./public
 COPY ./src ./src
 
-RUN go build -o ./bin/go-project ./src
+RUN go build -o ./bin/httphq ./src
 
 # ***** Application *****
 
@@ -27,4 +27,4 @@ ENV APPLICATION_ENV=production
 
 EXPOSE 8080
 
-CMD ["./bin/go-project"]
+CMD ["./bin/httphq"]
