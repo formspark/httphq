@@ -216,6 +216,23 @@ func main() {
 		if hideIp, ok := headers["Hide-Ip"]; ok && hideIp == "true" {
 			IP = "Hidden"
 		}
+		if spoofCurl, ok := headers["Spoof-Curl"]; ok && spoofCurl == "true" {
+			delete(headers, "Accept-Encoding")
+			delete(headers, "Accept-Language")
+			delete(headers, "Connection")
+			delete(headers, "Origin")
+			delete(headers, "Referer")
+			delete(headers, "Sec-Fetch-Dest")
+			delete(headers, "Sec-Fetch-Mode")
+			delete(headers, "Sec-Ch-Ua")
+			delete(headers, "Sec-Ch-Ua-Mobile")
+			delete(headers, "Sec-Ch-Ua-Platform")
+			delete(headers, "Sec-Fetch-Mode")
+			delete(headers, "Sec-Fetch-Site")
+
+			headers["Content-Type"] = "application/x-www-form-urlencoded"
+			headers["User-Agent"] = "curl/7.79.1"
+		}
 		for _, omittedHeader := range omittedHeaders {
 			delete(headers, omittedHeader)
 		}
