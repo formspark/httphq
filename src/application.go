@@ -266,7 +266,7 @@ func main() {
 			}
 		}
 
-		c.Set("HTTPHQ-Project-Request-UUID", UUID)
+		c.Set("HTTPHQ-Request-UUID", UUID)
 		return c.SendStatus(http.StatusOK)
 	})
 
