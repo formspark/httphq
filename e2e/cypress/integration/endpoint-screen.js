@@ -37,7 +37,7 @@ describe("Endpoint screen", () => {
     });
 
     it("should not show a waiting message if some requests are found", () => {
-      cy.exec(`curl -X POST -d 'Hello World!' ${testEndpointUrl}`).then(() => {
+      cy.exec(`curl -X POST -d 'Hello, World!' ${testEndpointUrl}`).then(() => {
         cy.get('[data-test="requests').should(
           "not.contain.text",
           "Waiting for requests..."
@@ -46,7 +46,7 @@ describe("Endpoint screen", () => {
     });
 
     it("should display new requests in real-time", () => {
-      const requestBody = "Hello World!";
+      const requestBody = "Hello, World!";
       cy.exec(`curl -X POST -d '${requestBody}' ${testEndpointUrl}`).then(
         () => {
           cy.get('[data-test="requests').should("contain.text", requestBody);
@@ -55,7 +55,7 @@ describe("Endpoint screen", () => {
     });
 
     it("should display the request details", () => {
-      cy.exec(`curl -X POST -d 'Hello World!' ${testEndpointUrl}`).then(() => {
+      cy.exec(`curl -X POST -d 'Hello, World!' ${testEndpointUrl}`).then(() => {
         cy.get('[data-test="request-details').contains(/now|seconds? ago/);
         cy.get('[data-test="request-details').contains("127.0.0.1");
         cy.get('[data-test="request-details').contains("POST");
@@ -64,13 +64,13 @@ describe("Endpoint screen", () => {
     });
 
     it("should display the request headers", () => {
-      cy.exec(`curl -X POST -d 'Hello World!' ${testEndpointUrl}`).then(() => {
+      cy.exec(`curl -X POST -d 'Hello, World!' ${testEndpointUrl}`).then(() => {
         cy.get('[data-test="request-headers').contains("Content-Type");
       });
     });
 
     it("should display the request body", () => {
-      const requestBody = "Hello World!";
+      const requestBody = "Hello, World!";
       cy.exec(`curl -X POST -d '${requestBody}' ${testEndpointUrl}`).then(
         () => {
           cy.get('[data-test="request-body').contains(requestBody);
@@ -79,7 +79,7 @@ describe("Endpoint screen", () => {
     });
 
     it("should be possible to filter based on the request body", () => {
-      const requestBody = "Hello World!";
+      const requestBody = "Hello, World!";
       cy.exec(`curl -X POST -d '${requestBody}' ${testEndpointUrl}`).then(
         () => {
           cy.get('[data-test="requests').should("contain.text", requestBody);
@@ -106,7 +106,7 @@ describe("Endpoint screen", () => {
 
     it("should be possible to filter based on the request headers", () => {
       const requestHeaderKey = "A-Test";
-      const requestHeaderValue = "Hello World!";
+      const requestHeaderValue = "Hello, World!";
 
       cy.exec(
         `curl -X POST -H '${requestHeaderKey}: ${requestHeaderValue}' ${testEndpointUrl}`
@@ -162,8 +162,8 @@ describe("Endpoint screen", () => {
     });
 
     it("should be possible to delete all requests", () => {
-      cy.exec(`curl -X POST -d 'Hello World!' ${testEndpointUrl}`).then(() => {
-        cy.exec(`curl -X POST -d 'Hello World!' ${testEndpointUrl}`).then(
+      cy.exec(`curl -X POST -d 'Hello, World!' ${testEndpointUrl}`).then(() => {
+        cy.exec(`curl -X POST -d 'Hello, World!' ${testEndpointUrl}`).then(
           () => {
             cy.get('a[data-test="delete-requests').click();
             cy.get('[data-test="requests').should(
@@ -176,8 +176,8 @@ describe("Endpoint screen", () => {
     });
 
     it("should be possible to delete a specific request", () => {
-      cy.exec(`curl -X POST -d 'Hello World!' ${testEndpointUrl}`).then(() => {
-        cy.request("POST", testEndpointUrl, { message: "Hello World!" }).then(
+      cy.exec(`curl -X POST -d 'Hello, World!' ${testEndpointUrl}`).then(() => {
+        cy.request("POST", testEndpointUrl, { message: "Hello, World!" }).then(
           (response) => {
             const uuid = response.headers["httphq-request-uuid"];
             cy.get(`#request-${uuid}`).should("exist");
