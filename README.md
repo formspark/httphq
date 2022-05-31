@@ -18,9 +18,7 @@
 
 ## CI
 
-[![test](https://github.com/formspark/httphq/actions/workflows/test.yml/badge.svg)](https://github.com/formspark/httphq/actions/workflows/test.yml)
-
-[![deploy](https://github.com/formspark/httphq/actions/workflows/deploy.yml/badge.svg)](https://github.com/formspark/httphq/actions/workflows/deploy.yml)
+[![test](https://github.com/formspark/httphq/actions/workflows/test.yml/badge.svg)](https://github.com/formspark/httphq/actions/workflows/test.yml) [![deploy](https://github.com/formspark/httphq/actions/workflows/deploy.yml/badge.svg)](https://github.com/formspark/httphq/actions/workflows/deploy.yml)
 
 ## Docs
 
