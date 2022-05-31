@@ -1,8 +1,16 @@
-# httphq
+<p align="center">
+   <img width="64" src="public/logo.png" alt="httphq logo">
+</p>
 
-Generate custom endpoints to capture and inspect HTTP requests.
+<h1 align="center">httphq</h1>
 
-[https://httphq.com](https://httphq.com)
+<p align="center">
+    https://httphq.com
+</p>
+
+<p align="center">
+    Generate custom endpoints to capture and inspect HTTP requests.
+</p>
 
 <p>Sponsored by <a href="https://formspark.io">Formspark</a>, the simple & powerful form solution for developers.</p>
 
