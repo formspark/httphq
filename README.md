@@ -4,11 +4,13 @@ Generate custom endpoints to capture and inspect HTTP requests.
 
 [https://httphq.com](https://httphq.com)
 
-[![deploy](https://github.com/formspark/httphq/actions/workflows/deploy.yml/badge.svg)](https://github.com/formspark/httphq/actions/workflows/deploy.yml)
+<p>Sponsored by <a href="https://formspark.io">Formspark</a>, the simple & powerful form solution for developers.</p>
+
+## CI
 
 [![test](https://github.com/formspark/httphq/actions/workflows/test.yml/badge.svg)](https://github.com/formspark/httphq/actions/workflows/test.yml)
 
-<p>Sponsored by <a href="https://formspark.io">Formspark</a>, the simple & powerful form solution for developers.</p>
+[![deploy](https://github.com/formspark/httphq/actions/workflows/deploy.yml/badge.svg)](https://github.com/formspark/httphq/actions/workflows/deploy.yml)
 
 ## Docs
 
