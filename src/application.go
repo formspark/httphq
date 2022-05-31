@@ -78,9 +78,13 @@ func main() {
 		ViewsLayout: "layouts/main",
 	})
 
+	maxRequestsPerMinute := 9999
+	if isProduction {
+		maxRequestsPerMinute = 125
+	}
 	application.Use(limiter.New(
 		limiter.Config{
-			Max:        125,
+			Max:        maxRequestsPerMinute,
 			Expiration: 1 * time.Minute,
 		}))
 
@@ -205,13 +209,12 @@ func main() {
 		body := c.Body()
 
 		headers := c.GetReqHeaders()
-		if hideIp, ok := headers["Hide-Ip"]; ok && hideIp == "true" {
-			IP = "Hidden"
-		}
-		if spoofCurl, ok := headers["Spoof-Curl"]; ok && spoofCurl == "true" {
+
+		if spoofCurl, ok := headers["Httphq-Spoof-Curl"]; ok && spoofCurl == "true" {
 			delete(headers, "Accept-Encoding")
 			delete(headers, "Accept-Language")
 			delete(headers, "Connection")
+			delete(headers, "Httphq-Spoof-Curl")
 			delete(headers, "Origin")
 			delete(headers, "Referer")
 			delete(headers, "Sec-Fetch-Dest")
@@ -258,7 +261,7 @@ func main() {
 			}
 		}
 
-		c.Set("HTTPHQ-Request-UUID", UUID)
+		c.Set("Httphq-Request-Uuid", UUID)
 		return c.SendStatus(http.StatusOK)
 	})
 

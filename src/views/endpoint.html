@@ -4,7 +4,7 @@
   <div class="section">
     <div class="flex items-center">
       <div>Your unique url:</div>
-      <div data-test="unique-endpoint-url" class="endpoint select-all ml-2">
+      <div data-test="endpoint-url" class="endpoint select-all ml-2">
         {{.EndpointURL}}
       </div>
     </div>
@@ -12,11 +12,15 @@
 
   <div class="section">
     <div class="flex items-center">
-      <code class="terminal select-all">
-        curl -X POST -H "Hide-Ip: true" -d 'Hello, World!' {{.EndpointURL}}
+      <code data-test="curl-example" class="terminal select-all">
+        curl -X POST -d 'Hello, World!' {{.EndpointURL}}
       </code>
-      <a href="javascript:;" onclick="sendTestData()" class="text-light ml-2"
-        >Send data</a
+      <a
+        data-test="curl-send"
+        href="javascript:;"
+        onclick="sendCurlRequest()"
+        class="text-light ml-2"
+        >Send</a
       >
     </div>
   </div>
@@ -39,7 +43,7 @@
     class="search-box section sticky top-0 flex items-center justify-between px-4 py-6"
   >
     <input
-      data-test="requests-search"
+      data-test="search-input"
       type="search"
       x-model.debounce="$store.main.search"
       placeholder="Search headers and body..."
@@ -47,7 +51,7 @@
     />
 
     <div
-      data-test="results-count"
+      data-test="search-results"
       x-text="`${$store.main.requests.length} ${$store.main.requests.length === 1 ? 'result' : 'results'}`"
       class="text-light"
     ></div>
@@ -56,7 +60,9 @@
   <div data-test="requests">
     <!-- No data -->
     <template x-if="$store.main.requests.length === 0">
-      <div class="section">Waiting for requests...</div>
+      <div class="section">
+        Waiting for requests<span id="loading-dots">...</span>
+      </div>
     </template>
 
     <!-- Data -->
@@ -263,13 +269,23 @@
 </script>
 
 <script>
-  const sendTestData = async function () {
+  setInterval(function () {
+    const loadingDotsElement = document.getElementById("loading-dots");
+    if (loadingDotsElement) {
+      if (loadingDotsElement.innerText.length < 3) {
+        loadingDotsElement.innerText = loadingDotsElement.innerText + ".";
+      } else {
+        loadingDotsElement.innerText = ".";
+      }
+    }
+  }, 1000);
+
+  const sendCurlRequest = async function () {
     await fetch("/to/{{.EndpointID}}", {
       method: "POST",
       body: "Hello, World!",
       headers: {
-        "Hide-Ip": true,
-        "Spoof-Curl": true,
+        "Httphq-Spoof-Curl": true,
       },
     });
   };
