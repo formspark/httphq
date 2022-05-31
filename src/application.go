@@ -119,12 +119,8 @@ func main() {
 
 	// HTTP handling
 
-	application.Get("/health", func(c *fiber.Ctx) error {
+	application.Get("/api/health", func(c *fiber.Ctx) error {
 		return c.SendStatus(http.StatusOK)
-	})
-
-	application.Get("/robots", func(c *fiber.Ctx) error {
-		return c.SendStatus(http.StatusNotFound)
 	})
 
 	application.Get("/api/debug", func(c *fiber.Ctx) error {

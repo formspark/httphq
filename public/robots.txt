@@ -1,0 +1,4 @@
+UserAgent: *
+Allow: /
+Disallow: /api
+Disallow: /to
