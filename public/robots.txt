@@ -1,4 +1,4 @@
 UserAgent: *
-Allow: /
-Disallow: /api
-Disallow: /to
+Allow: /$
+Allow: /contact$
+Disallow: /
