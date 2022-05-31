@@ -12,7 +12,9 @@
     Generate custom endpoints to capture and inspect HTTP requests.
 </p>
 
-<p>Sponsored by <a href="https://formspark.io">Formspark</a>, the simple & powerful form solution for developers.</p>
+<p align="center">
+    Sponsored by <a href="https://formspark.io">Formspark</a>, the simple & powerful form solution for developers.
+</p>
 
 ## CI
 
