@@ -17,30 +17,45 @@ describe("Endpoint screen", () => {
     });
   });
 
-  describe("Unique URL", () => {
+  describe("Endpoint URL", () => {
     it("should be visible", () => {
-      cy.location().then((location) => {
-        cy.get('[data-test="unique-endpoint-url').should(
-          "contain.text",
-          testEndpointUrl
-        );
-      });
+      cy.get('[data-test="endpoint-url"]').should(
+        "contain.text",
+        testEndpointUrl
+      );
+    });
+  });
+
+  describe("cURL example", () => {
+    it("should be visible", () => {
+      cy.get('[data-test="curl-example"]').should(
+        "contain.text",
+        `curl -X POST -d 'Hello, World!' ${testEndpointUrl}`
+      );
+    });
+
+    it("should be possible to send a request", () => {
+      cy.get('[data-test="curl-send"]').click();
+      cy.get('[data-test="requests"]').should(
+        "not.contain.text",
+        "Waiting for requests"
+      );
     });
   });
 
   describe("Requests", () => {
     it("should show a waiting message if no requests are found", () => {
-      cy.get('[data-test="requests').should(
+      cy.get('[data-test="requests"]').should(
         "contain.text",
-        "Waiting for requests..."
+        "Waiting for requests"
       );
     });
 
     it("should not show a waiting message if some requests are found", () => {
       cy.exec(`curl -X POST -d 'Hello, World!' ${testEndpointUrl}`).then(() => {
-        cy.get('[data-test="requests').should(
+        cy.get('[data-test="requests"]').should(
           "not.contain.text",
-          "Waiting for requests..."
+          "Waiting for requests"
         );
       });
     });
@@ -49,23 +64,23 @@ describe("Endpoint screen", () => {
       const requestBody = "Hello, World!";
       cy.exec(`curl -X POST -d '${requestBody}' ${testEndpointUrl}`).then(
         () => {
-          cy.get('[data-test="requests').should("contain.text", requestBody);
+          cy.get('[data-test="requests"]').should("contain.text", requestBody);
         }
       );
     });
 
     it("should display the request details", () => {
       cy.exec(`curl -X POST -d 'Hello, World!' ${testEndpointUrl}`).then(() => {
-        cy.get('[data-test="request-details').contains(/now|seconds? ago/);
-        cy.get('[data-test="request-details').contains("127.0.0.1");
-        cy.get('[data-test="request-details').contains("POST");
-        cy.get('[data-test="request-details').contains(testEndpointPath);
+        cy.get('[data-test="request-details"]').contains(/now|seconds? ago/);
+        cy.get('[data-test="request-details"]').contains("127.0.0.1");
+        cy.get('[data-test="request-details"]').contains("POST");
+        cy.get('[data-test="request-details"]').contains(testEndpointPath);
       });
     });
 
     it("should display the request headers", () => {
       cy.exec(`curl -X POST -d 'Hello, World!' ${testEndpointUrl}`).then(() => {
-        cy.get('[data-test="request-headers').contains("Content-Type");
+        cy.get('[data-test="request-headers"]').contains("Content-Type");
       });
     });
 
@@ -73,7 +88,7 @@ describe("Endpoint screen", () => {
       const requestBody = "Hello, World!";
       cy.exec(`curl -X POST -d '${requestBody}' ${testEndpointUrl}`).then(
         () => {
-          cy.get('[data-test="request-body').contains(requestBody);
+          cy.get('[data-test="request-body"]').contains(requestBody);
         }
       );
     });
@@ -82,23 +97,23 @@ describe("Endpoint screen", () => {
       const requestBody = "Hello, World!";
       cy.exec(`curl -X POST -d '${requestBody}' ${testEndpointUrl}`).then(
         () => {
-          cy.get('[data-test="requests').should("contain.text", requestBody);
+          cy.get('[data-test="requests"]').should("contain.text", requestBody);
 
-          cy.get('[data-test="requests-search').clear().type("Hello");
-          cy.get('[data-test="requests').should("contain.text", requestBody);
-          cy.get('[data-test="results-count').should(
+          cy.get('[data-test="search-input"]').clear().type("Hello");
+          cy.get('[data-test="search-results"]').should(
             "contain.text",
             "1 result"
           );
+          cy.get('[data-test="requests"]').should("contain.text", requestBody);
 
-          cy.get('[data-test="requests-search').clear().type("Test");
-          cy.get('[data-test="requests').should(
-            "not.contain.text",
-            requestBody
-          );
-          cy.get('[data-test="results-count').should(
+          cy.get('[data-test="search-input"]').clear().type("Test");
+          cy.get('[data-test="search-results"]').should(
             "contain.text",
             "0 results"
+          );
+          cy.get('[data-test="requests"]').should(
+            "not.contain.text",
+            requestBody
           );
         }
       );
@@ -111,64 +126,89 @@ describe("Endpoint screen", () => {
       cy.exec(
         `curl -X POST -H '${requestHeaderKey}: ${requestHeaderValue}' ${testEndpointUrl}`
       ).then(() => {
-        cy.get('[data-test="requests').should("contain.text", requestHeaderKey);
-        cy.get('[data-test="requests').should(
+        cy.get('[data-test="requests"]').should(
+          "contain.text",
+          requestHeaderKey
+        );
+        cy.get('[data-test="requests"]').should(
           "contain.text",
           requestHeaderValue
         );
 
         // Positive key search
-        cy.get('[data-test="requests-search').clear().type("A-");
-        cy.get('[data-test="requests').should("contain.text", requestHeaderKey);
-        cy.get('[data-test="requests').should(
+        cy.get('[data-test="search-input"]').clear().type("A-");
+        cy.get('[data-test="search-results"]').should(
+          "contain.text",
+          "1 result"
+        );
+        cy.get('[data-test="requests"]').should(
+          "contain.text",
+          requestHeaderKey
+        );
+        cy.get('[data-test="requests"]').should(
           "contain.text",
           requestHeaderValue
         );
-        cy.get('[data-test="results-count').should("contain.text", "1 result");
 
         // Negative key search
-        cy.get('[data-test="requests-search').clear().type("B-");
-        cy.get('[data-test="requests').should(
+        cy.get('[data-test="search-input"]').clear().type("B-");
+        cy.get('[data-test="search-results"]').should(
+          "contain.text",
+          "0 results"
+        );
+        cy.get('[data-test="requests"]').should(
           "not.contain.text",
           requestHeaderKey
         );
-        cy.get('[data-test="requests').should(
+        cy.get('[data-test="requests"]').should(
           "not.contain.text",
           requestHeaderValue
         );
-        cy.get('[data-test="results-count').should("contain.text", "0 results");
 
         // Positive value search
-        cy.get('[data-test="requests-search').clear().type("Hello");
-        cy.get('[data-test="requests').should("contain.text", requestHeaderKey);
-        cy.get('[data-test="requests').should(
+        cy.get('[data-test="search-input"]').clear().type("Hello");
+        cy.get('[data-test="search-results"]').should(
+          "contain.text",
+          "1 result"
+        );
+        cy.get('[data-test="requests"]').should(
+          "contain.text",
+          requestHeaderKey
+        );
+        cy.get('[data-test="requests"]').should(
           "contain.text",
           requestHeaderValue
         );
-        cy.get('[data-test="results-count').should("contain.text", "1 result");
 
         // Negative value search
-        cy.get('[data-test="requests-search').clear().type("Not");
-        cy.get('[data-test="requests').should(
+        cy.get('[data-test="search-input"]').clear().type("Not");
+        cy.get('[data-test="search-results"]').should(
+          "contain.text",
+          "0 results"
+        );
+        cy.get('[data-test="requests"]').should(
           "not.contain.text",
           requestHeaderKey
         );
-        cy.get('[data-test="requests').should(
+        cy.get('[data-test="requests"]').should(
           "not.contain.text",
           requestHeaderValue
         );
-        cy.get('[data-test="results-count').should("contain.text", "0 results");
       });
+    });
+
+    it("should show a deletion disclaimer", () => {
+      cy.contains("⚠️️️ Requests are deleted after 4 hours");
     });
 
     it("should be possible to delete all requests", () => {
       cy.exec(`curl -X POST -d 'Hello, World!' ${testEndpointUrl}`).then(() => {
         cy.exec(`curl -X POST -d 'Hello, World!' ${testEndpointUrl}`).then(
           () => {
-            cy.get('a[data-test="delete-requests').click();
-            cy.get('[data-test="requests').should(
+            cy.get('[data-test="delete-requests"]').click();
+            cy.get('[data-test="requests"]').should(
               "contain.text",
-              "Waiting for requests..."
+              "Waiting for requests"
             );
           }
         );
@@ -182,7 +222,7 @@ describe("Endpoint screen", () => {
             const uuid = response.headers["httphq-request-uuid"];
             cy.get(`#request-${uuid}`).should("exist");
             cy.get(`#request-${uuid}`).within(() => {
-              cy.get('a[data-test="delete-request"]').click({ force: true });
+              cy.get('[data-test="delete-request"]').click({ force: true });
             });
             cy.get(`#request-${uuid}`).should("not.exist");
           }
