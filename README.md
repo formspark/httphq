@@ -22,7 +22,7 @@
 
 ## Docs
 
-- [Scripts](docs/scripts.md)
+[Scripts](docs/scripts.md)
 
 ## License
 
