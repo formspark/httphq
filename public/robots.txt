@@ -1,0 +1,4 @@
+UserAgent: *
+Allow: /$
+Allow: /contact$
+Disallow: /

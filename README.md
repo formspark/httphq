@@ -1,82 +1,29 @@
-# httphq
+<p align="center">
+   <img width="64" src="public/logo.png" alt="httphq logo">
+</p>
 
-https://httphq.com
+<h1 align="center">httphq</h1>
 
-## Scripts
+<p align="center">
+    https://httphq.com
+</p>
 
-Install project dependencies:
+<p align="center">
+    Generate custom endpoints to capture and inspect HTTP requests.
+</p>
 
-```bash
-go mod download
-cd e2e && npm install
-```
+<p align="center">
+    Sponsored by <a href="https://formspark.io">Formspark</a>, the simple & powerful form solution for developers.
+</p>
 
-Run project locally:
+## CI
 
-```bash
-go run ./src/application.go
-```
+[![test](https://github.com/formspark/httphq/actions/workflows/test.yml/badge.svg)](https://github.com/formspark/httphq/actions/workflows/test.yml) [![deploy](https://github.com/formspark/httphq/actions/workflows/deploy.yml/badge.svg)](https://github.com/formspark/httphq/actions/workflows/deploy.yml)
 
-Run project locally:
+## Docs
 
-```bash
-go run ./src/application.go
-```
+[Scripts](docs/scripts.md)
 
-Run tests locally:
+## License
 
-```bash
-watchman-make -p 'src/**/*.go' --make=go -t test ./...
-```
-
-View test coverage:
-
-```bash
-go test ./... -coverprofile=coverage.out
-go tool cover -html=coverage.out
-```
-
-Upkeep project dependencies:
-
-```bash
-go mod tidy
-```
-
-Format project:
-
-```bash
-go fmt ./src && npx prettier --write .
-```
-
-Build and run binary locally:
-
-```bash
-go build -o ./bin/httphq ./src
-./bin/httphq
-```
-
-Build and run container locally:
-
-```bash
-docker build . -t httphq
-docker run -dp 8080:8080 httphq
-docker container ls -s
-```
-
-Run E2E tests:
-
-```bash
-cd e2e && npx cypress open
-```
-
-Deploy to Fly:
-
-```bash
-fly deploy
-```
-
-View Fly application logs:
-
-```bash
-fly logs
-```
+[MIT](https://opensource.org/licenses/MIT)
