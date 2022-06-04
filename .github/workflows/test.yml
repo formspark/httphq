@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: go build -o ./bin/httphq ./src
-      - uses: cypress-io/github-action@v2
+      - uses: cypress-io/github-action@v4
         with:
           working-directory: e2e
           browser: chrome
