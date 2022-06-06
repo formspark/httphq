@@ -1,5 +1,5 @@
 <p align="center">
-   <img width="64" src="public/logo.png" alt="httphq logo">
+   <img width="64" src="public/logo.svg" alt="httphq logo">
 </p>
 
 <h1 align="center">httphq</h1>
