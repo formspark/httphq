@@ -3,7 +3,7 @@
 <main x-data>
   <div class="section">
     <div class="flex items-center">
-      <div>Your unique url:</div>
+      <div class="hidden sm:flex">Your unique url:</div>
       <div data-test="endpoint-url" class="endpoint select-all ml-2">
         {{.EndpointURL}}
       </div>
@@ -11,7 +11,7 @@
   </div>
 
   <div class="section">
-    <div class="flex items-center">
+    <div class="hidden sm:flex items-center">
       <code data-test="curl-example" class="terminal select-all">
         curl -X POST -d 'Hello, World!' {{.EndpointURL}}
       </code>
@@ -53,7 +53,7 @@
     <div
       data-test="search-results"
       x-text="`${$store.main.requests.length} ${$store.main.requests.length === 1 ? 'result' : 'results'}`"
-      class="text-light"
+      class="hidden sm:flex text-light"
     ></div>
   </div>
 
@@ -92,9 +92,9 @@
             >
           </div>
         </div>
-        <div class="flex pb-6">
+        <div class="flex flex-col sm:flex-row">
           <!-- Details -->
-          <div data-test="request-details" class="w-1/2">
+          <div data-test="request-details" class="pb-6">
             <div class="table-title">
               <b>Details</b>
             </div>
@@ -141,7 +141,7 @@
             </table>
           </div>
           <!-- Headers -->
-          <div data-test="request-headers" class="w-1/2 pl-8">
+          <div data-test="request-headers" class="pb-6 sm:pl-8">
             <div class="table-title">
               <b>Headers</b>
             </div>

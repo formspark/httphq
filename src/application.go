@@ -159,7 +159,7 @@ func main() {
 
 	application.Get("/", func(c *fiber.Ctx) error {
 		return c.Render("index", fiber.Map{
-			"Title": "Home | httphq",
+			"Title": "httphq",
 		})
 	})
 
