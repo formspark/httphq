@@ -47,7 +47,7 @@
       type="search"
       x-model.debounce="$store.main.search"
       placeholder="Search headers and body..."
-      style="margin: 0"
+      style="margin: 0; min-width: 250px;"
     />
 
     <div
@@ -145,7 +145,7 @@
             <div class="table-title">
               <b>Headers</b>
             </div>
-            <div class="overflow-auto" style="max-height: 250px">
+            <div class="overflow-auto" style="max-height: 250px;">
               <table>
                 <tbody>
                   <template x-for="[k, v] in Object.entries(request.headers)">
@@ -159,7 +159,7 @@
                         ></a>
                       </td>
                       <td>
-                        <div x-text="v" style="max-width: 250px"></div>
+                        <div x-text="v" style="max-width: 250px;"></div>
                       </td>
                     </tr>
                   </template>
