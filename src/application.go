@@ -37,6 +37,7 @@ var omittedHeaders = [...]string{
 	"X-Forwarded-Proto",
 	"X-Forwarded-Ssl",
 	"X-Request-Start",
+	"Trace",
 	"Via",
 }
 
