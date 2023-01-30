@@ -32,15 +32,17 @@ var omittedHeaders = [...]string{
 	"Fly-Forwarded-Ssl",
 	"Fly-Region",
 	"Fly-Request-Id",
+	"Fly-Traceparent",
+	"Fly-Tracestate",
+	"Trace",
+	"Traceparent",
+	"Tracestate",
+	"Via",
 	"X-Forwarded-For",
 	"X-Forwarded-Port",
 	"X-Forwarded-Proto",
 	"X-Forwarded-Ssl",
 	"X-Request-Start",
-	"Trace",
-	"Traceparent",
-	"Tracestate",
-	"Via",
 }
 
 func main() {
