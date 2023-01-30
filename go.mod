@@ -9,7 +9,7 @@ require (
 	github.com/gofiber/template v1.6.27
 	github.com/gofiber/websocket/v2 v2.0.21
 	github.com/google/uuid v1.3.0
-	github.com/robfig/cron/v3 v3.0.0
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/stretchr/testify v1.7.1
 	gorm.io/datatypes v1.0.6
 	gorm.io/driver/sqlite v1.3.2
