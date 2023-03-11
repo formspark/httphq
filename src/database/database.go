@@ -10,14 +10,15 @@ import (
 )
 
 type Request struct {
-	UUID       string         `json:"uuid" gorm:"primaryKey"`
-	EndpointID string         `json:"endpointId" gorm:"index"`
-	IP         string         `json:"ip" gorm:"index"`
-	Method     string         `json:"method"`
-	Path       string         `json:"path"`
-	Body       string         `json:"body"`
-	CreatedAt  time.Time      `json:"createdAt" gorm:"index"`
-	Headers    datatypes.JSON `json:"headers"`
+	UUID        string         `json:"uuid" gorm:"primaryKey"`
+	EndpointID  string         `json:"endpointId" gorm:"index"`
+	IP          string         `json:"ip" gorm:"index"`
+	Method      string         `json:"method"`
+	Path        string         `json:"path"`
+	QueryString string         `json:"queryString"`
+	Body        string         `json:"body"`
+	CreatedAt   time.Time      `json:"createdAt" gorm:"index"`
+	Headers     datatypes.JSON `json:"headers"`
 }
 
 type SocketClient struct {
