@@ -46,8 +46,8 @@
       data-test="search-input"
       type="search"
       x-model.debounce="$store.main.search"
-      placeholder="Search headers and body..."
-      style="margin: 0; min-width: 250px;"
+      placeholder="Search headers, query string, and body..."
+      style="margin: 0; min-width: 350px"
     />
 
     <div
@@ -98,55 +98,59 @@
             <div class="table-title">
               <b>Details</b>
             </div>
-            <table>
-              <tbody>
-                <tr>
-                  <td>Time</td>
-                  <td>
-                    <div class="with-tooltip">
-                      <div x-text="formatTimeAgo(request.createdAt)"></div>
+            <div class="overflow-auto" style="max-height: 300px">
+              <table class="w-full">
+                <tbody>
+                  <tr>
+                    <td>Time</td>
+                    <td>
+                      <div class="with-tooltip">
+                        <div x-text="formatTimeAgo(request.createdAt)"></div>
+                        <div
+                          x-text="request.createdAt.toLocaleString()"
+                          class="tooltip"
+                        ></div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Client IP</td>
+                    <td>
+                      <a
+                        :href="`https://www.google.com/search?q=${request.ip}+WHOIS`"
+                        target="_blank"
+                        x-text="request.ip"
+                        class="text-light"
+                      ></a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Method</td>
+                    <td>
                       <div
-                        x-text="request.createdAt.toLocaleString()"
-                        class="tooltip"
+                        x-text="request.method"
+                        class="request-method"
+                        :class="request.method.toLowerCase()"
                       ></div>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td>Client IP</td>
-                  <td>
-                    <a
-                      :href="`https://www.google.com/search?q=${request.ip}+WHOIS`"
-                      target="_blank"
-                      x-text="request.ip"
-                      class="text-light"
-                    ></a>
-                  </td>
-                </tr>
-                <tr>
-                  <td>Method</td>
-                  <td>
-                    <div
-                      x-text="request.method"
-                      class="request-method"
-                      :class="request.method.toLowerCase()"
-                    ></div>
-                  </td>
-                </tr>
-                <tr>
-                  <td>Path</td>
-                  <td><div x-text="request.path"></div></td>
-                </tr>
-              </tbody>
-            </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Path</td>
+                    <td>
+                      <div x-text="request.path"></div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
           <!-- Headers -->
           <div data-test="request-headers" class="pb-6 sm:pl-8">
             <div class="table-title">
               <b>Headers</b>
             </div>
-            <div class="overflow-auto" style="max-height: 250px;">
-              <table>
+            <div class="overflow-auto" style="max-height: 300px">
+              <table class="w-full">
                 <tbody>
                   <template x-for="[k, v] in Object.entries(request.headers)">
                     <tr>
@@ -159,7 +163,10 @@
                         ></a>
                       </td>
                       <td>
-                        <div x-text="v" style="max-width: 250px; word-break: break-word;"></div>
+                        <div
+                          x-text="v"
+                          style="max-width: 250px; word-break: break-word"
+                        ></div>
                       </td>
                     </tr>
                   </template>
@@ -168,10 +175,25 @@
             </div>
           </div>
         </div>
+        <!-- Query string -->
+        <div data-test="query-string">
+          <b>Query string</b>
+          <template x-if="request.queryString">
+            <pre x-text="request.queryString"></pre>
+          </template>
+          <template x-if="!request.queryString">
+            <div class="py-3"><i>None</i></div>
+          </template>
+        </div>
         <!-- Body -->
         <div data-test="request-body">
           <b>Body</b>
-          <pre x-text="formatBody(request.body)"></pre>
+          <template x-if="request.body">
+            <pre x-text="formatBody(request.body)"></pre>
+          </template>
+          <template x-if="!request.body">
+            <div class="py-3"><i>None</i></div>
+          </template>
         </div>
       </div>
     </template>

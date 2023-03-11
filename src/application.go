@@ -211,6 +211,8 @@ func main() {
 
 		path := c.Path()
 
+		queryString := string(c.Request().URI().QueryString())
+
 		body := c.Body()
 
 		headers := c.GetReqHeaders()
@@ -242,13 +244,14 @@ func main() {
 		}
 
 		request := database.Request{
-			UUID:       UUID,
-			EndpointID: endpointID,
-			IP:         IP,
-			Method:     method,
-			Path:       path,
-			Body:       string(body),
-			Headers:    datatypes.JSON(jsonHeaders),
+			UUID:        UUID,
+			EndpointID:  endpointID,
+			IP:          IP,
+			Method:      method,
+			Path:        path,
+			QueryString: queryString,
+			Body:        string(body),
+			Headers:     datatypes.JSON(jsonHeaders),
 		}
 		database.CreateRequest(&request)
 
@@ -278,5 +281,7 @@ func main() {
 	if isProduction {
 		host = ":"
 	}
-	log.Fatalln(application.Listen(host + strconv.Itoa(port)))
+	address := host + strconv.Itoa(port)
+	log.Println("Listening on " + address)
+	log.Fatalln(application.Listen(address))
 }

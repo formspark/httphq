@@ -95,8 +95,8 @@ p,
   color: darkblue;
 }
 
-.w-1\/2 {
-  width: 50%;
+.w-full {
+  width: 100%;
 }
 
 .overflow-auto {
@@ -161,6 +161,11 @@ p,
 
 .ml-4 {
   margin-left: 1rem;
+}
+
+.py-3 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
 }
 
 .px-4 {
