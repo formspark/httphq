@@ -46,8 +46,8 @@
       data-test="search-input"
       type="search"
       x-model.debounce="$store.main.search"
-      placeholder="Search headers and body..."
-      style="margin: 0; min-width: 250px"
+      placeholder="Search headers, query string, and body..."
+      style="margin: 0; min-width: 350px"
     />
 
     <div
@@ -178,12 +178,22 @@
         <!-- Query string -->
         <div data-test="query-string">
           <b>Query string</b>
-          <pre x-text="request.queryString"></pre>
+          <template x-if="request.queryString">
+            <pre x-text="request.queryString"></pre>
+          </template>
+          <template x-if="!request.queryString">
+            <div class="py-3"><i>None</i></div>
+          </template>
         </div>
         <!-- Body -->
         <div data-test="request-body">
           <b>Body</b>
-          <pre x-text="formatBody(request.body)"></pre>
+          <template x-if="request.body">
+            <pre x-text="formatBody(request.body)"></pre>
+          </template>
+          <template x-if="!request.body">
+            <div class="py-3"><i>None</i></div>
+          </template>
         </div>
       </div>
     </template>

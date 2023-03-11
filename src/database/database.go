@@ -63,7 +63,7 @@ func CountRequests() int64 {
 
 func GetRequestsForEndpointID(endpointID string, search string, limit int) []Request {
 	var items []Request
-	result := DB.Where(&Request{EndpointID: endpointID}).Where("(? = '' OR (headers LIKE ? OR body LIKE ?))", search, "%"+search+"%", "%"+search+"%").Limit(limit).Order("created_at DESC").Find(&items)
+	result := DB.Where(&Request{EndpointID: endpointID}).Where("(? = '' OR (headers LIKE ? OR query_string LIKE ? OR body LIKE ?))", search, "%"+search+"%", "%"+search+"%", "%"+search+"%").Limit(limit).Order("created_at DESC").Find(&items)
 	if result.Error != nil {
 		log.Println(result.Error)
 	}
