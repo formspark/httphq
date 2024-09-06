@@ -21,7 +21,7 @@ describe("Endpoint screen", () => {
     it("should be visible", () => {
       cy.get('[data-test="endpoint-url"]').should(
         "contain.text",
-        testEndpointUrl
+        testEndpointUrl,
       );
     });
   });
@@ -30,7 +30,7 @@ describe("Endpoint screen", () => {
     it("should be visible", () => {
       cy.get('[data-test="curl-example"]').should(
         "contain.text",
-        `curl -X POST -d 'Hello, World!' ${testEndpointUrl}`
+        `curl -X POST -d 'Hello, World!' ${testEndpointUrl}`,
       );
     });
 
@@ -38,7 +38,7 @@ describe("Endpoint screen", () => {
       cy.get('[data-test="curl-send"]').click();
       cy.get('[data-test="requests"]').should(
         "not.contain.text",
-        "Waiting for requests"
+        "Waiting for requests",
       );
     });
   });
@@ -47,7 +47,7 @@ describe("Endpoint screen", () => {
     it("should show a waiting message if no requests are found", () => {
       cy.get('[data-test="requests"]').should(
         "contain.text",
-        "Waiting for requests"
+        "Waiting for requests",
       );
     });
 
@@ -55,7 +55,7 @@ describe("Endpoint screen", () => {
       cy.exec(`curl -X POST -d 'Hello, World!' ${testEndpointUrl}`).then(() => {
         cy.get('[data-test="requests"]').should(
           "not.contain.text",
-          "Waiting for requests"
+          "Waiting for requests",
         );
       });
     });
@@ -65,7 +65,7 @@ describe("Endpoint screen", () => {
       cy.exec(`curl -X POST -d '${requestBody}' ${testEndpointUrl}`).then(
         () => {
           cy.get('[data-test="requests"]').should("contain.text", requestBody);
-        }
+        },
       );
     });
 
@@ -89,7 +89,7 @@ describe("Endpoint screen", () => {
       cy.exec(`curl -X POST -d '${requestBody}' ${testEndpointUrl}`).then(
         () => {
           cy.get('[data-test="request-body"]').contains(requestBody);
-        }
+        },
       );
     });
 
@@ -102,20 +102,20 @@ describe("Endpoint screen", () => {
           cy.get('[data-test="search-input"]').clear().type("Hello");
           cy.get('[data-test="search-results"]').should(
             "contain.text",
-            "1 result"
+            "1 result",
           );
           cy.get('[data-test="requests"]').should("contain.text", requestBody);
 
           cy.get('[data-test="search-input"]').clear().type("Test");
           cy.get('[data-test="search-results"]').should(
             "contain.text",
-            "0 results"
+            "0 results",
           );
           cy.get('[data-test="requests"]').should(
             "not.contain.text",
-            requestBody
+            requestBody,
           );
-        }
+        },
       );
     });
 
@@ -124,75 +124,75 @@ describe("Endpoint screen", () => {
       const requestHeaderValue = "Hello, World!";
 
       cy.exec(
-        `curl -X POST -H '${requestHeaderKey}: ${requestHeaderValue}' ${testEndpointUrl}`
+        `curl -X POST -H '${requestHeaderKey}: ${requestHeaderValue}' ${testEndpointUrl}`,
       ).then(() => {
         cy.get('[data-test="requests"]').should(
           "contain.text",
-          requestHeaderKey
+          requestHeaderKey,
         );
         cy.get('[data-test="requests"]').should(
           "contain.text",
-          requestHeaderValue
+          requestHeaderValue,
         );
 
         // Positive key search
         cy.get('[data-test="search-input"]').clear().type("A-");
         cy.get('[data-test="search-results"]').should(
           "contain.text",
-          "1 result"
+          "1 result",
         );
         cy.get('[data-test="requests"]').should(
           "contain.text",
-          requestHeaderKey
+          requestHeaderKey,
         );
         cy.get('[data-test="requests"]').should(
           "contain.text",
-          requestHeaderValue
+          requestHeaderValue,
         );
 
         // Negative key search
         cy.get('[data-test="search-input"]').clear().type("B-");
         cy.get('[data-test="search-results"]').should(
           "contain.text",
-          "0 results"
+          "0 results",
         );
         cy.get('[data-test="requests"]').should(
           "not.contain.text",
-          requestHeaderKey
+          requestHeaderKey,
         );
         cy.get('[data-test="requests"]').should(
           "not.contain.text",
-          requestHeaderValue
+          requestHeaderValue,
         );
 
         // Positive value search
         cy.get('[data-test="search-input"]').clear().type("Hello");
         cy.get('[data-test="search-results"]').should(
           "contain.text",
-          "1 result"
+          "1 result",
         );
         cy.get('[data-test="requests"]').should(
           "contain.text",
-          requestHeaderKey
+          requestHeaderKey,
         );
         cy.get('[data-test="requests"]').should(
           "contain.text",
-          requestHeaderValue
+          requestHeaderValue,
         );
 
         // Negative value search
         cy.get('[data-test="search-input"]').clear().type("Not");
         cy.get('[data-test="search-results"]').should(
           "contain.text",
-          "0 results"
+          "0 results",
         );
         cy.get('[data-test="requests"]').should(
           "not.contain.text",
-          requestHeaderKey
+          requestHeaderKey,
         );
         cy.get('[data-test="requests"]').should(
           "not.contain.text",
-          requestHeaderValue
+          requestHeaderValue,
         );
       });
     });
@@ -208,9 +208,9 @@ describe("Endpoint screen", () => {
             cy.get('[data-test="delete-requests"]').click();
             cy.get('[data-test="requests"]').should(
               "contain.text",
-              "Waiting for requests"
+              "Waiting for requests",
             );
-          }
+          },
         );
       });
     });
@@ -225,7 +225,7 @@ describe("Endpoint screen", () => {
               cy.get('[data-test="delete-request"]').click({ force: true });
             });
             cy.get(`#request-${uuid}`).should("not.exist");
-          }
+          },
         );
       });
     });

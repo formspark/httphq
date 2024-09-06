@@ -1,7 +1,11 @@
 {{template "partials/header" .}}
 
 <main>
-  <form action="https://submit-form.com/bKTG9w9O">
+  <form
+    action="https://submit-form.com/bKTG9w9O"
+    method="POST"
+    style="max-width: 600px; margin: 0 auto"
+  >
     <input
       type="checkbox"
       name="accept"
@@ -9,19 +13,37 @@
       tabindex="-1"
       autocomplete="off"
     />
+
     <p>
-      <label>Name</label><br />
-      <input type="text" name="name" required="" />
+      <label for="name">Name</label>
+      <input type="text" id="name" name="name" required aria-required="true" />
     </p>
+
     <p>
-      <label>Email</label><br />
-      <input type="text" name="email" required="" />
+      <label for="email">Email</label>
+      <input
+        type="email"
+        id="email"
+        name="email"
+        required
+        aria-required="true"
+      />
     </p>
+
     <p>
-      <label>Message</label><br />
-      <textarea name="message" required="" rows="6"></textarea>
+      <label for="message">Message</label>
+      <textarea
+        id="message"
+        name="message"
+        rows="6"
+        required
+        aria-required="true"
+      ></textarea>
     </p>
-    <button data-test="send-form">Send</button>
+
+    <p>
+      <button type="submit" data-test="send-form">Send message</button>
+    </p>
   </form>
 </main>
 
