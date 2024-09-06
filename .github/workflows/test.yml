@@ -25,4 +25,4 @@ jobs:
           working-directory: e2e
           browser: chrome
           headless: true
-          start: (cd .. && ./bin/httphq)
+          start: npm run start-server

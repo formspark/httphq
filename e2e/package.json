@@ -1,6 +1,9 @@
 {
   "name": "httphq-e2e",
   "private": true,
+  "scripts": {
+    "start-server": "(cd .. && ./bin/httphq)"
+  },
   "devDependencies": {
     "cypress": "^10.2.0"
   }
