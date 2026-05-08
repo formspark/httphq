@@ -1,11 +1,39 @@
 {{template "partials/header" .}}
 
-<main class="text-center">
-  <p>A real-time tool for capturing and inspecting HTTP requests.</p>
-  <p>Useful for testing webhooks, HTTP requests and form payloads.</p>
-  <form action="/endpoint" method="post">
-    <button data-test="create-endpoint">Create endpoint</button>
-  </form>
+<main class="flex-1 flex flex-col items-center text-center">
+  <div class="max-w-xl mx-auto py-8 sm:py-16 space-y-4">
+    <h1 class="text-2xl sm:text-3xl font-semibold text-slate-900">
+      Capture and inspect HTTP requests in real time
+    </h1>
+    <p class="text-slate-600">
+      Generate a unique endpoint, send requests to it, and watch them stream
+      in. Useful for testing webhooks, integrations and form payloads.
+    </p>
+    <form action="/endpoint" method="post" class="pt-2">
+      <button
+        data-test="create-endpoint"
+        class="inline-flex items-center justify-center rounded-md bg-indigo-600 px-5 py-2.5 text-white font-medium shadow-sm hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 transition"
+      >
+        Create endpoint
+      </button>
+    </form>
+  </div>
+
+  <!-- Recent endpoints (populated by /home.js from localStorage) -->
+  <section
+    id="recent-endpoints"
+    data-test="recent-endpoints"
+    class="hidden w-full max-w-xl mx-auto mt-2 mb-12 text-left"
+    aria-label="Recently created endpoints"
+  >
+    <h2 class="text-sm font-medium text-slate-500 uppercase tracking-wide mb-3">
+      Recently created
+    </h2>
+    <ul
+      id="recent-endpoints-list"
+      class="bg-white border border-slate-200 rounded-md divide-y divide-slate-200"
+    ></ul>
+  </section>
 </main>
 
 {{template "partials/footer" .}}

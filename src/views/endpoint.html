@@ -1,173 +1,262 @@
 {{template "partials/header" .}}
 
-<main x-data>
-  <div class="section">
-    <div class="flex items-center">
-      <div class="hidden sm:flex">Your unique url:</div>
-      <div data-test="endpoint-url" class="endpoint select-all ml-2">
-        {{.EndpointURL}}
+<main
+  class="flex-1 pb-12"
+  x-data="endpointPage"
+  data-endpoint-id="{{.EndpointID}}"
+>
+  <!-- Endpoint URL panel -->
+  <section class="mt-2 mb-6">
+    <div
+      class="rounded-lg border border-slate-200 bg-white shadow-sm p-4 sm:p-5 space-y-3"
+    >
+      <div class="text-sm font-medium text-slate-500 uppercase tracking-wide">
+        Your unique URL
+      </div>
+      <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
+        <code
+          data-test="endpoint-url"
+          class="flex-1 select-all break-all rounded bg-slate-50 border border-slate-200 px-3 py-2 text-sm font-mono text-indigo-700"
+          >{{.EndpointURL}}</code
+        >
+        <button
+          type="button"
+          data-test="copy-url"
+          @click="copy('{{.EndpointURL}}')"
+          class="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        >
+          <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="9" y="9" width="13" height="13" rx="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          <span x-text="copyLabel" data-test="copy-url-label">Copy</span>
+        </button>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div class="section">
-    <div class="hidden sm:flex items-center">
-      <code data-test="curl-example" class="terminal select-all">
-        curl -X POST -d 'Hello, World!' {{.EndpointURL}}
-      </code>
-      <a
-        data-test="curl-send"
-        href="javascript:;"
-        onclick="sendCurlRequest()"
-        class="text-light ml-2"
-        >Send</a
+  <!-- Send custom request panel -->
+  <section class="mb-6">
+    <details class="group rounded-lg border border-slate-200 bg-white shadow-sm">
+      <summary
+        data-test="send-toggle"
+        class="cursor-pointer list-none px-4 sm:px-5 py-3 flex items-center justify-between font-medium text-slate-700 hover:bg-slate-50"
       >
-    </div>
-  </div>
+        <span class="inline-flex items-center gap-2">
+          <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M22 2L11 13"/>
+            <path d="M22 2l-7 20-4-9-9-4 20-7z"/>
+          </svg>
+          Send a test request
+        </span>
+        <svg viewBox="0 0 24 24" class="w-4 h-4 text-slate-400 transition group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </summary>
 
-  <div class="section">
-    <div class="flex items-center">
-      <i>⚠️️️ Requests are deleted after 4 hours</i>
-      <a
-        data-test="delete-requests"
-        href="javascript:;"
-        @click="$store.main.deleteRequests()"
-        class="text-light ml-2"
-        >Delete now</a
+      <form
+        @submit.prevent="sendCustom()"
+        class="border-t border-slate-200 p-4 sm:p-5 space-y-3"
       >
-    </div>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <label class="sm:w-32 shrink-0">
+            <span class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Method</span>
+            <select
+              data-test="send-method"
+              x-model="sendForm.method"
+              class="block w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <template x-for="m in METHODS" :key="m">
+                <option :value="m" x-text="m"></option>
+              </template>
+            </select>
+          </label>
+          <label class="flex-1">
+            <span class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+              Headers (one per line, <code class="font-mono">Key: Value</code>)
+            </span>
+            <textarea
+              data-test="send-headers"
+              x-model="sendForm.headers"
+              rows="2"
+              spellcheck="false"
+              placeholder="Content-Type: application/json"
+              class="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            ></textarea>
+          </label>
+        </div>
+        <label class="block">
+          <span class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Body</span>
+          <textarea
+            data-test="send-body"
+            x-model="sendForm.body"
+            rows="4"
+            spellcheck="false"
+            placeholder='{"hello":"world"}'
+            class="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          ></textarea>
+        </label>
+        <div class="flex items-center justify-between">
+          <p class="text-xs text-slate-500" x-text="sendStatus"></p>
+          <button
+            type="submit"
+            data-test="send-submit"
+            class="inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm text-white font-medium shadow-sm hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500"
+          >
+            Send
+          </button>
+        </div>
+      </form>
+    </details>
+  </section>
+
+  <!-- Disclaimer + delete-all -->
+  <div class="mb-4 flex items-center justify-between gap-4 text-sm text-slate-500">
+    <p class="inline-flex items-center gap-2">
+      <span aria-hidden="true">⚠️</span>
+      <span>Requests are deleted after 4 hours</span>
+    </p>
+    <button
+      type="button"
+      data-test="delete-requests"
+      @click="$store.main.deleteRequests()"
+      class="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-700 hover:bg-rose-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+    >
+      <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/>
+        <path d="M10 11v6"/>
+        <path d="M14 11v6"/>
+      </svg>
+      Delete all
+    </button>
   </div>
 
-  <!-- Search -->
+  <!-- Filter bar -->
   <div
-    class="search-box section sticky top-0 flex items-center justify-between px-4 py-6"
+    class="sticky top-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-slate-50/95 backdrop-blur border-y border-slate-200 mb-4 flex flex-col sm:flex-row gap-3 sm:items-center"
   >
+    <select
+      data-test="method-filter"
+      x-model="$store.main.methodFilter"
+      class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm sm:w-40 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+    >
+      <option value="">Any method</option>
+      <template x-for="m in METHODS" :key="m">
+        <option :value="m" x-text="m"></option>
+      </template>
+    </select>
     <input
       data-test="search-input"
       type="search"
       x-model.debounce="$store.main.search"
       placeholder="Search headers, query string, and body..."
-      style="margin: 0; min-width: 350px"
+      class="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
     />
-
-    <div
+    <span
       data-test="search-results"
-      x-text="`${$store.main.requests.length} ${$store.main.requests.length === 1 ? 'result' : 'results'}`"
-      class="hidden sm:flex text-light"
-    ></div>
+      class="text-sm text-slate-500 sm:text-right shrink-0"
+      x-text="`${$store.main.visibleRequests.length} ${$store.main.visibleRequests.length === 1 ? 'result' : 'results'}`"
+    ></span>
   </div>
 
-  <div data-test="requests">
-    <!-- No data -->
-    <template x-if="$store.main.requests.length === 0">
-      <div class="section">
-        Waiting for requests<span id="loading-dots">...</span>
+  <!-- Requests list -->
+  <section data-test="requests" class="space-y-4">
+    <!-- Empty state -->
+    <template x-if="$store.main.visibleRequests.length === 0">
+      <div
+        class="rounded-lg border border-dashed border-slate-300 bg-white py-12 px-4 text-center text-slate-500"
+      >
+        <p class="text-base">
+          Waiting for requests<span class="loading-dots" aria-hidden="true"></span>
+        </p>
+        <p class="mt-2 text-sm">
+          Requests sent to your URL will appear here in real time.
+        </p>
       </div>
     </template>
 
-    <!-- Data -->
-    <template x-for="request in $store.main.requests">
-      <div
+    <!-- Cards -->
+    <template x-for="request in $store.main.visibleRequests" :key="request.uuid">
+      <article
         :id="`request-${request.uuid}`"
         data-test="request"
-        class="section border-t pt-6"
+        class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden"
       >
-        <div class="flex justify-between pb-6">
-          <!-- UUID -->
-          <div data-test="request-uuid">
+        <header
+          class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-slate-200"
+        >
+          <div class="flex items-center gap-3 min-w-0">
+            <span
+              data-test="request-method"
+              x-text="request.method"
+              :class="methodBadge(request.method)"
+              class="inline-flex items-center justify-center rounded px-2 py-0.5 text-xs font-semibold uppercase tracking-wide shrink-0"
+            ></span>
             <a
+              data-test="request-uuid"
               :href="`#request-${request.uuid}`"
               x-text="request.uuid"
-              class="text-light"
+              class="text-xs text-slate-500 font-mono truncate hover:text-indigo-600"
             ></a>
           </div>
-          <!-- Delete -->
-          <div>
-            <a
-              data-test="delete-request"
-              href="javascript:;"
-              @click="$store.main.deleteRequest(request.uuid)"
-              class="text-light"
-              >Delete</a
-            >
-          </div>
-        </div>
-        <div class="flex flex-col sm:flex-row">
+          <button
+            type="button"
+            data-test="delete-request"
+            @click="$store.main.deleteRequest(request.uuid)"
+            class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-rose-600"
+            aria-label="Delete this request"
+          >
+            <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+            <span class="hidden sm:inline">Delete</span>
+          </button>
+        </header>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 sm:p-5">
           <!-- Details -->
-          <div data-test="request-details" class="pb-6">
-            <div class="table-title">
-              <b>Details</b>
+          <div data-test="request-details">
+            <div class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
+              Details
             </div>
-            <div class="overflow-auto" style="max-height: 300px">
-              <table class="w-full">
-                <tbody>
-                  <tr>
-                    <td>Time</td>
-                    <td>
-                      <div class="with-tooltip">
-                        <div x-text="formatTimeAgo(request.createdAt)"></div>
-                        <div
-                          x-text="request.createdAt.toLocaleString()"
-                          class="tooltip"
-                        ></div>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Client IP</td>
-                    <td>
-                      <a
-                        :href="`https://www.google.com/search?q=${request.ip}+WHOIS`"
-                        target="_blank"
-                        x-text="request.ip"
-                        class="text-light"
-                      ></a>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Method</td>
-                    <td>
-                      <div
-                        x-text="request.method"
-                        class="request-method"
-                        :class="request.method.toLowerCase()"
-                      ></div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Path</td>
-                    <td>
-                      <div x-text="request.path"></div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <dl class="text-sm divide-y divide-slate-100">
+              <div class="grid grid-cols-3 gap-2 py-1.5">
+                <dt class="text-slate-500">Time</dt>
+                <dd class="col-span-2" :title="request.createdAt.toLocaleString()" x-text="formatTimeAgo(request.createdAt)"></dd>
+              </div>
+              <div class="grid grid-cols-3 gap-2 py-1.5">
+                <dt class="text-slate-500">Client IP</dt>
+                <dd class="col-span-2 font-mono text-xs" x-text="request.ip || '—'"></dd>
+              </div>
+              <div class="grid grid-cols-3 gap-2 py-1.5">
+                <dt class="text-slate-500">Path</dt>
+                <dd class="col-span-2 font-mono text-xs break-all" x-text="request.path"></dd>
+              </div>
+            </dl>
           </div>
+
           <!-- Headers -->
-          <div data-test="request-headers" class="pb-6 sm:pl-8">
-            <div class="table-title">
-              <b>Headers</b>
+          <div data-test="request-headers">
+            <div class="flex items-center justify-between mb-2">
+              <div class="text-xs font-medium text-slate-500 uppercase tracking-wide">Headers</div>
+              <button
+                type="button"
+                data-test="copy-headers"
+                @click="copy(JSON.stringify(request.headers, null, 2))"
+                class="text-xs text-slate-500 hover:text-indigo-600"
+              >
+                Copy
+              </button>
             </div>
-            <div class="overflow-auto" style="max-height: 300px">
-              <table class="w-full">
-                <tbody>
-                  <template x-for="[k, v] in Object.entries(request.headers)">
+            <div class="overflow-auto max-h-64">
+              <table class="w-full text-xs">
+                <tbody class="divide-y divide-slate-100">
+                  <template x-for="[k, v] in Object.entries(request.headers)" :key="k">
                     <tr>
-                      <td>
-                        <a
-                          :href="`https://www.google.com/search?q=${k}+Header`"
-                          target="_blank"
-                          x-text="k"
-                          class="text-light"
-                        ></a>
-                      </td>
-                      <td>
-                        <div
-                          x-text="v"
-                          style="max-width: 250px; word-break: break-word"
-                        ></div>
-                      </td>
+                      <td class="py-1 pr-3 align-top text-slate-500 font-mono whitespace-nowrap" x-text="k"></td>
+                      <td class="py-1 align-top font-mono break-all" x-text="Array.isArray(v) ? v.join(', ') : v"></td>
                     </tr>
                   </template>
                 </tbody>
@@ -175,152 +264,47 @@
             </div>
           </div>
         </div>
+
         <!-- Query string -->
-        <div data-test="query-string">
-          <b>Query string</b>
+        <div data-test="query-string" class="px-4 sm:px-5 pb-3">
+          <div class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+            Query string
+          </div>
           <template x-if="request.queryString">
-            <pre x-text="request.queryString"></pre>
+            <pre class="text-xs font-mono bg-slate-50 border border-slate-200 rounded p-3 overflow-auto" x-text="request.queryString"></pre>
           </template>
           <template x-if="!request.queryString">
-            <div class="py-3"><i>None</i></div>
+            <p class="text-xs text-slate-400 italic">None</p>
           </template>
         </div>
+
         <!-- Body -->
-        <div data-test="request-body">
-          <b>Body</b>
+        <div data-test="request-body" class="px-4 sm:px-5 pb-4 sm:pb-5">
+          <div class="flex items-center justify-between mb-1">
+            <div class="text-xs font-medium text-slate-500 uppercase tracking-wide">Body</div>
+            <button
+              type="button"
+              data-test="copy-body"
+              x-show="request.body"
+              @click="copy(request.body)"
+              class="text-xs text-slate-500 hover:text-indigo-600"
+            >
+              Copy
+            </button>
+          </div>
           <template x-if="request.body">
-            <pre x-text="formatBody(request.body)"></pre>
+            <pre
+              class="text-xs font-mono bg-slate-50 border border-slate-200 rounded p-3 overflow-auto max-h-96"
+              x-html="renderBody(request.body, request.headers)"
+            ></pre>
           </template>
           <template x-if="!request.body">
-            <div class="py-3"><i>None</i></div>
+            <p class="text-xs text-slate-400 italic">None</p>
           </template>
         </div>
-      </div>
+      </article>
     </template>
-  </div>
+  </section>
 </main>
 
 {{template "partials/footer" .}}
-
-<script>
-  document.addEventListener("alpine:init", () => {
-    Alpine.store("main", {
-      init() {
-        Alpine.effect(() => {
-          this.getRequests();
-        });
-      },
-      search: "",
-      requests: [],
-      getRequests() {
-        return fetch(
-          "/api/endpoints/{{.EndpointID}}/requests" + `?search=${this.search}`,
-        )
-          .then((response) => response.json())
-          .then((data) => this.setRequests(data.requests))
-          .catch((error) => console.error(error));
-      },
-      setRequests(requests) {
-        this.requests = requests
-          .map(this.transformRequest)
-          .filter((request) => request !== null);
-      },
-      addRequest(request) {
-        const r = this.transformRequest(request);
-        if (r === null) {
-          return;
-        }
-        this.requests = [r, ...this.requests];
-      },
-      deleteRequests() {
-        fetch("/api/endpoints/{{.EndpointID}}/requests", {
-          method: "DELETE",
-        })
-          .then(() => (this.requests = []))
-          .catch((error) => console.error(error));
-      },
-      deleteRequest(uuid) {
-        fetch("/api/endpoints/{{.EndpointID}}/requests" + `/${uuid}`, {
-          method: "DELETE",
-        })
-          .then(
-            () =>
-              (this.requests = this.requests.filter(
-                (request) => request.uuid !== uuid,
-              )),
-          )
-          .catch((error) => console.error(error));
-      },
-      transformRequest(request) {
-        if (
-          this.search &&
-          !(JSON.stringify(request.headers) + JSON.stringify(request.body))
-            .toLowerCase()
-            .includes(this.search.toLowerCase())
-        ) {
-          return null;
-        }
-        const result = { ...request };
-        result.createdAt = new Date(result.createdAt);
-        return result;
-      },
-    });
-  });
-</script>
-
-<script>
-  const socket = new WebSocket("{{.EndpointWebSocketURL}}");
-
-  socket.addEventListener("open", function () {
-    console.debug("socket:open");
-  });
-
-  socket.addEventListener("close", function () {
-    console.debug("socket:close");
-  });
-
-  socket.addEventListener("error", function () {
-    console.debug("socket:error");
-  });
-
-  socket.addEventListener("message", function (payload) {
-    console.debug("socket:message");
-    const request = JSON.parse(payload.data);
-    // The socket can deliver a message before Alpine has finished initializing
-    // its store (the WebSocket opens during HTML parse, Alpine runs after the
-    // CDN script loads). Defer until alpine:init has fired so addRequest
-    // doesn't dereference an undefined store.
-    if (window.Alpine && Alpine.store("main")) {
-      Alpine.store("main").addRequest(request);
-    } else {
-      document.addEventListener(
-        "alpine:init",
-        () => Alpine.store("main").addRequest(request),
-        { once: true },
-      );
-    }
-  });
-</script>
-
-<script>
-  setInterval(function () {
-    const loadingDotsElement = document.getElementById("loading-dots");
-    if (loadingDotsElement) {
-      if (loadingDotsElement.innerText.length < 3) {
-        loadingDotsElement.innerText = loadingDotsElement.innerText + ".";
-      } else {
-        loadingDotsElement.innerText = ".";
-      }
-    }
-  }, 1000);
-
-  const sendCurlRequest = async function () {
-    await fetch("/to/{{.EndpointID}}", {
-      method: "POST",
-      body: "Hello, World!",
-      headers: {
-        "Httphq-Spoof-Curl": true,
-      },
-    });
-  };
-</script>
