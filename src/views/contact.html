@@ -1,50 +1,88 @@
 {{template "partials/header" .}}
 
-<main>
-  <form
-    action="https://submit-form.com/bKTG9w9O"
-    method="POST"
-    style="max-width: 600px; margin: 0 auto"
-  >
-    <input
-      type="checkbox"
-      name="accept"
-      style="display: none"
-      tabindex="-1"
-      autocomplete="off"
-    />
+<main class="flex-1 py-8 sm:py-12">
+  <div class="max-w-xl mx-auto">
+    <div class="text-center mb-8 space-y-2">
+      <h1 class="text-2xl sm:text-3xl font-semibold text-slate-900">Get in touch</h1>
+      <p class="text-slate-600">
+        Found a bug, have an idea, or want to say hi? We read every message.
+      </p>
+    </div>
 
-    <p>
-      <label for="name">Name</label>
-      <input type="text" id="name" name="name" required aria-required="true" />
-    </p>
-
-    <p>
-      <label for="email">Email</label>
+    <form
+      action="https://submit-form.com/bKTG9w9O"
+      method="POST"
+      class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 sm:p-8 space-y-5"
+    >
       <input
-        type="email"
-        id="email"
-        name="email"
-        required
-        aria-required="true"
+        type="checkbox"
+        name="accept"
+        class="hidden"
+        tabindex="-1"
+        autocomplete="off"
+        aria-hidden="true"
       />
-    </p>
 
-    <p>
-      <label for="message">Message</label>
-      <textarea
-        id="message"
-        name="message"
-        rows="6"
-        required
-        aria-required="true"
-      ></textarea>
-    </p>
+      <div>
+        <label for="name" class="block text-sm font-medium text-slate-700 mb-1.5">
+          Name
+        </label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          required
+          aria-required="true"
+          autocomplete="name"
+          class="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-500"
+        />
+      </div>
 
-    <p>
-      <button type="submit" data-test="send-form">Send message</button>
-    </p>
-  </form>
+      <div>
+        <label for="email" class="block text-sm font-medium text-slate-700 mb-1.5">
+          Email
+        </label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          required
+          aria-required="true"
+          autocomplete="email"
+          placeholder="you@example.com"
+          class="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-500"
+        />
+      </div>
+
+      <div>
+        <label for="message" class="block text-sm font-medium text-slate-700 mb-1.5">
+          Message
+        </label>
+        <textarea
+          id="message"
+          name="message"
+          rows="6"
+          required
+          aria-required="true"
+          placeholder="What's on your mind?"
+          class="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-500"
+        ></textarea>
+      </div>
+
+      <div class="flex items-center justify-between gap-3 pt-2 border-t border-slate-100">
+        <p class="text-xs text-slate-500">
+          We typically reply within a couple of days.
+        </p>
+        <button
+          type="submit"
+          data-test="send-form"
+          class="inline-flex items-center justify-center rounded-md bg-indigo-600 px-5 py-2 text-sm text-white font-medium shadow-sm hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 transition"
+        >
+          Send message
+        </button>
+      </div>
+    </form>
+  </div>
 </main>
 
 {{template "partials/footer" .}}

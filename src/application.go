@@ -208,16 +208,19 @@ func main() {
 		c.Set("X-Content-Type-Options", "nosniff")
 		c.Set("Referrer-Policy", "no-referrer")
 		c.Set("X-Frame-Options", "DENY")
-		// Open CSP that allows the pinned CDN assets used in layouts/main.html.
-		// Alpine.js evaluates its x-data/x-text/x-if expressions via the Function
-		// constructor, which CSP treats as eval. The CSP build of Alpine avoids
-		// it but requires an upfront component registration that doesn't fit
-		// the inline-template style this app uses, so 'unsafe-eval' stays.
+		// CSP policy:
+		// - script-src needs 'unsafe-eval' for Alpine (it compiles directive
+		//   expressions via the Function constructor) and the Tailwind Play
+		//   CDN (compiles utility classes at runtime). All page scripts are
+		//   external so script-src does NOT need 'unsafe-inline'.
+		// - style-src needs 'unsafe-inline' because Tailwind Play CDN injects
+		//   generated styles into <style> tags, and Alpine x-show toggles via
+		//   inline display style.
 		c.Set("Content-Security-Policy",
 			"default-src 'self'; "+
-				"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; "+
+				"script-src 'self' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net; "+
 				"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "+
-				"img-src 'self' data: https://img.shields.io; "+
+				"img-src 'self' data:; "+
 				"connect-src 'self' ws: wss:; "+
 				"frame-ancestors 'none'")
 		return c.Next()

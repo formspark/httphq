@@ -3,35 +3,52 @@
   <head>
     <title>{{.Title}}</title>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <meta
       name="description"
       content="Generate custom endpoints to capture and inspect HTTP requests."
     />
+    <link rel="icon" href="/favicon.ico" />
 
-    <!-- JS -->
+    <!-- Tailwind v4 (Play CDN) -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"
+      integrity="sha384-v5YF9xS+gLRWdvrQ0u/WRbCkjSIH0NjHIPe8tBL1ZRrmI7PiSH6LLdzs0aAIMCuh"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- highlight.js (browser bundle, common languages incl. JSON + XML) -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.10.0/styles/github.min.css"
+      integrity="sha384-eFTL69TLRZTkNfYZOLM+G04821K1qZao/4QLJbet1pP4tcF+fdXq/9CdqAbWRl/L"
+      crossorigin="anonymous"
+    />
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.10.0/highlight.min.js"
+      integrity="sha384-GdEWAbCjn+ghjX0gLx7/N1hyTVmPAjdC2OvoAA0RyNcAOhqwtT8qnbCxWle2+uJX"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- App scripts must register their alpine:init listeners BEFORE Alpine
+         loads, because Alpine v3 schedules its first alpine:init dispatch via
+         queueMicrotask at the end of its own script execution. -->
+    <script defer src="/index.js"></script>
+    <script defer src="/endpoint.js"></script>
+
+    <!-- Alpine.js (loaded last so app scripts can subscribe first). -->
     <script
       defer
       src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"
       integrity="sha384-l8f0VcPi/M1iHPv8egOnY/15TDwqgbOR1anMIJWvU6nLRgZVLTLSaNqi/TOoT5Fh"
       crossorigin="anonymous"
     ></script>
-    <script defer src="/index.js"></script>
-
-    <!-- CSS -->
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/simpledotcss@2.3.4/simple.min.css"
-      integrity="sha384-U1MeWgAfmf5O4wBw7zmgzmSVPDQU4up3kagI5GZfmeKz8sa7JEeZ5IF4xVCkVXfp"
-      crossorigin="anonymous"
-    />
-    <link rel="stylesheet" type="text/css" href="/index.css" />
   </head>
-  <body>
-    {{embed}}
+  <body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+    <div class="mx-auto w-full max-w-5xl px-4 sm:px-6 flex-1 flex flex-col">
+      {{embed}}
+    </div>
   </body>
 </html>
