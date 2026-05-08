@@ -2,53 +2,157 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/antoniodipinto/ikisocket"
-	"github.com/atrox/haikunatorgo/v2"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/compress"
-	"github.com/gofiber/fiber/v2/middleware/limiter"
-	"github.com/gofiber/template/html"
-	"github.com/gofiber/websocket/v2"
-	"github.com/google/uuid"
-	"github.com/robfig/cron/v3"
-	"gorm.io/datatypes"
-	"httphq/src/database"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 	"time"
+
+	"github.com/atrox/haikunatorgo/v2"
+	"github.com/gofiber/contrib/v3/socketio"
+	"github.com/gofiber/contrib/v3/websocket"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/compress"
+	"github.com/gofiber/fiber/v3/middleware/limiter"
+	"github.com/gofiber/fiber/v3/middleware/static"
+	"github.com/gofiber/template/html/v2"
+	"github.com/google/uuid"
+	"github.com/robfig/cron/v3"
+	"gorm.io/datatypes"
+
+	"httphq/src/database"
 )
 
-const port = 8080
+const (
+	port      = 8080
+	bodyLimit = 1 << 20 // 1 MiB
+)
 
 var isProduction = os.Getenv("APPLICATION_ENV") == "production"
 
+// Headers stripped from captured requests so users see their original payload,
+// not infrastructure-added headers.
 var omittedHeaders = [...]string{
-	"Fly-Client-Ip",
-	"Fly-Dispatch-Start",
-	"Fly-Forwarded-Port",
-	"Fly-Forwarded-Proto",
-	"Fly-Forwarded-Ssl",
-	"Fly-Region",
-	"Fly-Request-Id",
-	"Fly-Traceparent",
-	"Fly-Tracestate",
 	"Trace",
 	"Traceparent",
 	"Tracestate",
 	"Via",
 	"X-Forwarded-For",
+	"X-Forwarded-Host",
 	"X-Forwarded-Port",
 	"X-Forwarded-Proto",
+	"X-Forwarded-Server",
 	"X-Forwarded-Ssl",
+	"X-Real-Ip",
 	"X-Request-Start",
+}
+
+// socketRegistry tracks WS UUIDs subscribed to each endpoint, so the capture
+// hot path can fan-out without a DB round-trip.
+type socketRegistry struct {
+	mu    sync.RWMutex
+	byEnd map[string]map[string]struct{}
+}
+
+func newSocketRegistry() *socketRegistry {
+	return &socketRegistry{byEnd: make(map[string]map[string]struct{})}
+}
+
+func (r *socketRegistry) add(endpointID, uuid string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	set, ok := r.byEnd[endpointID]
+	if !ok {
+		set = make(map[string]struct{})
+		r.byEnd[endpointID] = set
+	}
+	set[uuid] = struct{}{}
+}
+
+func (r *socketRegistry) remove(uuid string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for endpointID, set := range r.byEnd {
+		if _, ok := set[uuid]; ok {
+			delete(set, uuid)
+			if len(set) == 0 {
+				delete(r.byEnd, endpointID)
+			}
+			return
+		}
+	}
+}
+
+func (r *socketRegistry) uuidsFor(endpointID string) []string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	set := r.byEnd[endpointID]
+	if len(set) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(set))
+	for u := range set {
+		out = append(out, u)
+	}
+	return out
+}
+
+func (r *socketRegistry) count() int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	n := 0
+	for _, set := range r.byEnd {
+		n += len(set)
+	}
+	return n
+}
+
+// resolveClientIP picks the most trustworthy client IP available. Behind Traefik,
+// X-Real-Ip is set to the real peer; we prefer it but verify it parses, and fall
+// back through X-Forwarded-For (leftmost) and the TCP peer.
+func resolveClientIP(c fiber.Ctx) string {
+	if v := c.Get("X-Real-Ip"); v != "" {
+		if ip := net.ParseIP(v); ip != nil {
+			return ip.String()
+		}
+	}
+	if xff := c.Get(fiber.HeaderXForwardedFor); xff != "" {
+		// leftmost
+		for i := 0; i < len(xff); i++ {
+			if xff[i] == ',' {
+				if ip := net.ParseIP(trimSpace(xff[:i])); ip != nil {
+					return ip.String()
+				}
+				break
+			}
+		}
+		if ip := net.ParseIP(trimSpace(xff)); ip != nil {
+			return ip.String()
+		}
+	}
+	peer := c.IP()
+	if ip := net.ParseIP(peer); ip != nil {
+		return ip.String()
+	}
+	return ""
+}
+
+func trimSpace(s string) string {
+	for len(s) > 0 && (s[0] == ' ' || s[0] == '\t') {
+		s = s[1:]
+	}
+	for len(s) > 0 && (s[len(s)-1] == ' ' || s[len(s)-1] == '\t') {
+		s = s[:len(s)-1]
+	}
+	return s
 }
 
 func main() {
 	/* Database */
 
-	database.Connect("local.db")
+	database.Connect("file:local.db?_journal_mode=WAL&_busy_timeout=5000&_synchronous=NORMAL")
 
 	/* Haiku maker */
 
@@ -62,7 +166,6 @@ func main() {
 	if _, err := c.AddFunc(everyFiveMinutes, func() {
 		threshold := time.Now().Add(-1 * 4 * time.Hour)
 		database.DeleteOldRequests(threshold)
-		database.DeleteOldSocketClients(threshold)
 	}); err != nil {
 		log.Fatalln(err)
 	}
@@ -81,27 +184,52 @@ func main() {
 	application := fiber.New(fiber.Config{
 		Views:       engine,
 		ViewsLayout: "layouts/main",
+		BodyLimit:   bodyLimit,
+		// Trust the upstream proxy (Traefik in cluster) so c.IP, the limiter, and
+		// header-based extraction reflect the real client. Pod CIDRs vary per
+		// cluster; restrict via env if you need a tighter list.
+		TrustProxy:  true,
+		ProxyHeader: fiber.HeaderXForwardedFor,
 	})
 
 	maxRequestsPerMinute := 9999
 	if isProduction {
 		maxRequestsPerMinute = 125
 	}
-	application.Use(limiter.New(
-		limiter.Config{
-			Max:        maxRequestsPerMinute,
-			Expiration: 1 * time.Minute,
-		}))
+	application.Use(limiter.New(limiter.Config{
+		Max:        maxRequestsPerMinute,
+		Expiration: 1 * time.Minute,
+	}))
 
 	application.Use(compress.New())
 
-	// Static handling
+	// Security headers
+	application.Use(func(c fiber.Ctx) error {
+		c.Set("X-Content-Type-Options", "nosniff")
+		c.Set("Referrer-Policy", "no-referrer")
+		c.Set("X-Frame-Options", "DENY")
+		// Open CSP that allows the pinned CDN assets used in layouts/main.html.
+		// Alpine.js evaluates its x-data/x-text/x-if expressions via the Function
+		// constructor, which CSP treats as eval. The CSP build of Alpine avoids
+		// it but requires an upfront component registration that doesn't fit
+		// the inline-template style this app uses, so 'unsafe-eval' stays.
+		c.Set("Content-Security-Policy",
+			"default-src 'self'; "+
+				"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; "+
+				"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "+
+				"img-src 'self' data: https://img.shields.io; "+
+				"connect-src 'self' ws: wss:; "+
+				"frame-ancestors 'none'")
+		return c.Next()
+	})
 
-	application.Static("/", "./public")
+	// Static handling
+	application.Get("/*", static.New("./public"))
 
 	// WS handling
+	registry := newSocketRegistry()
 
-	application.Use("/ws", func(c *fiber.Ctx) error {
+	application.Use("/ws", func(c fiber.Ctx) error {
 		if websocket.IsWebSocketUpgrade(c) {
 			c.Locals("allowed", true)
 			return c.Next()
@@ -109,39 +237,37 @@ func main() {
 		return fiber.ErrUpgradeRequired
 	})
 
-	application.Get("/ws/:endpoint", ikisocket.New(func(kws *ikisocket.Websocket) {
+	application.Get("/ws/:endpoint", socketio.New(func(kws *socketio.Websocket) {
 		endpointID := kws.Params("endpoint")
-		database.CreateSocketClient(&database.SocketClient{
-			UUID:       kws.UUID,
-			EndpointID: endpointID,
-		})
+		kws.SetAttribute("endpointID", endpointID)
+		registry.add(endpointID, kws.UUID)
 		log.Printf("%s connected to WS\n", endpointID)
 	}))
 
-	ikisocket.On(ikisocket.EventDisconnect, func(ep *ikisocket.EventPayload) {
-		database.DeleteSocketClientForUUID(ep.Kws.UUID)
+	socketio.On(socketio.EventDisconnect, func(ep *socketio.EventPayload) {
+		registry.remove(ep.Kws.UUID)
 	})
 
-	ikisocket.On(ikisocket.EventClose, func(ep *ikisocket.EventPayload) {
-		database.DeleteSocketClientForUUID(ep.Kws.UUID)
+	socketio.On(socketio.EventClose, func(ep *socketio.EventPayload) {
+		registry.remove(ep.Kws.UUID)
 	})
 
 	// HTTP handling
 
-	application.Get("/api/health", func(c *fiber.Ctx) error {
+	application.Get("/api/health", func(c fiber.Ctx) error {
 		return c.SendStatus(http.StatusOK)
 	})
 
-	application.Get("/api/debug", func(c *fiber.Ctx) error {
+	application.Get("/api/debug", func(c fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"host":         string(c.Request().Host()),
 			"isProduction": isProduction,
 			"requests":     database.CountRequests(),
-			"sockets":      database.CountSocketClients(),
+			"sockets":      registry.count(),
 		})
 	})
 
-	application.Get("/api/endpoints/:endpoint/requests", func(c *fiber.Ctx) error {
+	application.Get("/api/endpoints/:endpoint/requests", func(c fiber.Ctx) error {
 		endpointID := c.Params("endpoint")
 		search := c.Query("search")
 		requests := database.GetRequestsForEndpointID(endpointID, search, 128)
@@ -150,62 +276,58 @@ func main() {
 		})
 	})
 
-	application.Delete("/api/endpoints/:endpoint/requests", func(c *fiber.Ctx) error {
+	application.Delete("/api/endpoints/:endpoint/requests", func(c fiber.Ctx) error {
 		endpointID := c.Params("endpoint")
 		database.DeleteRequestsForEndpointID(endpointID)
 		return c.SendStatus(http.StatusOK)
 	})
 
-	application.Delete("/api/endpoints/:endpoint/requests/:request", func(c *fiber.Ctx) error {
+	application.Delete("/api/endpoints/:endpoint/requests/:request", func(c fiber.Ctx) error {
 		requestUUID := c.Params("request")
 		database.DeleteRequestForUUID(requestUUID)
 		return c.SendStatus(http.StatusOK)
 	})
 
-	application.Get("/", func(c *fiber.Ctx) error {
+	application.Get("/", func(c fiber.Ctx) error {
 		return c.Render("index", fiber.Map{
 			"Title": "httphq",
 		})
 	})
 
-	application.Get("/contact", func(c *fiber.Ctx) error {
+	application.Get("/contact", func(c fiber.Ctx) error {
 		return c.Render("contact", fiber.Map{
 			"Title": "Contact | httphq",
 		})
 	})
 
-	application.Get("/:endpoint", func(c *fiber.Ctx) error {
+	application.Get("/:endpoint", func(c fiber.Ctx) error {
 		endpointID := c.Params("endpoint")
 		host := string(c.Request().Host())
-		protocol := c.Protocol()
-		websocketProtocol := "ws"
-		if protocol == "https" {
-			websocketProtocol = "wss"
+		scheme := c.Scheme()
+		websocketScheme := "ws"
+		if scheme == "https" {
+			websocketScheme = "wss"
 		}
 		return c.Render("endpoint", fiber.Map{
 			"Title":                endpointID + " | httphq",
 			"EndpointID":           endpointID,
-			"EndpointURL":          protocol + "://" + host + "/to/" + endpointID,
-			"EndpointWebSocketURL": websocketProtocol + "://" + host + "/ws/" + endpointID,
+			"EndpointURL":          scheme + "://" + host + "/to/" + endpointID,
+			"EndpointWebSocketURL": websocketScheme + "://" + host + "/ws/" + endpointID,
 		})
 	})
 
-	application.Post("/endpoint", func(c *fiber.Ctx) error {
+	application.Post("/endpoint", func(c fiber.Ctx) error {
 		endpointID := haikuMaker.Haikunate()
 		log.Printf("Created endpoint %s\n", endpointID)
-		return c.Redirect("/" + endpointID)
+		return c.Redirect().To("/" + endpointID)
 	})
 
-	application.Use("/to/:endpoint", func(c *fiber.Ctx) error {
-		UUID := uuid.NewString()
+	application.Use("/to/:endpoint", func(c fiber.Ctx) error {
+		requestUUID := uuid.NewString()
 
 		endpointID := c.Params("endpoint")
 
-		IP := c.IP()
-		forwardedIPs := c.IPs()
-		if len(forwardedIPs) > 0 {
-			IP = forwardedIPs[0]
-		}
+		ip := resolveClientIP(c)
 
 		method := c.Method()
 
@@ -217,7 +339,7 @@ func main() {
 
 		headers := c.GetReqHeaders()
 
-		if spoofCurl, ok := headers["Httphq-Spoof-Curl"]; ok && spoofCurl == "true" {
+		if spoofCurl, ok := headers["Httphq-Spoof-Curl"]; ok && len(spoofCurl) > 0 && spoofCurl[0] == "true" {
 			delete(headers, "Accept-Encoding")
 			delete(headers, "Accept-Language")
 			delete(headers, "Connection")
@@ -226,27 +348,37 @@ func main() {
 			delete(headers, "Referer")
 			delete(headers, "Sec-Fetch-Dest")
 			delete(headers, "Sec-Fetch-Mode")
+			delete(headers, "Sec-Fetch-Site")
 			delete(headers, "Sec-Ch-Ua")
 			delete(headers, "Sec-Ch-Ua-Mobile")
 			delete(headers, "Sec-Ch-Ua-Platform")
-			delete(headers, "Sec-Fetch-Mode")
-			delete(headers, "Sec-Fetch-Site")
 
-			headers["Content-Type"] = "application/x-www-form-urlencoded"
-			headers["User-Agent"] = "curl/7.79.1"
+			headers["Content-Type"] = []string{"application/x-www-form-urlencoded"}
+			headers["User-Agent"] = []string{"curl/7.79.1"}
 		}
 		for _, omittedHeader := range omittedHeaders {
 			delete(headers, omittedHeader)
 		}
-		jsonHeaders, err := json.Marshal(headers)
+
+		// Flatten []string headers to a {key: scalar-or-array} JSON; the UI
+		// expects either string or string[] per RFC 7230 ambiguity.
+		flatHeaders := make(map[string]any, len(headers))
+		for k, vs := range headers {
+			if len(vs) == 1 {
+				flatHeaders[k] = vs[0]
+			} else {
+				flatHeaders[k] = vs
+			}
+		}
+		jsonHeaders, err := json.Marshal(flatHeaders)
 		if err != nil {
 			log.Println(err)
 		}
 
 		request := database.Request{
-			UUID:        UUID,
+			UUID:        requestUUID,
 			EndpointID:  endpointID,
-			IP:          IP,
+			IP:          ip,
 			Method:      method,
 			Path:        path,
 			QueryString: queryString,
@@ -255,25 +387,22 @@ func main() {
 		}
 		database.CreateRequest(&request)
 
-		socketClients := database.GetSocketClientsForEndpointID(endpointID, 32)
-		for _, socketClient := range socketClients {
+		// Fan-out to subscribed WS clients. Marshal once, then dispatch
+		// asynchronously so a slow client doesn't stall the capture handler.
+		if uuids := registry.uuidsFor(endpointID); len(uuids) > 0 {
 			marshalled, marshalErr := json.Marshal(request)
 			if marshalErr != nil {
 				log.Println(marshalErr)
 			} else {
-				emitErr := ikisocket.EmitTo(socketClient.UUID, marshalled)
-				if emitErr != nil {
-					log.Println(emitErr)
-					database.DeleteSocketClientForUUID(socketClient.UUID)
-				}
+				go socketio.EmitToList(uuids, marshalled)
 			}
 		}
 
-		c.Set("Httphq-Request-Uuid", UUID)
+		c.Set("Httphq-Request-Uuid", requestUUID)
 		return c.SendStatus(http.StatusOK)
 	})
 
-	application.Use(func(c *fiber.Ctx) error {
+	application.Use(func(c fiber.Ctx) error {
 		return c.SendStatus(http.StatusNotFound)
 	})
 

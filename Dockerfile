@@ -1,27 +1,25 @@
 # ***** Builder *****
 
-FROM golang:1.18-alpine as builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /usr/src/app
 
-RUN apk add build-base
-
-COPY go.mod ./
-COPY go.sum ./
+COPY go.mod go.sum ./
 RUN go mod download
 
-COPY ./public ./public
 COPY ./src ./src
 
-RUN go build -o ./bin/httphq ./src
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o ./bin/httphq ./src
 
 # ***** Application *****
 
-FROM alpine
+FROM alpine:3.21
 
-COPY --from=builder ./usr/src/app/bin ./bin
-COPY --from=builder ./usr/src/app/public ./public
-COPY --from=builder ./usr/src/app/src ./src
+WORKDIR /app
+
+COPY --from=builder /usr/src/app/bin/httphq ./bin/httphq
+COPY ./public ./public
+COPY ./src/views ./src/views
 
 ENV APPLICATION_ENV=production
 

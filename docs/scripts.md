@@ -4,7 +4,7 @@ Install dependencies:
 
 ```bash
 go mod download
-cd e2e && npm install
+cd e2e && npm install && npx playwright install chromium
 ```
 
 Upkeep dependencies:
@@ -19,16 +19,17 @@ Run project:
 go run ./src/application.go
 ```
 
-Run tests:
+Run unit tests:
 
 ```bash
-watchman-make -p 'src/**/*.go' --make=go -t test ./...
+go test ./...
 ```
 
-Run E2E tests:
+Run E2E tests (Playwright auto-starts the binary; build it first):
 
 ```bash
-cd e2e && npx cypress open
+CGO_ENABLED=0 go build -o ./bin/httphq ./src
+cd e2e && npx playwright test
 ```
 
 View test coverage:
@@ -47,7 +48,7 @@ go fmt ./src && npx prettier --write .
 Build and run binary:
 
 ```bash
-go build -o ./bin/httphq ./src
+CGO_ENABLED=0 go build -o ./bin/httphq ./src
 ./bin/httphq
 ```
 
@@ -57,16 +58,4 @@ Build and run container:
 docker build . -t httphq
 docker run -dp 8080:8080 httphq
 docker container ls -s
-```
-
-Deploy to Fly:
-
-```bash
-fly deploy
-```
-
-View Fly logs:
-
-```bash
-fly logs
 ```

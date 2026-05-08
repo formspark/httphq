@@ -286,7 +286,19 @@
   socket.addEventListener("message", function (payload) {
     console.debug("socket:message");
     const request = JSON.parse(payload.data);
-    Alpine.store("main").addRequest(request);
+    // The socket can deliver a message before Alpine has finished initializing
+    // its store (the WebSocket opens during HTML parse, Alpine runs after the
+    // CDN script loads). Defer until alpine:init has fired so addRequest
+    // doesn't dereference an undefined store.
+    if (window.Alpine && Alpine.store("main")) {
+      Alpine.store("main").addRequest(request);
+    } else {
+      document.addEventListener(
+        "alpine:init",
+        () => Alpine.store("main").addRequest(request),
+        { once: true },
+      );
+    }
   });
 </script>
 

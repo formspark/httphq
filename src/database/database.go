@@ -1,12 +1,13 @@
 package database
 
 import (
-	"gorm.io/datatypes"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 	"log"
 	"strconv"
 	"time"
+
+	"github.com/glebarez/sqlite"
+	"gorm.io/datatypes"
+	"gorm.io/gorm"
 )
 
 type Request struct {
@@ -19,12 +20,6 @@ type Request struct {
 	Body        string         `json:"body"`
 	CreatedAt   time.Time      `json:"createdAt" gorm:"index"`
 	Headers     datatypes.JSON `json:"headers"`
-}
-
-type SocketClient struct {
-	UUID       string    `json:"uuid" gorm:"primaryKey"`
-	EndpointID string    `json:"endpointId" gorm:"index"`
-	CreatedAt  time.Time `json:"createdAt"`
 }
 
 var DB *gorm.DB
@@ -44,7 +39,7 @@ func Connect(dsn string) *gorm.DB {
 
 	log.Println("Migrating database")
 
-	if err := DB.AutoMigrate(&Request{}, &SocketClient{}); err != nil {
+	if err := DB.AutoMigrate(&Request{}); err != nil {
 		panic("failed to auto-migrate database")
 	}
 
@@ -63,7 +58,13 @@ func CountRequests() int64 {
 
 func GetRequestsForEndpointID(endpointID string, search string, limit int) []Request {
 	var items []Request
-	result := DB.Where(&Request{EndpointID: endpointID}).Where("(? = '' OR (headers LIKE ? OR query_string LIKE ? OR body LIKE ?))", search, "%"+search+"%", "%"+search+"%", "%"+search+"%").Limit(limit).Order("created_at DESC").Find(&items)
+	result := DB.
+		Where(&Request{EndpointID: endpointID}).
+		Where("(? = '' OR (headers LIKE ? OR query_string LIKE ? OR body LIKE ?))",
+			search, "%"+search+"%", "%"+search+"%", "%"+search+"%").
+		Limit(limit).
+		Order("created_at DESC").
+		Find(&items)
 	if result.Error != nil {
 		log.Println(result.Error)
 	}
@@ -97,44 +98,4 @@ func DeleteOldRequests(threshold time.Time) {
 		log.Println(result.Error)
 	}
 	log.Println("Deleted " + strconv.Itoa(int(result.RowsAffected)) + " old requests")
-}
-
-func CountSocketClients() int64 {
-	var count int64
-	result := DB.Model(&SocketClient{}).Count(&count)
-	if result.Error != nil {
-		log.Println(result.Error)
-	}
-	return count
-}
-
-func GetSocketClientsForEndpointID(endpointID string, limit int) []SocketClient {
-	var items []SocketClient
-	result := DB.Where(&SocketClient{EndpointID: endpointID}).Limit(limit).Order("created_at DESC").Find(&items)
-	if result.Error != nil {
-		log.Println(result.Error)
-	}
-	return items
-}
-
-func CreateSocketClient(socketClient *SocketClient) {
-	result := DB.Create(&socketClient)
-	if result.Error != nil {
-		log.Println(result.Error)
-	}
-}
-
-func DeleteSocketClientForUUID(UUID string) {
-	result := DB.Where("uuid = ?", UUID).Delete(&SocketClient{})
-	if result.Error != nil {
-		log.Println(result.Error)
-	}
-}
-
-func DeleteOldSocketClients(threshold time.Time) {
-	result := DB.Where("created_at < ?", threshold).Delete(&SocketClient{})
-	if result.Error != nil {
-		log.Println(result.Error)
-	}
-	log.Println("Deleted " + strconv.Itoa(int(result.RowsAffected)) + " old socket clients")
 }

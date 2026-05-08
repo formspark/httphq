@@ -1,4 +1,4 @@
-UserAgent: *
+User-agent: *
 Allow: /$
 Allow: /contact$
 Disallow: /
