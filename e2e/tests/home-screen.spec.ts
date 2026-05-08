@@ -11,7 +11,7 @@ test.describe("Home screen", () => {
 
   test("page renders the hero copy", async ({ page }) => {
     await expect(
-      page.getByRole("heading", { name: /Capture and inspect HTTP requests/ }),
+      page.getByRole("heading", { name: /Inspect HTTP requests/ }),
     ).toBeVisible();
   });
 
@@ -27,41 +27,10 @@ test.describe("Home screen", () => {
     await expect(page.locator('[data-test="endpoint-url"]')).toBeVisible();
   });
 
-  test("recently created panel hides when localStorage is empty", async ({
-    page,
-  }) => {
-    await page.evaluate(() => localStorage.clear());
-    await page.reload();
-    await expect(page.locator('[data-test="recent-endpoints"]')).toBeHidden();
-  });
-
-  test("recently created panel surfaces previously visited endpoints", async ({
-    page,
-  }) => {
-    await page.evaluate(() => {
-      localStorage.setItem(
-        "httphq:recent-endpoints",
-        JSON.stringify([
-          { id: "ancient-fog-0001", createdAt: Date.now() - 60_000 },
-        ]),
-      );
-    });
-    await page.reload();
-    const list = page.locator('[data-test="recent-endpoints"]');
-    await expect(list).toBeVisible();
-    const link = list.locator('a[data-test="recent-endpoint"]');
-    await expect(link).toContainText("ancient-fog-0001");
-    await expect(link).toHaveAttribute("href", "/ancient-fog-0001");
-  });
-
-  test("creating an endpoint adds it to the recent list", async ({ page }) => {
-    await page.evaluate(() => localStorage.clear());
-    await page.locator('button[data-test="create-endpoint"]').click();
-    await expect(page.locator('[data-test="endpoint-url"]')).toBeVisible();
-    const id = await page.evaluate(() => location.pathname.slice(1));
-    await page.goto("/");
-    await expect(
-      page.locator('[data-test="recent-endpoint"]', { hasText: id }),
-    ).toBeVisible();
+  test("common use cases section is visible", async ({ page }) => {
+    const section = page.locator('[data-test="use-cases"]');
+    await expect(section).toBeVisible();
+    await expect(section).toContainText("Test webhooks");
+    await expect(section).toContainText("Inspect form payloads");
   });
 });

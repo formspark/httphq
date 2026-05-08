@@ -1,38 +1,154 @@
 {{template "partials/header" .}}
 
 <main class="flex-1 flex flex-col items-center text-center">
-  <div class="max-w-xl mx-auto py-8 sm:py-16 space-y-4">
-    <h1 class="text-2xl sm:text-3xl font-semibold text-slate-900">
-      Capture and inspect HTTP requests in real time
+  <div class="max-w-2xl mx-auto pt-10 sm:pt-16 pb-6 sm:pb-8 space-y-6">
+    <h1 class="text-3xl sm:text-5xl font-semibold tracking-tight text-slate-900">
+      Inspect HTTP requests<br class="hidden sm:inline" />
+      in real&nbsp;time
     </h1>
-    <p class="text-slate-600">
-      Generate a unique endpoint, send requests to it, and watch them stream
-      in. Useful for testing webhooks, integrations and form payloads.
+    <p class="text-base sm:text-lg text-slate-600 max-w-xl mx-auto">
+      Spin up a unique URL, point any client at it, and watch every request
+      stream in: headers, body, query string, timing.
     </p>
+
     <form action="/endpoint" method="post" class="pt-2">
       <button
         data-test="create-endpoint"
-        class="inline-flex items-center justify-center rounded-md bg-indigo-600 px-5 py-2.5 text-white font-medium shadow-sm hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 transition"
+        class="inline-flex items-center justify-center gap-2 rounded-md bg-indigo-600 px-6 py-3 text-base text-white font-medium shadow-sm hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 transition"
       >
         Create endpoint
+        <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+          <polyline points="12 5 19 12 12 19"/>
+        </svg>
       </button>
     </form>
   </div>
 
-  <!-- Recent endpoints (populated by /home.js from localStorage) -->
+  <!-- Common use cases -->
   <section
-    id="recent-endpoints"
-    data-test="recent-endpoints"
-    class="hidden w-full max-w-xl mx-auto mt-2 mb-12 text-left"
-    aria-label="Recently created endpoints"
+    data-test="use-cases"
+    class="w-full max-w-4xl mx-auto pt-2 pb-8 sm:pb-12 text-left"
+    aria-label="Common use cases"
   >
-    <h2 class="text-sm font-medium text-slate-500 uppercase tracking-wide mb-3">
-      Recently created
+    <h2 class="text-center text-sm font-medium text-slate-500 uppercase tracking-wide mb-5">
+      Common use cases
     </h2>
-    <ul
-      id="recent-endpoints-list"
-      class="bg-white border border-slate-200 rounded-md divide-y divide-slate-200"
-    ></ul>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <article class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition">
+        <div class="flex items-center gap-3 mb-2">
+          <span
+            class="flex items-center justify-center w-9 h-9 rounded-md bg-indigo-50 text-indigo-600"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+          </span>
+          <h3 class="font-medium text-slate-900">Test webhooks</h3>
+        </div>
+        <p class="text-sm text-slate-600">
+          Verify what Stripe, GitHub, Slack and other providers actually send
+          before you write the handler.
+        </p>
+      </article>
+
+      <article class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition">
+        <div class="flex items-center gap-3 mb-2">
+          <span
+            class="flex items-center justify-center w-9 h-9 rounded-md bg-indigo-50 text-indigo-600"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <line x1="3" y1="9" x2="21" y2="9"/>
+              <line x1="9" y1="21" x2="9" y2="9"/>
+            </svg>
+          </span>
+          <h3 class="font-medium text-slate-900">Inspect form payloads</h3>
+        </div>
+        <p class="text-sm text-slate-600">
+          Point your HTML form's <code class="font-mono text-xs">action</code>
+          at a unique URL and see exactly what the browser submits.
+        </p>
+      </article>
+
+      <article class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition">
+        <div class="flex items-center gap-3 mb-2">
+          <span
+            class="flex items-center justify-center w-9 h-9 rounded-md bg-indigo-50 text-indigo-600"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="16 18 22 12 16 6"/>
+              <polyline points="8 6 2 12 8 18"/>
+            </svg>
+          </span>
+          <h3 class="font-medium text-slate-900">Debug API integrations</h3>
+        </div>
+        <p class="text-sm text-slate-600">
+          Inspect outbound calls from third-party services or your own client
+          libraries while you wire them up.
+        </p>
+      </article>
+
+      <article class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition">
+        <div class="flex items-center gap-3 mb-2">
+          <span
+            class="flex items-center justify-center w-9 h-9 rounded-md bg-indigo-50 text-indigo-600"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+              <line x1="12" y1="18" x2="12" y2="18"/>
+            </svg>
+          </span>
+          <h3 class="font-medium text-slate-900">Mobile &amp; IoT traffic</h3>
+        </div>
+        <p class="text-sm text-slate-600">
+          Point a device or microcontroller at the URL to see exactly what it
+          puts on the wire: headers, body, every byte.
+        </p>
+      </article>
+
+      <article class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition">
+        <div class="flex items-center gap-3 mb-2">
+          <span
+            class="flex items-center justify-center w-9 h-9 rounded-md bg-indigo-50 text-indigo-600"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </span>
+          <h3 class="font-medium text-slate-900">Verify cron jobs</h3>
+        </div>
+        <p class="text-sm text-slate-600">
+          Catch your scheduled tasks in the act and confirm they fire on time
+          with the headers and payload you expect.
+        </p>
+      </article>
+
+      <article class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition">
+        <div class="flex items-center gap-3 mb-2">
+          <span
+            class="flex items-center justify-center w-9 h-9 rounded-md bg-indigo-50 text-indigo-600"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </span>
+          <h3 class="font-medium text-slate-900">Share captures with teammates</h3>
+        </div>
+        <p class="text-sm text-slate-600">
+          Anyone with the URL can read the same stream. Handy for "is the
+          payload from your side malformed, or mine?" conversations.
+        </p>
+      </article>
+    </div>
   </section>
 </main>
 

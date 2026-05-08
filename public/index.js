@@ -53,37 +53,6 @@ window.renderBody = function (body, headers) {
   return window.htmlEscape(body);
 };
 
-/* Recent endpoints history (localStorage) */
-
-const RECENT_KEY = "httphq:recent-endpoints";
-const RECENT_LIMIT = 5;
-
-window.recentEndpoints = {
-  get() {
-    try {
-      const raw = localStorage.getItem(RECENT_KEY);
-      if (!raw) return [];
-      const list = JSON.parse(raw);
-      return Array.isArray(list) ? list.slice(0, RECENT_LIMIT) : [];
-    } catch (_) {
-      return [];
-    }
-  },
-  add(id) {
-    if (!id) return;
-    try {
-      const existing = window.recentEndpoints.get().filter((e) => e.id !== id);
-      const next = [{ id, createdAt: Date.now() }, ...existing].slice(
-        0,
-        RECENT_LIMIT,
-      );
-      localStorage.setItem(RECENT_KEY, JSON.stringify(next));
-    } catch (_) {
-      /* localStorage may be unavailable; fail silently */
-    }
-  },
-};
-
 /* Clipboard helper */
 
 window.copyToClipboard = async function (text) {
@@ -122,14 +91,21 @@ window.parseHeaderLines = function (text) {
   return out;
 };
 
-/* Loading-dots animation: pure CSS, registered at startup */
+/* App-wide style overrides (loading-dots animation, native-select chevron,
+   pointer cursor on actionable elements). Injected once at startup. */
 
-(function injectLoadingDotsStyle() {
-  if (document.getElementById("httphq-loading-dots-style")) return;
+(function injectAppStyles() {
+  if (document.getElementById("httphq-app-style")) return;
   const style = document.createElement("style");
-  style.id = "httphq-loading-dots-style";
-  style.textContent =
-    ".loading-dots::after{content:'';display:inline-block;width:1.5ch;text-align:left;animation:httphq-dots 1.2s steps(4,end) infinite}" +
-    "@keyframes httphq-dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%,100%{content:'...'}}";
+  style.id = "httphq-app-style";
+  style.textContent = [
+    // Loading dots in the empty state.
+    ".loading-dots::after{content:'';display:inline-block;width:1.5ch;text-align:left;animation:httphq-dots 1.2s steps(4,end) infinite}",
+    "@keyframes httphq-dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%,100%{content:'...'}}",
+    // Tailwind v4 doesn't set cursor:pointer on buttons by default; restore it.
+    "button:not(:disabled),summary,[role=button]:not(:disabled){cursor:pointer}",
+    // Custom select chevron, anchored right after the value with sane padding.
+    "select.app-select{appearance:none;-webkit-appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2364748b'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.083l3.71-3.853a.75.75 0 111.08 1.04l-4.25 4.41a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 0.5rem center;background-size:1.1em;padding-right:2rem}",
+  ].join("");
   document.head.appendChild(style);
 })();

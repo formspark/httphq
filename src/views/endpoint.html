@@ -40,15 +40,13 @@
     <details class="group rounded-lg border border-slate-200 bg-white shadow-sm">
       <summary
         data-test="send-toggle"
-        class="cursor-pointer list-none px-4 sm:px-5 py-3 flex items-center justify-between font-medium text-slate-700 hover:bg-slate-50"
+        class="list-none px-4 sm:px-5 py-3 flex items-center gap-2 font-medium text-slate-700 hover:bg-slate-50"
       >
-        <span class="inline-flex items-center gap-2">
-          <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path d="M22 2L11 13"/>
-            <path d="M22 2l-7 20-4-9-9-4 20-7z"/>
-          </svg>
-          Send a test request
-        </span>
+        <svg viewBox="0 0 24 24" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M22 2L11 13"/>
+          <path d="M22 2l-7 20-4-9-9-4 20-7z"/>
+        </svg>
+        <span>Send a test request</span>
         <svg viewBox="0 0 24 24" class="w-4 h-4 text-slate-400 transition group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <polyline points="6 9 12 15 18 9"/>
         </svg>
@@ -58,33 +56,31 @@
         @submit.prevent="sendCustom()"
         class="border-t border-slate-200 p-4 sm:p-5 space-y-3"
       >
-        <div class="flex flex-col sm:flex-row gap-3">
-          <label class="sm:w-32 shrink-0">
-            <span class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Method</span>
-            <select
-              data-test="send-method"
-              x-model="sendForm.method"
-              class="block w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <template x-for="m in METHODS" :key="m">
-                <option :value="m" x-text="m"></option>
-              </template>
-            </select>
-          </label>
-          <label class="flex-1">
-            <span class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
-              Headers (one per line, <code class="font-mono">Key: Value</code>)
-            </span>
-            <textarea
-              data-test="send-headers"
-              x-model="sendForm.headers"
-              rows="2"
-              spellcheck="false"
-              placeholder="Content-Type: application/json"
-              class="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            ></textarea>
-          </label>
-        </div>
+        <label class="block sm:max-w-[10rem]">
+          <span class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Method</span>
+          <select
+            data-test="send-method"
+            x-model="sendForm.method"
+            class="app-select block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-500"
+          >
+            <template x-for="m in METHODS" :key="m">
+              <option :value="m" x-text="m"></option>
+            </template>
+          </select>
+        </label>
+        <label class="block">
+          <span class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+            Headers (one per line, <code class="font-mono">Key: Value</code>)
+          </span>
+          <textarea
+            data-test="send-headers"
+            x-model="sendForm.headers"
+            rows="2"
+            spellcheck="false"
+            placeholder="Content-Type: application/json"
+            class="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-500"
+          ></textarea>
+        </label>
         <label class="block">
           <span class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Body</span>
           <textarea
@@ -93,7 +89,7 @@
             rows="4"
             spellcheck="false"
             placeholder='{"hello":"world"}'
-            class="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            class="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-500"
           ></textarea>
         </label>
         <div class="flex items-center justify-between">
@@ -139,7 +135,7 @@
     <select
       data-test="method-filter"
       x-model="$store.main.methodFilter"
-      class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm sm:w-40 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+      class="app-select rounded-md border border-slate-300 bg-white px-3 py-2 text-sm sm:w-40 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-500"
     >
       <option value="">Any method</option>
       <template x-for="m in METHODS" :key="m">
@@ -151,7 +147,7 @@
       type="search"
       x-model.debounce="$store.main.search"
       placeholder="Search headers, query string, and body..."
-      class="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+      class="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-500"
     />
     <span
       data-test="search-results"
@@ -215,25 +211,19 @@
           </button>
         </header>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 sm:p-5">
+        <div class="space-y-4 p-4 sm:p-5">
           <!-- Details -->
           <div data-test="request-details">
             <div class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
               Details
             </div>
-            <dl class="text-sm divide-y divide-slate-100">
-              <div class="grid grid-cols-3 gap-2 py-1.5">
-                <dt class="text-slate-500">Time</dt>
-                <dd class="col-span-2" :title="request.createdAt.toLocaleString()" x-text="formatTimeAgo(request.createdAt)"></dd>
-              </div>
-              <div class="grid grid-cols-3 gap-2 py-1.5">
-                <dt class="text-slate-500">Client IP</dt>
-                <dd class="col-span-2 font-mono text-xs" x-text="request.ip || '—'"></dd>
-              </div>
-              <div class="grid grid-cols-3 gap-2 py-1.5">
-                <dt class="text-slate-500">Path</dt>
-                <dd class="col-span-2 font-mono text-xs break-all" x-text="request.path"></dd>
-              </div>
+            <dl class="grid grid-cols-[10rem_1fr] gap-x-3 text-sm divide-y divide-slate-100 [&>dt]:py-1.5 [&>dd]:py-1.5">
+              <dt class="text-slate-500">Time</dt>
+              <dd :title="request.createdAt.toLocaleString()" x-text="formatTimeAgo(request.createdAt)"></dd>
+              <dt class="text-slate-500">Client IP</dt>
+              <dd class="font-mono text-xs" x-text="request.ip || '—'"></dd>
+              <dt class="text-slate-500">Path</dt>
+              <dd class="font-mono text-xs break-all" x-text="request.path"></dd>
             </dl>
           </div>
 
@@ -251,16 +241,14 @@
               </button>
             </div>
             <div class="overflow-auto max-h-64">
-              <table class="w-full text-xs">
-                <tbody class="divide-y divide-slate-100">
-                  <template x-for="[k, v] in Object.entries(request.headers)" :key="k">
-                    <tr>
-                      <td class="py-1 pr-3 align-top text-slate-500 font-mono whitespace-nowrap" x-text="k"></td>
-                      <td class="py-1 align-top font-mono break-all" x-text="Array.isArray(v) ? v.join(', ') : v"></td>
-                    </tr>
-                  </template>
-                </tbody>
-              </table>
+              <dl class="grid grid-cols-[10rem_1fr] gap-x-3 text-xs">
+                <template x-for="[k, v] in Object.entries(request.headers)" :key="k">
+                  <div class="contents">
+                    <dt class="py-1 text-slate-500 font-mono break-all border-t border-slate-100 first:border-t-0" x-text="k"></dt>
+                    <dd class="py-1 font-mono break-all border-t border-slate-100 first:border-t-0" x-text="Array.isArray(v) ? v.join(', ') : v"></dd>
+                  </div>
+                </template>
+              </dl>
             </div>
           </div>
         </div>

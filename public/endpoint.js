@@ -107,9 +107,6 @@
         const scheme = location.protocol === "https:" ? "wss:" : "ws:";
         const wsUrl = `${scheme}//${location.host}/ws/${endpointId}`;
         Alpine.store("main").setEndpoint(endpointId);
-        if (window.recentEndpoints) {
-          window.recentEndpoints.add(endpointId);
-        }
         this._connectWebSocket(wsUrl);
         document.addEventListener("visibilitychange", () => {
           if (!document.hidden) this._clearUnread();
