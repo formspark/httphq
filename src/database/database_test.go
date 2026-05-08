@@ -2,11 +2,13 @@ package database_test
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"gorm.io/datatypes"
-	"httphq/src/database"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"gorm.io/datatypes"
+
+	"httphq/src/database"
 )
 
 /* General */
@@ -17,7 +19,7 @@ func TestConnect(t *testing.T) {
 	// It should create all tables
 	var tables []string
 	database.DB.Raw(`SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name`).Scan(&tables)
-	assert.Equal(t, []string{"requests", "socket_clients"}, tables)
+	assert.Equal(t, []string{"requests"}, tables)
 }
 
 /* Request */
@@ -239,131 +241,4 @@ func TestDeleteOldRequests(t *testing.T) {
 	})
 	database.DeleteOldRequests(threshold)
 	assert.Equal(t, int64(1), database.CountRequests())
-}
-
-/* SocketClient */
-
-func TestCountSocketClients(t *testing.T) {
-	database.Connect(":memory:")
-
-	// It should return 0 if no items exist
-	assert.Equal(t, int64(0), database.CountSocketClients())
-
-	// It should return the amount of existing items
-	var n = 3
-	for i := 0; i < n; i++ {
-		ID := fmt.Sprint(i)
-		database.CreateSocketClient(&database.SocketClient{
-			UUID:       ID,
-			EndpointID: ID,
-		})
-	}
-	assert.Equal(t, int64(n), database.CountSocketClients())
-}
-
-func TestGetSocketClientsForEndpointID(t *testing.T) {
-	database.Connect(":memory:")
-
-	endpointID := "test-id"
-
-	var items []database.SocketClient
-
-	// It should return an empty array if no items exist
-	items = database.GetSocketClientsForEndpointID(endpointID, 32)
-	assert.Equal(t, []database.SocketClient{}, items)
-
-	database.CreateSocketClient(&database.SocketClient{
-		UUID:       "uuid-1",
-		EndpointID: endpointID,
-	})
-	database.CreateSocketClient(&database.SocketClient{
-		UUID:       "uuid-2",
-		EndpointID: endpointID,
-	})
-	database.CreateSocketClient(&database.SocketClient{
-		UUID:       "uuid-3",
-		EndpointID: "other-id",
-	})
-
-	// It should return items with the correct shape
-	items = database.GetSocketClientsForEndpointID(endpointID, 1)
-	assert.Equal(t, "uuid-2", items[0].UUID)
-	assert.Equal(t, endpointID, items[0].EndpointID)
-	assert.Equal(t, time.Now().Format(time.ANSIC), items[0].CreatedAt.Format(time.ANSIC))
-
-	// It should only return items with the specified endpoint id
-	items = database.GetSocketClientsForEndpointID(endpointID, 32)
-	assert.Equal(t, 2, len(items))
-
-	// It should not return more items than the limit
-	items = database.GetSocketClientsForEndpointID(endpointID, 1)
-	assert.Equal(t, 1, len(items))
-
-	// It should return return items ordered by creation date, newest first
-	items = database.GetSocketClientsForEndpointID(endpointID, 32)
-	assert.Equal(t, "uuid-2", items[0].UUID)
-	assert.Equal(t, "uuid-1", items[1].UUID)
-}
-
-func TestCreateSocketClient(t *testing.T) {
-	database.Connect(":memory:")
-
-	endpointID := "test-id"
-
-	database.CreateSocketClient(&database.SocketClient{
-		UUID:       "test-uuid",
-		EndpointID: endpointID,
-	})
-
-	items := database.GetSocketClientsForEndpointID(endpointID, 1)
-
-	assert.Equal(t, "test-uuid", items[0].UUID)
-	assert.Equal(t, time.Now().Format(time.ANSIC), items[0].CreatedAt.Format(time.ANSIC))
-}
-
-func TestDeleteSocketClientForUUID(t *testing.T) {
-	database.Connect(":memory:")
-
-	endpointID := "test-id"
-
-	database.CreateSocketClient(&database.SocketClient{
-		UUID:       "uuid-delete",
-		EndpointID: endpointID,
-	})
-
-	database.CreateSocketClient(&database.SocketClient{
-		UUID:       "uuid-keep",
-		EndpointID: endpointID,
-	})
-
-	database.DeleteSocketClientForUUID("uuid-delete")
-
-	assert.Equal(t, int64(1), database.CountSocketClients())
-	assert.Equal(t, "uuid-keep", database.GetSocketClientsForEndpointID(endpointID, 1)[0].UUID)
-}
-
-func TestDeleteOldSocketClients(t *testing.T) {
-	database.Connect(":memory:")
-
-	endpointID := "test-id"
-
-	threshold := time.Now().Add(-1 * 4 * time.Hour)
-
-	// It should delete items created before the threshold
-	database.CreateSocketClient(&database.SocketClient{
-		UUID:       "uuid-delete",
-		EndpointID: endpointID,
-		CreatedAt:  threshold.Add(-1 * time.Hour),
-	})
-	database.DeleteOldSocketClients(threshold)
-	assert.Equal(t, int64(0), database.CountSocketClients())
-
-	// It should not delete items created after the threshold
-	database.CreateSocketClient(&database.SocketClient{
-		UUID:       "uuid-keep",
-		EndpointID: endpointID,
-		CreatedAt:  threshold.Add(1 * time.Hour),
-	})
-	database.DeleteOldSocketClients(threshold)
-	assert.Equal(t, int64(1), database.CountSocketClients())
 }
