@@ -1,8 +1,9 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -23,6 +24,7 @@ import (
 	"gorm.io/datatypes"
 
 	"httphq/src/database"
+	"httphq/src/logging"
 )
 
 const (
@@ -150,6 +152,14 @@ func trimSpace(s string) string {
 }
 
 func main() {
+	/* Logging */
+
+	env := os.Getenv("APPLICATION_ENV")
+	if env == "" {
+		env = "development"
+	}
+	logging.Init("httphq", env)
+
 	/* Database */
 
 	database.Connect("file:local.db?_journal_mode=WAL&_busy_timeout=5000&_synchronous=NORMAL")
@@ -165,9 +175,10 @@ func main() {
 	everyFiveMinutes := "*/5 * * * *"
 	if _, err := c.AddFunc(everyFiveMinutes, func() {
 		threshold := time.Now().Add(-1 * 4 * time.Hour)
-		database.DeleteOldRequests(threshold)
+		database.DeleteOldRequests(context.Background(), threshold)
 	}); err != nil {
-		log.Fatalln(err)
+		slog.Error("cron job registration failed", "err", err)
+		os.Exit(1)
 	}
 
 	c.Start()
@@ -191,6 +202,10 @@ func main() {
 		TrustProxy:  true,
 		ProxyHeader: fiber.HeaderXForwardedFor,
 	})
+
+	// Runs first so every request — including rate-limited ones — gets a
+	// correlation ID and a structured access-log line.
+	application.Use(requestLogger)
 
 	maxRequestsPerMinute := 9999
 	if isProduction {
@@ -244,7 +259,7 @@ func main() {
 		endpointID := kws.Params("endpoint")
 		kws.SetAttribute("endpointID", endpointID)
 		registry.add(endpointID, kws.UUID)
-		log.Printf("%s connected to WS\n", endpointID)
+		slog.Info("websocket connected", "endpoint_id", endpointID)
 	}))
 
 	socketio.On(socketio.EventDisconnect, func(ep *socketio.EventPayload) {
@@ -265,7 +280,7 @@ func main() {
 		return c.JSON(fiber.Map{
 			"host":         string(c.Request().Host()),
 			"isProduction": isProduction,
-			"requests":     database.CountRequests(),
+			"requests":     database.CountRequests(c.Context()),
 			"sockets":      registry.count(),
 		})
 	})
@@ -273,7 +288,7 @@ func main() {
 	application.Get("/api/endpoints/:endpoint/requests", func(c fiber.Ctx) error {
 		endpointID := c.Params("endpoint")
 		search := c.Query("search")
-		requests := database.GetRequestsForEndpointID(endpointID, search, 128)
+		requests := database.GetRequestsForEndpointID(c.Context(), endpointID, search, 128)
 		return c.JSON(fiber.Map{
 			"requests": requests,
 		})
@@ -281,13 +296,13 @@ func main() {
 
 	application.Delete("/api/endpoints/:endpoint/requests", func(c fiber.Ctx) error {
 		endpointID := c.Params("endpoint")
-		database.DeleteRequestsForEndpointID(endpointID)
+		database.DeleteRequestsForEndpointID(c.Context(), endpointID)
 		return c.SendStatus(http.StatusOK)
 	})
 
 	application.Delete("/api/endpoints/:endpoint/requests/:request", func(c fiber.Ctx) error {
 		requestUUID := c.Params("request")
-		database.DeleteRequestForUUID(requestUUID)
+		database.DeleteRequestForUUID(c.Context(), requestUUID)
 		return c.SendStatus(http.StatusOK)
 	})
 
@@ -321,7 +336,7 @@ func main() {
 
 	application.Post("/endpoint", func(c fiber.Ctx) error {
 		endpointID := haikuMaker.Haikunate()
-		log.Printf("Created endpoint %s\n", endpointID)
+		slog.InfoContext(c.Context(), "endpoint created", "endpoint_id", endpointID)
 		return c.Redirect().To("/" + endpointID)
 	})
 
@@ -375,7 +390,7 @@ func main() {
 		}
 		jsonHeaders, err := json.Marshal(flatHeaders)
 		if err != nil {
-			log.Println(err)
+			slog.ErrorContext(c.Context(), "request header marshal failed", "err", err)
 		}
 
 		request := database.Request{
@@ -388,14 +403,14 @@ func main() {
 			Body:        string(body),
 			Headers:     datatypes.JSON(jsonHeaders),
 		}
-		database.CreateRequest(&request)
+		database.CreateRequest(c.Context(), &request)
 
 		// Fan-out to subscribed WS clients. Marshal once, then dispatch
 		// asynchronously so a slow client doesn't stall the capture handler.
 		if uuids := registry.uuidsFor(endpointID); len(uuids) > 0 {
 			marshalled, marshalErr := json.Marshal(request)
 			if marshalErr != nil {
-				log.Println(marshalErr)
+				slog.ErrorContext(c.Context(), "websocket payload marshal failed", "err", marshalErr)
 			} else {
 				go socketio.EmitToList(uuids, marshalled)
 			}
@@ -414,6 +429,9 @@ func main() {
 		host = ":"
 	}
 	address := host + strconv.Itoa(port)
-	log.Println("Listening on " + address)
-	log.Fatalln(application.Listen(address))
+	slog.Info("server listening", "address", address)
+	if err := application.Listen(address); err != nil {
+		slog.Error("server exited", "err", err)
+		os.Exit(1)
+	}
 }

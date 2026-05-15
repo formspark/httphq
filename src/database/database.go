@@ -1,8 +1,9 @@
 package database
 
 import (
-	"log"
-	"strconv"
+	"context"
+	"log/slog"
+	"os"
 	"time"
 
 	"github.com/glebarez/sqlite"
@@ -25,38 +26,40 @@ type Request struct {
 var DB *gorm.DB
 
 func Connect(dsn string) *gorm.DB {
-	log.Println("Connecting to database...")
+	slog.Info("connecting to database")
 
 	var err error
 
 	DB, err = gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 
 	if err != nil {
-		panic("failed to connect database")
+		slog.Error("database connection failed", "err", err)
+		os.Exit(1)
 	}
 
-	log.Println("Connected to database")
+	slog.Info("database connected")
 
-	log.Println("Migrating database")
+	slog.Info("migrating database")
 
 	if err := DB.AutoMigrate(&Request{}); err != nil {
-		panic("failed to auto-migrate database")
+		slog.Error("database migration failed", "err", err)
+		os.Exit(1)
 	}
 
-	log.Println("Migrated database")
+	slog.Info("database migrated")
 	return DB
 }
 
-func CountRequests() int64 {
+func CountRequests(ctx context.Context) int64 {
 	var count int64
 	result := DB.Model(&Request{}).Count(&count)
 	if result.Error != nil {
-		log.Println(result.Error)
+		slog.ErrorContext(ctx, "count requests failed", "err", result.Error)
 	}
 	return count
 }
 
-func GetRequestsForEndpointID(endpointID string, search string, limit int) []Request {
+func GetRequestsForEndpointID(ctx context.Context, endpointID string, search string, limit int) []Request {
 	var items []Request
 	result := DB.
 		Where(&Request{EndpointID: endpointID}).
@@ -66,36 +69,36 @@ func GetRequestsForEndpointID(endpointID string, search string, limit int) []Req
 		Order("created_at DESC").
 		Find(&items)
 	if result.Error != nil {
-		log.Println(result.Error)
+		slog.ErrorContext(ctx, "get requests failed", "err", result.Error, "endpoint_id", endpointID)
 	}
 	return items
 }
 
-func CreateRequest(request *Request) {
+func CreateRequest(ctx context.Context, request *Request) {
 	result := DB.Create(&request)
 	if result.Error != nil {
-		log.Println(result.Error)
+		slog.ErrorContext(ctx, "create request failed", "err", result.Error)
 	}
 }
 
-func DeleteRequestsForEndpointID(endpointID string) {
+func DeleteRequestsForEndpointID(ctx context.Context, endpointID string) {
 	result := DB.Where(&Request{EndpointID: endpointID}).Delete(&Request{})
 	if result.Error != nil {
-		log.Println(result.Error)
+		slog.ErrorContext(ctx, "delete requests failed", "err", result.Error, "endpoint_id", endpointID)
 	}
 }
 
-func DeleteRequestForUUID(UUID string) {
+func DeleteRequestForUUID(ctx context.Context, UUID string) {
 	result := DB.Where(&Request{UUID: UUID}).Delete(&Request{})
 	if result.Error != nil {
-		log.Println(result.Error)
+		slog.ErrorContext(ctx, "delete request failed", "err", result.Error)
 	}
 }
 
-func DeleteOldRequests(threshold time.Time) {
+func DeleteOldRequests(ctx context.Context, threshold time.Time) {
 	result := DB.Where("created_at < ?", threshold).Delete(&Request{})
 	if result.Error != nil {
-		log.Println(result.Error)
+		slog.ErrorContext(ctx, "delete old requests failed", "err", result.Error)
 	}
-	log.Println("Deleted " + strconv.Itoa(int(result.RowsAffected)) + " old requests")
+	slog.InfoContext(ctx, "deleted old requests", "count", result.RowsAffected)
 }
