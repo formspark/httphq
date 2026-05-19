@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"sync"
 	"time"
@@ -49,6 +50,16 @@ var omittedHeaders = [...]string{
 	"X-Forwarded-Ssl",
 	"X-Real-Ip",
 	"X-Request-Start",
+}
+
+// endpointIDPattern bounds an endpoint ID to the shape haikunator emits
+// (lowercase words and digits joined by hyphens). Rejecting anything else
+// keeps attacker-controlled characters — quotes, angle brackets, parens —
+// out of the rendered pages, the database, and the logs.
+var endpointIDPattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
+
+func validEndpointID(id string) bool {
+	return len(id) <= 64 && endpointIDPattern.MatchString(id)
 }
 
 // socketRegistry tracks WS UUIDs subscribed to each endpoint, so the capture
@@ -111,10 +122,17 @@ func (r *socketRegistry) count() int {
 	return n
 }
 
-// resolveClientIP picks the most trustworthy client IP available. Behind Traefik,
-// X-Real-Ip is set to the real peer; we prefer it but verify it parses, and fall
-// back through X-Forwarded-For (leftmost) and the TCP peer.
+// resolveClientIP picks the most trustworthy client IP available. Cloudflare
+// overwrites CF-Connecting-IP on every request, so it is the only header an
+// upstream client cannot spoof — we prefer it. We then fall back through
+// X-Real-Ip, X-Forwarded-For (leftmost) and the TCP peer for non-Cloudflare
+// deployments, verifying each parses as an IP.
 func resolveClientIP(c fiber.Ctx) string {
+	if v := c.Get("Cf-Connecting-Ip"); v != "" {
+		if ip := net.ParseIP(v); ip != nil {
+			return ip.String()
+		}
+	}
 	if v := c.Get("X-Real-Ip"); v != "" {
 		if ip := net.ParseIP(v); ip != nil {
 			return ip.String()
@@ -214,6 +232,10 @@ func main() {
 	application.Use(limiter.New(limiter.Config{
 		Max:        maxRequestsPerMinute,
 		Expiration: 1 * time.Minute,
+		// Bucket on the spoof-resistant client IP (CF-Connecting-IP behind
+		// Cloudflare) rather than c.IP(), which trusts a client-supplied
+		// X-Forwarded-For and lets a caller reset its own limit.
+		KeyGenerator: func(c fiber.Ctx) string { return resolveClientIP(c) },
 	}))
 
 	application.Use(compress.New())
@@ -255,7 +277,12 @@ func main() {
 		return fiber.ErrUpgradeRequired
 	})
 
-	application.Get("/ws/:endpoint", socketio.New(func(kws *socketio.Websocket) {
+	application.Get("/ws/:endpoint", func(c fiber.Ctx) error {
+		if !validEndpointID(c.Params("endpoint")) {
+			return c.SendStatus(http.StatusNotFound)
+		}
+		return c.Next()
+	}, socketio.New(func(kws *socketio.Websocket) {
 		endpointID := kws.Params("endpoint")
 		kws.SetAttribute("endpointID", endpointID)
 		registry.add(endpointID, kws.UUID)
@@ -287,6 +314,9 @@ func main() {
 
 	application.Get("/api/endpoints/:endpoint/requests", func(c fiber.Ctx) error {
 		endpointID := c.Params("endpoint")
+		if !validEndpointID(endpointID) {
+			return c.SendStatus(http.StatusNotFound)
+		}
 		search := c.Query("search")
 		requests := database.GetRequestsForEndpointID(c.Context(), endpointID, search, 128)
 		return c.JSON(fiber.Map{
@@ -296,11 +326,17 @@ func main() {
 
 	application.Delete("/api/endpoints/:endpoint/requests", func(c fiber.Ctx) error {
 		endpointID := c.Params("endpoint")
+		if !validEndpointID(endpointID) {
+			return c.SendStatus(http.StatusNotFound)
+		}
 		database.DeleteRequestsForEndpointID(c.Context(), endpointID)
 		return c.SendStatus(http.StatusOK)
 	})
 
 	application.Delete("/api/endpoints/:endpoint/requests/:request", func(c fiber.Ctx) error {
+		if !validEndpointID(c.Params("endpoint")) {
+			return c.SendStatus(http.StatusNotFound)
+		}
 		requestUUID := c.Params("request")
 		database.DeleteRequestForUUID(c.Context(), requestUUID)
 		return c.SendStatus(http.StatusOK)
@@ -320,6 +356,9 @@ func main() {
 
 	application.Get("/:endpoint", func(c fiber.Ctx) error {
 		endpointID := c.Params("endpoint")
+		if !validEndpointID(endpointID) {
+			return c.SendStatus(http.StatusNotFound)
+		}
 		host := string(c.Request().Host())
 		scheme := c.Scheme()
 		websocketScheme := "ws"
@@ -341,9 +380,12 @@ func main() {
 	})
 
 	application.Use("/to/:endpoint", func(c fiber.Ctx) error {
-		requestUUID := uuid.NewString()
-
 		endpointID := c.Params("endpoint")
+		if !validEndpointID(endpointID) {
+			return c.SendStatus(http.StatusNotFound)
+		}
+
+		requestUUID := uuid.NewString()
 
 		ip := resolveClientIP(c)
 
