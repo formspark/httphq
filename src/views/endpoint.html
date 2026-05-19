@@ -16,18 +16,26 @@
       <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
         <code
           data-test="endpoint-url"
+          x-ref="endpointUrl"
           class="flex-1 select-all break-all rounded bg-slate-50 border border-slate-200 px-3 py-2 text-sm font-mono text-indigo-700"
           >{{.EndpointURL}}</code
         >
         <button
           type="button"
           data-test="copy-url"
-          @click="copy('{{.EndpointURL}}')"
+          @click="copy($refs.endpointUrl.textContent)"
           class="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
-          <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <rect x="9" y="9" width="13" height="13" rx="2"/>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          <svg
+            viewBox="0 0 24 24"
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            aria-hidden="true"
+          >
+            <rect x="9" y="9" width="13" height="13" rx="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
           </svg>
           <span x-text="copyLabel" data-test="copy-url-label">Copy</span>
         </button>
@@ -37,18 +45,34 @@
 
   <!-- Send custom request panel -->
   <section class="mb-6">
-    <details class="group rounded-lg border border-slate-200 bg-white shadow-sm">
+    <details
+      class="group rounded-lg border border-slate-200 bg-white shadow-sm"
+    >
       <summary
         data-test="send-toggle"
         class="list-none px-4 sm:px-5 py-3 flex items-center gap-2 font-medium text-slate-700 hover:bg-slate-50"
       >
-        <svg viewBox="0 0 24 24" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <path d="M22 2L11 13"/>
-          <path d="M22 2l-7 20-4-9-9-4 20-7z"/>
+        <svg
+          viewBox="0 0 24 24"
+          class="w-4 h-4 shrink-0"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          aria-hidden="true"
+        >
+          <path d="M22 2L11 13" />
+          <path d="M22 2l-7 20-4-9-9-4 20-7z" />
         </svg>
         <span>Send a test request</span>
-        <svg viewBox="0 0 24 24" class="w-4 h-4 text-slate-400 transition group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <polyline points="6 9 12 15 18 9"/>
+        <svg
+          viewBox="0 0 24 24"
+          class="w-4 h-4 text-slate-400 transition group-open:rotate-180"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          aria-hidden="true"
+        >
+          <polyline points="6 9 12 15 18 9" />
         </svg>
       </summary>
 
@@ -57,7 +81,10 @@
         class="border-t border-slate-200 p-4 sm:p-5 space-y-3"
       >
         <label class="block sm:max-w-[10rem]">
-          <span class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Method</span>
+          <span
+            class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1"
+            >Method</span
+          >
           <select
             data-test="send-method"
             x-model="sendForm.method"
@@ -69,7 +96,9 @@
           </select>
         </label>
         <label class="block">
-          <span class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+          <span
+            class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1"
+          >
             Headers (one per line, <code class="font-mono">Key: Value</code>)
           </span>
           <textarea
@@ -82,7 +111,10 @@
           ></textarea>
         </label>
         <label class="block">
-          <span class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Body</span>
+          <span
+            class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1"
+            >Body</span
+          >
           <textarea
             data-test="send-body"
             x-model="sendForm.body"
@@ -107,7 +139,9 @@
   </section>
 
   <!-- Disclaimer + delete-all -->
-  <div class="mb-4 flex items-center justify-between gap-4 text-sm text-slate-500">
+  <div
+    class="mb-4 flex items-center justify-between gap-4 text-sm text-slate-500"
+  >
     <p class="inline-flex items-center gap-2">
       <span aria-hidden="true">⚠️</span>
       <span>Requests are deleted after 4 hours</span>
@@ -118,11 +152,18 @@
       @click="$store.main.deleteRequests()"
       class="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-700 hover:bg-rose-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
     >
-      <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <polyline points="3 6 5 6 21 6"/>
-        <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/>
-        <path d="M10 11v6"/>
-        <path d="M14 11v6"/>
+      <svg
+        viewBox="0 0 24 24"
+        class="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        aria-hidden="true"
+      >
+        <polyline points="3 6 5 6 21 6" />
+        <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+        <path d="M10 11v6" />
+        <path d="M14 11v6" />
       </svg>
       Delete all
     </button>
@@ -164,7 +205,10 @@
         class="rounded-lg border border-dashed border-slate-300 bg-white py-12 px-4 text-center text-slate-500"
       >
         <p class="text-base">
-          Waiting for requests<span class="loading-dots" aria-hidden="true"></span>
+          Waiting for requests<span
+            class="loading-dots"
+            aria-hidden="true"
+          ></span>
         </p>
         <p class="mt-2 text-sm">
           Requests sent to your URL will appear here in real time.
@@ -173,7 +217,10 @@
     </template>
 
     <!-- Cards -->
-    <template x-for="request in $store.main.visibleRequests" :key="request.uuid">
+    <template
+      x-for="request in $store.main.visibleRequests"
+      :key="request.uuid"
+    >
       <article
         :id="`request-${request.uuid}`"
         data-test="request"
@@ -203,9 +250,16 @@
             class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-rose-600"
             aria-label="Delete this request"
           >
-            <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
+            <svg
+              viewBox="0 0 24 24"
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
             <span class="hidden sm:inline">Delete</span>
           </button>
@@ -214,23 +268,37 @@
         <div class="space-y-4 p-4 sm:p-5">
           <!-- Details -->
           <div data-test="request-details">
-            <div class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
+            <div
+              class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2"
+            >
               Details
             </div>
-            <dl class="grid grid-cols-[10rem_1fr] gap-x-3 text-sm divide-y divide-slate-100 [&>dt]:py-1.5 [&>dd]:py-1.5">
+            <dl
+              class="grid grid-cols-[10rem_1fr] gap-x-3 text-sm divide-y divide-slate-100 [&>dt]:py-1.5 [&>dd]:py-1.5"
+            >
               <dt class="text-slate-500">Time</dt>
-              <dd :title="request.createdAt.toLocaleString()" x-text="formatTimeAgo(request.createdAt)"></dd>
+              <dd
+                :title="request.createdAt.toLocaleString()"
+                x-text="formatTimeAgo(request.createdAt)"
+              ></dd>
               <dt class="text-slate-500">Client IP</dt>
               <dd class="font-mono text-xs" x-text="request.ip || '—'"></dd>
               <dt class="text-slate-500">Path</dt>
-              <dd class="font-mono text-xs break-all" x-text="request.path"></dd>
+              <dd
+                class="font-mono text-xs break-all"
+                x-text="request.path"
+              ></dd>
             </dl>
           </div>
 
           <!-- Headers -->
           <div data-test="request-headers">
             <div class="flex items-center justify-between mb-2">
-              <div class="text-xs font-medium text-slate-500 uppercase tracking-wide">Headers</div>
+              <div
+                class="text-xs font-medium text-slate-500 uppercase tracking-wide"
+              >
+                Headers
+              </div>
               <button
                 type="button"
                 data-test="copy-headers"
@@ -242,10 +310,19 @@
             </div>
             <div class="overflow-auto max-h-64">
               <dl class="grid grid-cols-[10rem_1fr] gap-x-3 text-xs">
-                <template x-for="[k, v] in Object.entries(request.headers)" :key="k">
+                <template
+                  x-for="[k, v] in Object.entries(request.headers)"
+                  :key="k"
+                >
                   <div class="contents">
-                    <dt class="py-1 text-slate-500 font-mono break-all border-t border-slate-100 first:border-t-0" x-text="k"></dt>
-                    <dd class="py-1 font-mono break-all border-t border-slate-100 first:border-t-0" x-text="Array.isArray(v) ? v.join(', ') : v"></dd>
+                    <dt
+                      class="py-1 text-slate-500 font-mono break-all border-t border-slate-100 first:border-t-0"
+                      x-text="k"
+                    ></dt>
+                    <dd
+                      class="py-1 font-mono break-all border-t border-slate-100 first:border-t-0"
+                      x-text="Array.isArray(v) ? v.join(', ') : v"
+                    ></dd>
                   </div>
                 </template>
               </dl>
@@ -255,11 +332,16 @@
 
         <!-- Query string -->
         <div data-test="query-string" class="px-4 sm:px-5 pb-3">
-          <div class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+          <div
+            class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1"
+          >
             Query string
           </div>
           <template x-if="request.queryString">
-            <pre class="text-xs font-mono bg-slate-50 border border-slate-200 rounded p-3 overflow-auto" x-text="request.queryString"></pre>
+            <pre
+              class="text-xs font-mono bg-slate-50 border border-slate-200 rounded p-3 overflow-auto"
+              x-text="request.queryString"
+            ></pre>
           </template>
           <template x-if="!request.queryString">
             <p class="text-xs text-slate-400 italic">None</p>
@@ -269,7 +351,11 @@
         <!-- Body -->
         <div data-test="request-body" class="px-4 sm:px-5 pb-4 sm:pb-5">
           <div class="flex items-center justify-between mb-1">
-            <div class="text-xs font-medium text-slate-500 uppercase tracking-wide">Body</div>
+            <div
+              class="text-xs font-medium text-slate-500 uppercase tracking-wide"
+            >
+              Body
+            </div>
             <button
               type="button"
               data-test="copy-body"

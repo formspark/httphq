@@ -73,10 +73,9 @@
       },
 
       deleteRequest(uuid) {
-        return fetch(
-          `/api/endpoints/${this.endpointId}/requests/${uuid}`,
-          { method: "DELETE" },
-        )
+        return fetch(`/api/endpoints/${this.endpointId}/requests/${uuid}`, {
+          method: "DELETE",
+        })
           .then(() => {
             this.requests = this.requests.filter((r) => r.uuid !== uuid);
           })

@@ -7,7 +7,9 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,9 +36,11 @@ const (
 
 var isProduction = os.Getenv("APPLICATION_ENV") == "production"
 
-// Headers stripped from captured requests so users see their original payload,
-// not infrastructure-added headers.
+// Generic forwarding headers stripped from every captured request so users
+// see their original payload, not infrastructure-added headers. Vendor headers
+// specific to a hosting platform are stripped separately, see platformConfig.
 var omittedHeaders = [...]string{
+	"Cdn-Loop",
 	"Trace",
 	"Traceparent",
 	"Tracestate",
@@ -49,6 +53,73 @@ var omittedHeaders = [...]string{
 	"X-Forwarded-Ssl",
 	"X-Real-Ip",
 	"X-Request-Start",
+}
+
+// platformConfig describes how a hosting platform exposes request metadata:
+// which header carries the real client IP, and which vendor headers it adds
+// that should be hidden from captured requests — users inspect their own
+// traffic and shouldn't have to care which provider sits in front of httphq.
+type platformConfig struct {
+	ipHeader    string   // header with the real client IP; "" = TCP peer
+	ipList      bool     // ipHeader is a comma-separated list; take the leftmost
+	stripPrefix []string // captured-request header prefixes to drop as vendor noise
+}
+
+// platforms maps the PLATFORM env var to its config. Each platform overwrites
+// (or reliably sets) its own headers; the operator is responsible for ensuring
+// traffic cannot reach the app bypassing the platform.
+var platforms = map[string]platformConfig{
+	"direct":     {},
+	"cloudflare": {ipHeader: "Cf-Connecting-Ip", stripPrefix: []string{"Cf-"}},
+	"fly":        {ipHeader: "Fly-Client-Ip", stripPrefix: []string{"Fly-"}},
+	"heroku":     {ipHeader: "X-Forwarded-For", ipList: true},
+	"render":     {ipHeader: "X-Forwarded-For", ipList: true},
+	"proxy":      {ipHeader: "X-Forwarded-For", ipList: true},
+}
+
+// currentPlatform is the config resolved once from PLATFORM at startup.
+var currentPlatform platformConfig
+
+// resolvePlatform maps a PLATFORM value to its config. An empty value means
+// "direct"; an unrecognised value fails safe to "direct" so a typo never
+// causes a spoofable header to be trusted.
+func resolvePlatform(name string) platformConfig {
+	name = strings.ToLower(strings.TrimSpace(name))
+	if name == "" {
+		name = "direct"
+	}
+	if p, ok := platforms[name]; ok {
+		return p
+	}
+	slog.Warn("unknown PLATFORM, falling back to direct", "platform", name)
+	return platforms["direct"]
+}
+
+// omitHeader reports whether a captured-request header is infrastructure noise
+// — a generic forwarding header or a vendor header added by the configured
+// PLATFORM — and so should be hidden from the user.
+func omitHeader(name string) bool {
+	for _, h := range omittedHeaders {
+		if strings.EqualFold(name, h) {
+			return true
+		}
+	}
+	for _, prefix := range currentPlatform.stripPrefix {
+		if len(name) >= len(prefix) && strings.EqualFold(name[:len(prefix)], prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+// endpointIDPattern bounds an endpoint ID to the shape haikunator emits
+// (lowercase words and digits joined by hyphens). Rejecting anything else
+// keeps attacker-controlled characters — quotes, angle brackets, parens —
+// out of the rendered pages, the database, and the logs.
+var endpointIDPattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
+
+func validEndpointID(id string) bool {
+	return len(id) <= 64 && endpointIDPattern.MatchString(id)
 }
 
 // socketRegistry tracks WS UUIDs subscribed to each endpoint, so the capture
@@ -111,31 +182,23 @@ func (r *socketRegistry) count() int {
 	return n
 }
 
-// resolveClientIP picks the most trustworthy client IP available. Behind Traefik,
-// X-Real-Ip is set to the real peer; we prefer it but verify it parses, and fall
-// back through X-Forwarded-For (leftmost) and the TCP peer.
+// resolveClientIP returns the real client IP per the configured PLATFORM
+// strategy: it reads the platform's client-IP header (leftmost entry when the
+// header is a list) and validates it parses. With no platform configured, or
+// when the header is missing or malformed, it falls back to the TCP peer.
 func resolveClientIP(c fiber.Ctx) string {
-	if v := c.Get("X-Real-Ip"); v != "" {
-		if ip := net.ParseIP(v); ip != nil {
-			return ip.String()
-		}
-	}
-	if xff := c.Get(fiber.HeaderXForwardedFor); xff != "" {
-		// leftmost
-		for i := 0; i < len(xff); i++ {
-			if xff[i] == ',' {
-				if ip := net.ParseIP(trimSpace(xff[:i])); ip != nil {
-					return ip.String()
-				}
-				break
+	if currentPlatform.ipHeader != "" {
+		v := c.Get(currentPlatform.ipHeader)
+		if currentPlatform.ipList {
+			if i := strings.IndexByte(v, ','); i >= 0 {
+				v = v[:i]
 			}
 		}
-		if ip := net.ParseIP(trimSpace(xff)); ip != nil {
+		if ip := net.ParseIP(trimSpace(v)); ip != nil {
 			return ip.String()
 		}
 	}
-	peer := c.IP()
-	if ip := net.ParseIP(peer); ip != nil {
+	if ip := net.ParseIP(c.IP()); ip != nil {
 		return ip.String()
 	}
 	return ""
@@ -159,6 +222,12 @@ func main() {
 		env = "development"
 	}
 	logging.Init("httphq", env)
+
+	/* Client IP strategy */
+
+	currentPlatform = resolvePlatform(os.Getenv("PLATFORM"))
+	slog.Info("platform resolved",
+		"platform", os.Getenv("PLATFORM"), "ip_header", currentPlatform.ipHeader)
 
 	/* Database */
 
@@ -196,10 +265,11 @@ func main() {
 		Views:       engine,
 		ViewsLayout: "layouts/main",
 		BodyLimit:   bodyLimit,
-		// Trust the upstream proxy (Traefik in cluster) so c.IP, the limiter, and
-		// header-based extraction reflect the real client. Pod CIDRs vary per
-		// cluster; restrict via env if you need a tighter list.
-		TrustProxy:  true,
+		// Trust the upstream proxy only when a PLATFORM is configured, so
+		// c.Scheme() honours X-Forwarded-Proto (correct ws/wss + EndpointURL).
+		// With no platform, the app is treated as directly exposed and
+		// c.IP()/c.Scheme() reflect the real connection.
+		TrustProxy:  currentPlatform.ipHeader != "",
 		ProxyHeader: fiber.HeaderXForwardedFor,
 	})
 
@@ -214,6 +284,10 @@ func main() {
 	application.Use(limiter.New(limiter.Config{
 		Max:        maxRequestsPerMinute,
 		Expiration: 1 * time.Minute,
+		// Bucket on the spoof-resistant client IP (CF-Connecting-IP behind
+		// Cloudflare) rather than c.IP(), which trusts a client-supplied
+		// X-Forwarded-For and lets a caller reset its own limit.
+		KeyGenerator: func(c fiber.Ctx) string { return resolveClientIP(c) },
 	}))
 
 	application.Use(compress.New())
@@ -255,7 +329,12 @@ func main() {
 		return fiber.ErrUpgradeRequired
 	})
 
-	application.Get("/ws/:endpoint", socketio.New(func(kws *socketio.Websocket) {
+	application.Get("/ws/:endpoint", func(c fiber.Ctx) error {
+		if !validEndpointID(c.Params("endpoint")) {
+			return c.SendStatus(http.StatusNotFound)
+		}
+		return c.Next()
+	}, socketio.New(func(kws *socketio.Websocket) {
 		endpointID := kws.Params("endpoint")
 		kws.SetAttribute("endpointID", endpointID)
 		registry.add(endpointID, kws.UUID)
@@ -287,6 +366,9 @@ func main() {
 
 	application.Get("/api/endpoints/:endpoint/requests", func(c fiber.Ctx) error {
 		endpointID := c.Params("endpoint")
+		if !validEndpointID(endpointID) {
+			return c.SendStatus(http.StatusNotFound)
+		}
 		search := c.Query("search")
 		requests := database.GetRequestsForEndpointID(c.Context(), endpointID, search, 128)
 		return c.JSON(fiber.Map{
@@ -296,11 +378,17 @@ func main() {
 
 	application.Delete("/api/endpoints/:endpoint/requests", func(c fiber.Ctx) error {
 		endpointID := c.Params("endpoint")
+		if !validEndpointID(endpointID) {
+			return c.SendStatus(http.StatusNotFound)
+		}
 		database.DeleteRequestsForEndpointID(c.Context(), endpointID)
 		return c.SendStatus(http.StatusOK)
 	})
 
 	application.Delete("/api/endpoints/:endpoint/requests/:request", func(c fiber.Ctx) error {
+		if !validEndpointID(c.Params("endpoint")) {
+			return c.SendStatus(http.StatusNotFound)
+		}
 		requestUUID := c.Params("request")
 		database.DeleteRequestForUUID(c.Context(), requestUUID)
 		return c.SendStatus(http.StatusOK)
@@ -320,6 +408,9 @@ func main() {
 
 	application.Get("/:endpoint", func(c fiber.Ctx) error {
 		endpointID := c.Params("endpoint")
+		if !validEndpointID(endpointID) {
+			return c.SendStatus(http.StatusNotFound)
+		}
 		host := string(c.Request().Host())
 		scheme := c.Scheme()
 		websocketScheme := "ws"
@@ -341,9 +432,12 @@ func main() {
 	})
 
 	application.Use("/to/:endpoint", func(c fiber.Ctx) error {
-		requestUUID := uuid.NewString()
-
 		endpointID := c.Params("endpoint")
+		if !validEndpointID(endpointID) {
+			return c.SendStatus(http.StatusNotFound)
+		}
+
+		requestUUID := uuid.NewString()
 
 		ip := resolveClientIP(c)
 
@@ -374,8 +468,10 @@ func main() {
 			headers["Content-Type"] = []string{"application/x-www-form-urlencoded"}
 			headers["User-Agent"] = []string{"curl/7.79.1"}
 		}
-		for _, omittedHeader := range omittedHeaders {
-			delete(headers, omittedHeader)
+		for k := range headers {
+			if omitHeader(k) {
+				delete(headers, k)
+			}
 		}
 
 		// Flatten []string headers to a {key: scalar-or-array} JSON; the UI
