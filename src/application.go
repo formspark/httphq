@@ -40,7 +40,7 @@ var isProduction = os.Getenv("APPLICATION_ENV") == "production"
 // see their original payload, not infrastructure-added headers. Vendor headers
 // specific to a hosting platform are stripped separately, see platformConfig.
 var omittedHeaders = [...]string{
-	"Cdn-Loop", // RFC 8586 CDN loop detection — not vendor specific
+	"Cdn-Loop",
 	"Trace",
 	"Traceparent",
 	"Tracestate",
