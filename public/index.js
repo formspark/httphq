@@ -47,7 +47,11 @@ window.renderBody = function (body, headers) {
   }
   // Heuristic: looks like XML/HTML if it starts with '<'
   const trimmed = body.trimStart();
-  if (trimmed.startsWith("<") && window.hljs && window.hljs.getLanguage("xml")) {
+  if (
+    trimmed.startsWith("<") &&
+    window.hljs &&
+    window.hljs.getLanguage("xml")
+  ) {
     return window.hljs.highlight(body, { language: "xml" }).value;
   }
   return window.htmlEscape(body);

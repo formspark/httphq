@@ -16,7 +16,9 @@ test.describe("Home screen", () => {
   });
 
   test("create endpoint button is visible", async ({ page }) => {
-    await expect(page.locator('button[data-test="create-endpoint"]')).toBeVisible();
+    await expect(
+      page.locator('button[data-test="create-endpoint"]'),
+    ).toBeVisible();
   });
 
   test("create endpoint button redirects to the endpoint screen", async ({

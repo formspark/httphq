@@ -1,8 +1,4 @@
-import {
-  test,
-  expect,
-  type APIRequestContext,
-} from "@playwright/test";
+import { test, expect, type APIRequestContext } from "@playwright/test";
 
 const randomId = () => Math.random().toString(36).slice(2, 7);
 
@@ -40,13 +36,11 @@ test.describe("Endpoint screen", () => {
 
   test("copy-url button writes the URL to the clipboard", async ({ page }) => {
     await page.locator('[data-test="copy-url"]').click();
-    const clipboard = await page.evaluate(() =>
-      navigator.clipboard.readText(),
-    );
+    const clipboard = await page.evaluate(() => navigator.clipboard.readText());
     expect(clipboard).toBe(endpointUrl);
-    await expect(
-      page.locator('[data-test="copy-url-label"]'),
-    ).toContainText("Copied!");
+    await expect(page.locator('[data-test="copy-url-label"]')).toContainText(
+      "Copied!",
+    );
   });
 
   test("disclaimer about 4-hour retention is visible", async ({ page }) => {
@@ -60,15 +54,11 @@ test.describe("Endpoint screen", () => {
       page,
     }) => {
       await page.locator('[data-test="send-toggle"]').click();
-      await page
-        .locator('[data-test="send-method"]')
-        .selectOption("PUT");
+      await page.locator('[data-test="send-method"]').selectOption("PUT");
       await page
         .locator('[data-test="send-headers"]')
         .fill("X-Source: panel\nContent-Type: application/json");
-      await page
-        .locator('[data-test="send-body"]')
-        .fill('{"hello":"panel"}');
+      await page.locator('[data-test="send-body"]').fill('{"hello":"panel"}');
       await page.locator('[data-test="send-submit"]').click();
 
       const card = page.locator('[data-test="request"]').first();
@@ -123,9 +113,9 @@ test.describe("Endpoint screen", () => {
       await expect(details).toContainText("127.0.0.1");
       await expect(details).toContainText(endpointPath);
       await expect(card).toContainText("POST");
-      await expect(
-        card.locator('[data-test="request-headers"]'),
-      ).toContainText("Content-Type");
+      await expect(card.locator('[data-test="request-headers"]')).toContainText(
+        "Content-Type",
+      );
       await expect(card.locator('[data-test="request-body"]')).toContainText(
         "Hello, World!",
       );
@@ -145,9 +135,7 @@ test.describe("Endpoint screen", () => {
       expect(text).toContain('"hello": "world"');
       expect(text).toContain("\n  ");
       // Highlight.js wraps tokens in <span class="hljs-…"> elements.
-      const tokenCount = await body
-        .locator("pre span.hljs-string")
-        .count();
+      const tokenCount = await body.locator("pre span.hljs-string").count();
       expect(tokenCount).toBeGreaterThan(0);
     });
 
@@ -254,17 +242,13 @@ test.describe("Endpoint screen", () => {
         "3 results",
       );
 
-      await page
-        .locator('[data-test="method-filter"]')
-        .selectOption("POST");
+      await page.locator('[data-test="method-filter"]').selectOption("POST");
       await expect(page.locator('[data-test="search-results"]')).toContainText(
         "1 result",
       );
       await expect(page.locator('[data-test="request"]')).toHaveCount(1);
 
-      await page
-        .locator('[data-test="method-filter"]')
-        .selectOption("");
+      await page.locator('[data-test="method-filter"]').selectOption("");
       await expect(page.locator('[data-test="search-results"]')).toContainText(
         "3 results",
       );
