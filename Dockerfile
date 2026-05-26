@@ -21,6 +21,12 @@ COPY --from=builder /usr/src/app/bin/httphq ./bin/httphq
 COPY ./public ./public
 COPY ./src/views ./src/views
 
+RUN addgroup -S -g 1001 httphq \
+ && adduser  -S -u 1001 -G httphq httphq \
+ && chown -R httphq:httphq /app
+
+USER httphq
+
 ENV APPLICATION_ENV=production
 
 EXPOSE 8080
