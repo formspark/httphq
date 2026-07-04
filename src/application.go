@@ -95,6 +95,33 @@ func resolvePlatform(name string) platformConfig {
 	return platforms["direct"]
 }
 
+// trustedProxyConfig lists the peers whose X-Forwarded-* headers Fiber may
+// honour once TrustProxy is enabled. httphq is only ever fronted by a reverse
+// proxy that reaches it from a private, loopback or link-local address; no
+// legitimate direct client connects from those ranges. Bounding trust to them
+// means a public client that reaches the app directly still can't spoof the
+// scheme or client IP.
+func trustedProxyConfig() fiber.TrustProxyConfig {
+	return fiber.TrustProxyConfig{
+		Private:   true,
+		Loopback:  true,
+		LinkLocal: true,
+	}
+}
+
+// endpointURLs builds the public capture and live-feed URLs shown on an
+// endpoint page. The WebSocket scheme tracks the request scheme so an HTTPS
+// page always advertises wss:// — a ws:// socket on an HTTPS page is blocked
+// by browsers as mixed content.
+func endpointURLs(scheme, host, endpointID string) (endpointURL, websocketURL string) {
+	websocketScheme := "ws"
+	if scheme == "https" {
+		websocketScheme = "wss"
+	}
+	return scheme + "://" + host + "/to/" + endpointID,
+		websocketScheme + "://" + host + "/ws/" + endpointID
+}
+
 // omitHeader reports whether a captured-request header is infrastructure noise
 // — a generic forwarding header or a vendor header added by the configured
 // PLATFORM — and so should be hidden from the user.
@@ -269,8 +296,17 @@ func main() {
 		// c.Scheme() honours X-Forwarded-Proto (correct ws/wss + EndpointURL).
 		// With no platform, the app is treated as directly exposed and
 		// c.IP()/c.Scheme() reflect the real connection.
-		TrustProxy:  currentPlatform.ipHeader != "",
-		ProxyHeader: fiber.HeaderXForwardedFor,
+		//
+		// In Fiber v3, TrustProxy only enables the check: X-Forwarded-* is
+		// honoured only for a peer that TrustProxyConfig recognises, so a
+		// TrustProxyConfig is required for c.Scheme() to report the forwarded
+		// scheme rather than the raw connection. httphq is always fronted by a
+		// reverse proxy that reaches it from a private, loopback or link-local
+		// address, so trust those ranges; deployments must keep the app
+		// unreachable except through that proxy.
+		TrustProxy:       currentPlatform.ipHeader != "",
+		TrustProxyConfig: trustedProxyConfig(),
+		ProxyHeader:      fiber.HeaderXForwardedFor,
 	})
 
 	// Runs first so every request — including rate-limited ones — gets a
@@ -412,16 +448,12 @@ func main() {
 			return c.SendStatus(http.StatusNotFound)
 		}
 		host := string(c.Request().Host())
-		scheme := c.Scheme()
-		websocketScheme := "ws"
-		if scheme == "https" {
-			websocketScheme = "wss"
-		}
+		endpointURL, websocketURL := endpointURLs(c.Scheme(), host, endpointID)
 		return c.Render("endpoint", fiber.Map{
 			"Title":                endpointID + " | httphq",
 			"EndpointID":           endpointID,
-			"EndpointURL":          scheme + "://" + host + "/to/" + endpointID,
-			"EndpointWebSocketURL": websocketScheme + "://" + host + "/ws/" + endpointID,
+			"EndpointURL":          endpointURL,
+			"EndpointWebSocketURL": websocketURL,
 		})
 	})
 
