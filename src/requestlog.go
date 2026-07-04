@@ -15,8 +15,8 @@ import (
 // inject oversized or high-cardinality values into the logs.
 var requestIDPattern = regexp.MustCompile(`^[A-Za-z0-9-]{8,64}$`)
 
-// probePaths are hit by Kubernetes liveness/readiness probes; their access log
-// drops to debug so probe traffic stays out of production logs.
+// probePaths are hit by the platform's liveness/readiness health checks; their
+// access log drops to debug so probe traffic stays out of production logs.
 var probePaths = map[string]struct{}{
 	"/api/health": {},
 }
