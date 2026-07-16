@@ -149,6 +149,72 @@ test.describe("Endpoint screen", () => {
       expect(tagCount).toBeGreaterThan(0);
     });
 
+    test("renders multipart/form-data fields as a parsed JSON array", async ({
+      page,
+      request,
+    }) => {
+      await request.post(endpointUrl, {
+        multipart: { firstName: "Ada", role: "engineer" },
+      });
+      const body = page.locator('[data-test="request-body"]').first();
+      const text = await body.locator("pre").innerText();
+      expect(text).toContain('"name": "firstName"');
+      expect(text).toContain('"value": "Ada"');
+      expect(text).toContain('"name": "role"');
+      expect(text).toContain('"value": "engineer"');
+      const tokenCount = await body.locator("pre span.hljs-string").count();
+      expect(tokenCount).toBeGreaterThan(0);
+    });
+
+    test("renders multipart file parts as metadata only, never file content", async ({
+      page,
+      request,
+    }) => {
+      await request.post(endpointUrl, {
+        multipart: {
+          avatar: {
+            name: "avatar.png",
+            mimeType: "image/png",
+            buffer: Buffer.from("fake-png-bytes"),
+          },
+        },
+      });
+      const body = page.locator('[data-test="request-body"]').first();
+      const text = await body.locator("pre").innerText();
+      expect(text).toContain('"filename": "avatar.png"');
+      expect(text).toContain('"contentType": "image/png"');
+      expect(text).toMatch(/"size":\s*\d+/);
+      expect(text).not.toContain("fake-png-bytes");
+    });
+
+    test("keeps repeated multipart field names as separate array entries", async ({
+      page,
+      request,
+    }) => {
+      const formData = new FormData();
+      formData.append("tag", "red");
+      formData.append("tag", "blue");
+      await request.post(endpointUrl, { multipart: formData });
+      const body = page.locator('[data-test="request-body"]').first();
+      const text = await body.locator("pre").innerText();
+      const tagValues = [
+        ...text.matchAll(/"name": "tag",\s*\n\s*"value": "(\w+)"/g),
+      ].map((m) => m[1]);
+      expect(tagValues).toEqual(["red", "blue"]);
+    });
+
+    test("falls back to raw display when a multipart body has no boundary", async ({
+      page,
+      request,
+    }) => {
+      await post(request, endpointUrl, {
+        data: "not-actually-parseable-multipart",
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const body = page.locator('[data-test="request-body"]').first();
+      await expect(body).toContainText("not-actually-parseable-multipart");
+    });
+
     test("body copy button writes raw body to clipboard", async ({
       page,
       request,

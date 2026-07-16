@@ -24,39 +24,6 @@ window.formatTimeAgo = function (date) {
   return "";
 };
 
-window.htmlEscape = function (s) {
-  return String(s)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-};
-
-window.renderBody = function (body, headers) {
-  if (body == null || body === "") return "";
-  // Best-effort JSON pretty + highlight.
-  try {
-    const pretty = JSON.stringify(JSON.parse(body), null, 2);
-    if (window.hljs && window.hljs.getLanguage("json")) {
-      return window.hljs.highlight(pretty, { language: "json" }).value;
-    }
-    return window.htmlEscape(pretty);
-  } catch (_) {
-    // not JSON
-  }
-  // Heuristic: looks like XML/HTML if it starts with '<'
-  const trimmed = body.trimStart();
-  if (
-    trimmed.startsWith("<") &&
-    window.hljs &&
-    window.hljs.getLanguage("xml")
-  ) {
-    return window.hljs.highlight(body, { language: "xml" }).value;
-  }
-  return window.htmlEscape(body);
-};
-
 /* Clipboard helper */
 
 window.copyToClipboard = async function (text) {
