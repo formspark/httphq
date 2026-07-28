@@ -13,10 +13,10 @@ jobs:
   unit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
-          go-version: "1.25"
+          go-version-file: "go.mod"
           cache: false
       - run: go test ./...
   e2e:
@@ -25,14 +25,14 @@ jobs:
       run:
         working-directory: e2e
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
-          go-version: "1.25"
+          go-version-file: "go.mod"
           cache: false
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version-file: ".tool-versions"
       - name: Build server
         run: CGO_ENABLED=0 go build -o ./bin/httphq ./src
         working-directory: .
