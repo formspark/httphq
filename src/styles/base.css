@@ -2,6 +2,13 @@
    cursors, selection, and the native control accent. */
 
 @layer base {
+  /* Alpine removes x-cloak once it has initialised. Without this rule the
+     attribute does nothing, and anything meant to start hidden renders first
+     and is then hidden: a flash of content that was never supposed to appear. */
+  [x-cloak] {
+    display: none !important;
+  }
+
   /* Tailwind resets buttons to the default cursor; actionable controls get the
      pointer back. */
   button:not(:disabled),
