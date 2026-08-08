@@ -28,6 +28,9 @@
   const RECONNECT_MIN_MS = 1_000;
   const RECONNECT_MAX_MS = 30_000;
 
+  // How long a copy button reads "Copied!" before returning to its label.
+  const COPIED_MS = 1_500;
+
   function transformRequest(r) {
     return { ...r, createdAt: new Date(r.createdAt) };
   }
@@ -43,7 +46,11 @@
 
     Alpine.store("main", {
       endpointId: null,
+      // `requests` is the current view: the search runs on the server and the
+      // response is windowed, so it is not the endpoint. `total` is, and it is
+      // what any control acting on the whole endpoint has to report.
       requests: [],
+      total: 0,
       search: "",
       methodFilter: "",
 
@@ -79,19 +86,24 @@
           .then((r) => r.json())
           .then((d) => {
             this.requests = (d.requests || []).map(transformRequest);
+            this.total = d.total ?? this.requests.length;
           })
           .catch((err) => console.error(err));
       },
 
       addRequest(request) {
         this.requests = [transformRequest(request), ...this.requests];
+        this.total += 1;
       },
 
       deleteRequests() {
         return fetch(`/api/endpoints/${this.endpointId}/requests`, {
           method: "DELETE",
         })
-          .then(() => (this.requests = []))
+          .then(() => {
+            this.requests = [];
+            this.total = 0;
+          })
           .catch((err) => console.error(err));
       },
 
@@ -101,6 +113,7 @@
         })
           .then(() => {
             this.requests = this.requests.filter((r) => r.uuid !== uuid);
+            this.total = Math.max(0, this.total - 1);
           })
           .catch((err) => console.error(err));
       },
@@ -153,10 +166,10 @@
         });
       },
 
-      // Which of the three empty states applies. They are distinct on purpose:
-      // "nothing has arrived", "your filter hides everything" and "the
-      // connection is gone" are different facts and previously shared one panel
-      // that asserted the first regardless of which was true.
+      // Which empty state applies. They are distinct on purpose: "nothing has
+      // arrived" and "your filter hides everything" are different facts, and a
+      // panel that asserts the first while the second is true tells the user
+      // their traffic never landed.
       get streamState() {
         if (Alpine.store("main").visibleRequests.length > 0) return "list";
         if (Alpine.store("main").filtered) return "filtered";
@@ -197,7 +210,7 @@
           let request;
           try {
             request = JSON.parse(payload.data);
-          } catch (_) {
+          } catch {
             return;
           }
           Alpine.store("main").addRequest(request);
@@ -262,35 +275,35 @@
         this.announcement = message;
       },
 
-      async copy(text, key) {
+      // Writes text to the clipboard and flashes the button that asked for it.
+      // `key` names that button: several share this one component instance, so
+      // a single label field can't tell them apart.
+      async _copyAndFlash(text, key, announcement) {
         try {
           await window.copyToClipboard(text);
           this.copiedKey = key;
-          this.announce("Copied to clipboard");
+          this.announce(announcement);
           setTimeout(() => {
             if (this.copiedKey === key) this.copiedKey = null;
-          }, 1500);
+          }, COPIED_MS);
         } catch (err) {
           console.error(err);
           this.announce("Copy failed");
         }
       },
 
-      // Copies requests as a HAR-shaped document. `key` names the button that
-      // should read "Copied!" — several buttons share this one component
-      // instance, so a single label field can't tell them apart.
-      async copyHar(requests, key) {
-        try {
-          await window.copyToClipboard(window.buildHarExport(requests));
-          this.copiedKey = key;
-          this.announce(`Copied ${requests.length} requests to clipboard`);
-          setTimeout(() => {
-            if (this.copiedKey === key) this.copiedKey = null;
-          }, 1500);
-        } catch (err) {
-          console.error(err);
-          this.announce("Copy failed");
-        }
+      copy(text, key) {
+        return this._copyAndFlash(text, key, "Copied to clipboard");
+      },
+
+      // Copies requests as a HAR-shaped document.
+      copyHar(requests, key) {
+        const count = requests.length;
+        return this._copyAndFlash(
+          window.buildHarExport(requests),
+          key,
+          `Copied ${count} ${count === 1 ? "request" : "requests"} to clipboard`,
+        );
       },
 
       confirmDeleteAll() {
@@ -301,7 +314,9 @@
         const count = Alpine.store("main").requests.length;
         this.pendingDeleteAll = false;
         await Alpine.store("main").deleteRequests();
-        this.announce(`Deleted ${count} requests`);
+        this.announce(
+          `Deleted ${count} ${count === 1 ? "request" : "requests"}`,
+        );
       },
 
       async sendCustom() {

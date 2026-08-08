@@ -99,9 +99,9 @@
         <label class="block sm:max-w-[10rem]">
           <span class="field-label">Method</span>
           <!-- The options are literal rather than rendered from METHODS with
-               x-for: the browser resets a select to index 0 when its options
-               arrive after the model binds, which silently desynced the
-               displayed method from the one actually sent. -->
+               x-for. A browser resets a select to its first option when the
+               options arrive after the model binds, which would leave the
+               method on screen different from the one sent. -->
           <select
             data-test="send-method"
             x-model="sendForm.method"
@@ -182,9 +182,9 @@
   >
     <p data-test="connection-status" class="inline-flex items-center gap-2">
       <!-- The static class and the fallback text both state the connecting
-           state, because that is what the component initialises to. Claiming
-           "Live" before the socket has opened made every load flicker through
-           three states on its way to the truth. -->
+           state, because that is what the component initialises to. A
+           pre-hydration state must never claim more than the page can yet
+           know, or every load flickers through states it was not in. -->
       <span
         class="inline-block w-2 h-2 rounded-full shrink-0 bg-pending"
         :class="{
@@ -253,7 +253,7 @@
              filtered view its neighbour copies. -->
         <span
           data-test="delete-requests-label"
-          x-text="`Delete all (${$store.main.requests.length})`"
+          x-text="`Delete all (${$store.main.total})`"
           >Delete all</span
         >
       </button>
@@ -266,13 +266,12 @@
     x-show="pendingDeleteAll"
     x-cloak
     data-test="delete-confirm"
-    class="mb-4 panel-flat border-danger-200 bg-danger-50 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 justify-between"
+    class="mb-4 panel border-danger-200 bg-danger-50 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 justify-between"
   >
-    <p class="text-sm text-danger-700">
-      Delete all
-      <span x-text="$store.main.requests.length"></span> captured requests? This
-      cannot be undone.
-    </p>
+    <p
+      class="text-sm text-danger-700"
+      x-text="`Delete all ${$store.main.total} captured ${$store.main.total === 1 ? 'request' : 'requests'}? This cannot be undone.`"
+    ></p>
     <div class="flex items-center gap-2 shrink-0">
       <button
         type="button"
@@ -362,8 +361,7 @@
       >
         <p class="text-base text-neutral-900">No requests match this filter.</p>
         <p class="mt-2 text-sm">
-          <span x-text="$store.main.requests.length"></span> captured on this
-          endpoint.
+          <span x-text="$store.main.total"></span> captured on this endpoint.
         </p>
         <button
           type="button"
@@ -451,7 +449,7 @@
         <div class="space-y-4 p-4 sm:p-5">
           <!-- Details -->
           <div data-test="request-details">
-            <h3 class="region-label">Details</h3>
+            <h3 class="region-label mb-2">Details</h3>
             <dl class="text-sm">
               <div class="kv-row">
                 <dt class="kv-key">Time</dt>
@@ -486,9 +484,7 @@
           <!-- Headers -->
           <div data-test="request-headers">
             <div class="flex items-center justify-between mb-2">
-              <h3
-                class="text-xs font-medium text-neutral-500 uppercase tracking-wide"
-              >
+              <h3 class="region-label">
                 Headers
                 <span
                   class="normal-case font-normal"
@@ -535,11 +531,7 @@
         <!-- Query string -->
         <div data-test="query-string" class="px-4 sm:px-5 pb-3">
           <div class="flex items-center justify-between mb-1">
-            <h3
-              class="text-xs font-medium text-neutral-500 uppercase tracking-wide"
-            >
-              Query string
-            </h3>
+            <h3 class="region-label">Query string</h3>
             <button
               type="button"
               data-test="copy-query"
@@ -563,9 +555,7 @@
         <!-- Body -->
         <div data-test="request-body" class="px-4 sm:px-5 pb-4 sm:pb-5">
           <div class="flex items-center justify-between mb-1">
-            <h3
-              class="text-xs font-medium text-neutral-500 uppercase tracking-wide"
-            >
+            <h3 class="region-label">
               Body
               <span
                 class="normal-case font-normal"
@@ -601,9 +591,10 @@
       </article>
     </template>
 
-    <!-- Rendering every captured request costs ~104 DOM nodes each, so a full
-         page of them is a five-figure node count and a visible stall on every
-         filter change. The rest stay in the store and arrive on request. -->
+    <!-- A request card is around a hundred DOM nodes, so rendering a full
+         endpoint's worth is a five-figure node count and a visible stall on
+         every filter change. The rest stay in the store and arrive on
+         request. -->
     <div x-show="hiddenCount > 0" x-cloak class="text-center">
       <button
         type="button"

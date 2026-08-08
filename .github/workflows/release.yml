@@ -15,7 +15,9 @@ jobs:
         with:
           go-version-file: "go.mod"
           cache: false
-      - run: go vet ./...
+      # Scoped to src: node_modules ships a stray Go package that ./... would
+      # otherwise build.
+      - run: go vet ./src/...
 
   build:
     runs-on: ubuntu-latest

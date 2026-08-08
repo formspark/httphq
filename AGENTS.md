@@ -2,6 +2,20 @@
 
 Guidance for agents and contributors working in this repository.
 
+## Code layout
+
+`src` is one `main` package split by concern, one file per subject with its
+tests beside it: `application.go` (wiring and entry point), `platform.go`
+(client IP and header stripping), `endpoint.go` (endpoint IDs and URLs),
+`capture.go` (the capture handler), `api.go` (the JSON API), `pages.go` (page
+rendering), `assets.go` (content-hashed asset URLs), `security.go` (CSP and
+security headers), `sockets.go` (the live feed), `requestlog.go` (correlation
+IDs and the access log).
+
+`newApplication` builds the entire routing surface from arguments, so tests
+drive real requests through it without a listening socket. Anything that pulls
+configuration out of the environment belongs in `main`, not in a handler.
+
 ## Comments
 
 Comments describe what the code does now and warn about non-obvious constraints

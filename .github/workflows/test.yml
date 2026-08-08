@@ -18,7 +18,26 @@ jobs:
         with:
           go-version-file: "go.mod"
           cache: false
-      - run: go test ./...
+      # Scoped to src: node_modules ships a stray Go package that ./... would
+      # otherwise build.
+      - run: go vet ./src/...
+      - run: go test ./src/...
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".tool-versions"
+      - run: npm ci
+      # The Playwright suite is linted with type information, which needs its
+      # own dependencies resolvable.
+      - run: npm ci
+        working-directory: e2e
+      - run: npm run lint
+      - name: Type-check the Playwright suite
+        run: npx tsc --noEmit
+        working-directory: e2e
   styles:
     runs-on: ubuntu-latest
     steps:

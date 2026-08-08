@@ -32,11 +32,25 @@ Run project:
 go run ./src
 ```
 
+Lint the page scripts and the Playwright suite:
+
+```bash
+npm run lint
+npm run lint:fix
+```
+
+The Playwright suite is linted with type information, so `e2e` needs its own
+dependencies installed. The Go application is checked by `go vet` instead.
+
 Run unit tests:
 
 ```bash
-go test ./...
+go vet ./src/...
+go test ./src/...
 ```
+
+Every Go package lives under `src`. `./...` also walks `node_modules`, which
+ships a stray Go package once the npm tooling is installed.
 
 Run E2E tests (Playwright auto-starts the binary; build it first):
 
@@ -48,7 +62,7 @@ cd e2e && npx playwright test
 View test coverage:
 
 ```bash
-go test ./... -coverprofile=coverage.out
+go test ./src/... -coverprofile=coverage.out
 go tool cover -html=coverage.out
 ```
 

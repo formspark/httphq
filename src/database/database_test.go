@@ -1,6 +1,7 @@
 package database_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -11,234 +12,275 @@ import (
 	"httphq/src/database"
 )
 
-/* General */
-
-func TestConnect(t *testing.T) {
+// freshDB gives a test its own empty in-memory database, so no test depends on
+// what another one left behind.
+func freshDB(t *testing.T) {
+	t.Helper()
 	database.Connect(":memory:")
-
-	// It should create all tables
-	var tables []string
-	database.DB.Raw(`SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name`).Scan(&tables)
-	assert.Equal(t, []string{"requests"}, tables)
 }
 
-/* Request */
+// requestOption customises a fixture request. Only the fields a test asserts on
+// need naming at the call site; everything else stays at a valid default.
+type requestOption func(*database.Request)
+
+func withEndpointID(id string) requestOption {
+	return func(r *database.Request) { r.EndpointID = id }
+}
+
+func withBody(body string) requestOption {
+	return func(r *database.Request) { r.Body = body }
+}
+
+func withHeaders(json string) requestOption {
+	return func(r *database.Request) { r.Headers = datatypes.JSON(json) }
+}
+
+func withQueryString(query string) requestOption {
+	return func(r *database.Request) { r.QueryString = query }
+}
+
+func withCreatedAt(at time.Time) requestOption {
+	return func(r *database.Request) { r.CreatedAt = at }
+}
+
+// storeRequest writes a valid request and returns it. The defaults are
+// deliberately uninteresting: a test that cares about a field sets it.
+func storeRequest(ctx context.Context, uuid string, options ...requestOption) database.Request {
+	request := database.Request{
+		UUID:       uuid,
+		EndpointID: "test-id",
+		IP:         "test-ip",
+		Method:     "GET",
+		Path:       "/test",
+		Body:       "test-body",
+		Headers:    datatypes.JSON(`{ "Test": "Test-Header" }`),
+	}
+	for _, option := range options {
+		option(&request)
+	}
+	database.CreateRequest(ctx, &request)
+	return request
+}
+
+func TestConnect(t *testing.T) {
+	t.Run("migrates every table the application needs", func(t *testing.T) {
+		freshDB(t)
+
+		var tables []string
+		database.DB.Raw(`SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name`).Scan(&tables)
+		assert.Equal(t, []string{"requests"}, tables)
+	})
+}
 
 func TestCountRequests(t *testing.T) {
-	database.Connect(":memory:")
+	t.Run("returns zero when nothing is stored", func(t *testing.T) {
+		freshDB(t)
 
-	// It should return 0 if no items exist
-	assert.Equal(t, int64(0), database.CountRequests(t.Context()))
+		assert.Equal(t, int64(0), database.CountRequests(t.Context()))
+	})
 
-	// It should return the amount of existing items
-	var n = 3
-	for i := 0; i < n; i++ {
-		ID := fmt.Sprint(i)
-		database.CreateRequest(t.Context(), &database.Request{
-			UUID:       ID,
-			EndpointID: ID,
-			IP:         ID,
-			Method:     "GET",
-			Path:       "/test",
-			Body:       "test",
-		})
-	}
-	assert.Equal(t, int64(n), database.CountRequests(t.Context()))
+	t.Run("counts every stored request", func(t *testing.T) {
+		freshDB(t)
+
+		const stored = 3
+		for i := range stored {
+			storeRequest(t.Context(), fmt.Sprint(i), withEndpointID(fmt.Sprint(i)))
+		}
+
+		assert.Equal(t, int64(stored), database.CountRequests(t.Context()))
+	})
+}
+
+func TestCountRequestsForEndpointID(t *testing.T) {
+	t.Run("counts only the named endpoint's requests", func(t *testing.T) {
+		freshDB(t)
+
+		storeRequest(t.Context(), "uuid-1", withEndpointID("wanted"))
+		storeRequest(t.Context(), "uuid-2", withEndpointID("wanted"))
+		storeRequest(t.Context(), "uuid-3", withEndpointID("other"))
+
+		assert.Equal(t, int64(2), database.CountRequestsForEndpointID(t.Context(), "wanted"))
+	})
+
+	t.Run("returns zero for an endpoint with no traffic", func(t *testing.T) {
+		freshDB(t)
+
+		assert.Equal(t, int64(0), database.CountRequestsForEndpointID(t.Context(), "never-used"))
+	})
 }
 
 func TestGetRequestsForEndpointID(t *testing.T) {
-	database.Connect(":memory:")
+	t.Run("returns an empty slice when nothing is stored", func(t *testing.T) {
+		freshDB(t)
 
-	endpointID := "test-id"
-
-	var items []database.Request
-
-	// It should return an empty array if no items exist
-	items = database.GetRequestsForEndpointID(t.Context(),endpointID, "", 32)
-	assert.Equal(t, []database.Request{}, items)
-
-	database.CreateRequest(t.Context(), &database.Request{
-		UUID:       "uuid-1",
-		EndpointID: endpointID,
-		IP:         "test-ip",
-		Method:     "GET",
-		Path:       "/test",
-		Body:       "test-body-1",
-		Headers:    datatypes.JSON(`{ "Test": "Test-Header-1" }`),
-	})
-	database.CreateRequest(t.Context(), &database.Request{
-		UUID:       "uuid-2",
-		EndpointID: endpointID,
-		IP:         "test-ip",
-		Method:     "GET",
-		Path:       "/test",
-		Body:       "test-body-2",
-		Headers:    datatypes.JSON(`{ "Test": "Test-Header-2" }`),
-	})
-	database.CreateRequest(t.Context(), &database.Request{
-		UUID:       "uuid-3",
-		EndpointID: "other-id",
-		IP:         "test-ip",
-		Method:     "GET",
-		Path:       "/test",
-		Body:       "test-body-3",
-		Headers:    datatypes.JSON(`{ "Test": "Test-Header-3" }`),
+		assert.Equal(t, []database.Request{},
+			database.GetRequestsForEndpointID(t.Context(), "test-id", "", 32))
 	})
 
-	// It should return items with the correct shape
-	items = database.GetRequestsForEndpointID(t.Context(),endpointID, "", 1)
-	assert.Equal(t, "uuid-2", items[0].UUID)
-	assert.Equal(t, endpointID, items[0].EndpointID)
-	assert.Equal(t, "test-ip", items[0].IP)
-	assert.Equal(t, "GET", items[0].Method)
-	assert.Equal(t, "/test", items[0].Path)
-	assert.Equal(t, "test-body-2", items[0].Body)
-	assert.Equal(t, datatypes.JSON(`{ "Test": "Test-Header-2" }`), items[0].Headers)
-	assert.Equal(t, time.Now().Format(time.ANSIC), items[0].CreatedAt.Format(time.ANSIC))
+	t.Run("round-trips every stored field", func(t *testing.T) {
+		freshDB(t)
 
-	// It should only return items with the specified endpoint id
-	items = database.GetRequestsForEndpointID(t.Context(),endpointID, "", 32)
-	assert.Equal(t, 2, len(items))
+		stored := storeRequest(t.Context(), "uuid-1",
+			withBody("test-body-1"),
+			withHeaders(`{ "Test": "Test-Header-1" }`),
+			withQueryString("a=1"))
 
-	// It should not return more items than the limit
-	items = database.GetRequestsForEndpointID(t.Context(),endpointID, "", 1)
-	assert.Equal(t, 1, len(items))
+		items := database.GetRequestsForEndpointID(t.Context(), stored.EndpointID, "", 1)
 
-	// It should return return items ordered by creation date, newest first
-	items = database.GetRequestsForEndpointID(t.Context(),endpointID, "", 32)
-	assert.Equal(t, "test-body-2", items[0].Body)
-	assert.Equal(t, "test-body-1", items[1].Body)
+		assert.Len(t, items, 1)
+		assert.Equal(t, stored.UUID, items[0].UUID)
+		assert.Equal(t, stored.EndpointID, items[0].EndpointID)
+		assert.Equal(t, stored.IP, items[0].IP)
+		assert.Equal(t, stored.Method, items[0].Method)
+		assert.Equal(t, stored.Path, items[0].Path)
+		assert.Equal(t, stored.QueryString, items[0].QueryString)
+		assert.Equal(t, stored.Body, items[0].Body)
+		assert.Equal(t, stored.Headers, items[0].Headers)
+		assert.Equal(t, time.Now().Format(time.ANSIC), items[0].CreatedAt.Format(time.ANSIC))
+	})
 
-	// It should not apply any additional filtering if the search string is empty
-	items = database.GetRequestsForEndpointID(t.Context(),endpointID, "", 32)
-	assert.Equal(t, 2, len(items))
+	t.Run("returns only the requested endpoint's requests", func(t *testing.T) {
+		freshDB(t)
 
-	// It should search the body based on the search string
-	items = database.GetRequestsForEndpointID(t.Context(),endpointID, "test-body", 32)
-	assert.Equal(t, 2, len(items))
+		storeRequest(t.Context(), "uuid-1", withEndpointID("wanted"))
+		storeRequest(t.Context(), "uuid-2", withEndpointID("wanted"))
+		storeRequest(t.Context(), "uuid-3", withEndpointID("other"))
 
-	items = database.GetRequestsForEndpointID(t.Context(),endpointID, "test-body-1", 32)
-	assert.Equal(t, 1, len(items))
+		assert.Len(t, database.GetRequestsForEndpointID(t.Context(), "wanted", "", 32), 2)
+	})
 
-	// It should search the headers based on the search string
-	items = database.GetRequestsForEndpointID(t.Context(),endpointID, "Test-Header", 32)
-	assert.Equal(t, 2, len(items))
+	t.Run("orders newest first", func(t *testing.T) {
+		freshDB(t)
 
-	items = database.GetRequestsForEndpointID(t.Context(),endpointID, "Test-Header-1", 32)
-	assert.Equal(t, 1, len(items))
+		storeRequest(t.Context(), "uuid-1", withBody("older"))
+		storeRequest(t.Context(), "uuid-2", withBody("newer"))
+
+		items := database.GetRequestsForEndpointID(t.Context(), "test-id", "", 32)
+
+		assert.Equal(t, "newer", items[0].Body)
+		assert.Equal(t, "older", items[1].Body)
+	})
+
+	t.Run("never returns more than the limit", func(t *testing.T) {
+		freshDB(t)
+
+		storeRequest(t.Context(), "uuid-1")
+		storeRequest(t.Context(), "uuid-2")
+
+		assert.Len(t, database.GetRequestsForEndpointID(t.Context(), "test-id", "", 1), 1)
+	})
+
+	t.Run("an empty search applies no filtering", func(t *testing.T) {
+		freshDB(t)
+
+		storeRequest(t.Context(), "uuid-1", withBody("alpha"))
+		storeRequest(t.Context(), "uuid-2", withBody("beta"))
+
+		assert.Len(t, database.GetRequestsForEndpointID(t.Context(), "test-id", "", 32), 2)
+	})
+
+	t.Run("searches the body", func(t *testing.T) {
+		freshDB(t)
+
+		storeRequest(t.Context(), "uuid-1", withBody("test-body-1"))
+		storeRequest(t.Context(), "uuid-2", withBody("test-body-2"))
+
+		assert.Len(t, database.GetRequestsForEndpointID(t.Context(), "test-id", "test-body", 32), 2)
+		assert.Len(t, database.GetRequestsForEndpointID(t.Context(), "test-id", "test-body-1", 32), 1)
+	})
+
+	t.Run("searches the headers", func(t *testing.T) {
+		freshDB(t)
+
+		storeRequest(t.Context(), "uuid-1", withHeaders(`{ "Test": "Test-Header-1" }`))
+		storeRequest(t.Context(), "uuid-2", withHeaders(`{ "Test": "Test-Header-2" }`))
+
+		assert.Len(t, database.GetRequestsForEndpointID(t.Context(), "test-id", "Test-Header", 32), 2)
+		assert.Len(t, database.GetRequestsForEndpointID(t.Context(), "test-id", "Test-Header-1", 32), 1)
+	})
+
+	t.Run("searches the query string", func(t *testing.T) {
+		freshDB(t)
+
+		storeRequest(t.Context(), "uuid-1", withQueryString("event=charge.succeeded"))
+		storeRequest(t.Context(), "uuid-2", withQueryString("event=charge.failed"))
+
+		assert.Len(t, database.GetRequestsForEndpointID(t.Context(), "test-id", "event=charge", 32), 2)
+		assert.Len(t, database.GetRequestsForEndpointID(t.Context(), "test-id", "charge.failed", 32), 1)
+	})
+
+	t.Run("a search that matches nothing returns an empty slice", func(t *testing.T) {
+		freshDB(t)
+
+		storeRequest(t.Context(), "uuid-1", withBody("alpha"))
+
+		assert.Empty(t, database.GetRequestsForEndpointID(t.Context(), "test-id", "no-such-term", 32))
+	})
 }
 
 func TestCreateRequest(t *testing.T) {
-	database.Connect(":memory:")
+	t.Run("stores a retrievable request stamped with the current time", func(t *testing.T) {
+		freshDB(t)
 
-	endpointID := "test-id"
+		storeRequest(t.Context(), "test-uuid")
 
-	database.CreateRequest(t.Context(), &database.Request{
-		UUID:       "test-uuid",
-		EndpointID: endpointID,
-		IP:         "test-ip",
-		Method:     "GET",
-		Path:       "/test",
-		Body:       "test-body",
-		Headers:    datatypes.JSON(`{ "Test": "Test-Header" }`),
+		items := database.GetRequestsForEndpointID(t.Context(), "test-id", "", 1)
+
+		assert.Equal(t, "test-uuid", items[0].UUID)
+		assert.Equal(t, time.Now().Format(time.ANSIC), items[0].CreatedAt.Format(time.ANSIC))
 	})
-
-	items := database.GetRequestsForEndpointID(t.Context(),endpointID, "", 1)
-
-	assert.Equal(t, "test-uuid", items[0].UUID)
-	assert.Equal(t, time.Now().Format(time.ANSIC), items[0].CreatedAt.Format(time.ANSIC))
 }
 
 func TestDeleteRequestsForEndpointID(t *testing.T) {
-	database.Connect(":memory:")
+	t.Run("deletes only the named endpoint's requests", func(t *testing.T) {
+		freshDB(t)
 
-	database.CreateRequest(t.Context(), &database.Request{
-		UUID:       "test-uuid-1",
-		EndpointID: "delete-id",
-		IP:         "test-ip",
-		Method:     "GET",
-		Path:       "/test",
-		Body:       "test-body",
-		Headers:    datatypes.JSON(`{ "Test": "Test-Header" }`),
+		storeRequest(t.Context(), "test-uuid-1", withEndpointID("delete-id"))
+		storeRequest(t.Context(), "test-uuid-2", withEndpointID("keep-id"))
+
+		database.DeleteRequestsForEndpointID(t.Context(), "delete-id")
+
+		assert.Equal(t, int64(1), database.CountRequests(t.Context()))
+		assert.Equal(t, "keep-id",
+			database.GetRequestsForEndpointID(t.Context(), "keep-id", "", 1)[0].EndpointID)
 	})
-
-	database.CreateRequest(t.Context(), &database.Request{
-		UUID:       "test-uuid-2",
-		EndpointID: "keep-id",
-		IP:         "test-ip",
-		Method:     "GET",
-		Path:       "/test",
-		Body:       "test-body",
-		Headers:    datatypes.JSON(`{ "Test": "Test-Header" }`),
-	})
-
-	database.DeleteRequestsForEndpointID(t.Context(),"delete-id")
-
-	assert.Equal(t, int64(1), database.CountRequests(t.Context()))
-	assert.Equal(t, "keep-id", database.GetRequestsForEndpointID(t.Context(),"keep-id", "", 1)[0].EndpointID)
 }
 
 func TestDeleteRequestForUUID(t *testing.T) {
-	database.Connect(":memory:")
+	t.Run("deletes only the named request", func(t *testing.T) {
+		freshDB(t)
 
-	database.CreateRequest(t.Context(), &database.Request{
-		UUID:       "delete-uuid",
-		EndpointID: "test-id",
-		IP:         "test-ip",
-		Method:     "GET",
-		Path:       "/test",
-		Body:       "test-body",
-		Headers:    datatypes.JSON(`{ "Test": "Test-Header" }`),
+		storeRequest(t.Context(), "delete-uuid")
+		storeRequest(t.Context(), "keep-uuid")
+
+		database.DeleteRequestForUUID(t.Context(), "delete-uuid")
+
+		assert.Equal(t, int64(1), database.CountRequests(t.Context()))
+		assert.Equal(t, "keep-uuid",
+			database.GetRequestsForEndpointID(t.Context(), "test-id", "", 1)[0].UUID)
 	})
-
-	database.CreateRequest(t.Context(), &database.Request{
-		UUID:       "keep-uuid",
-		EndpointID: "test-id",
-		IP:         "test-ip",
-		Method:     "GET",
-		Path:       "/test",
-		Body:       "test-body",
-		Headers:    datatypes.JSON(`{ "Test": "Test-Header" }`),
-	})
-
-	database.DeleteRequestForUUID(t.Context(),"delete-uuid")
-
-	assert.Equal(t, int64(1), database.CountRequests(t.Context()))
-	assert.Equal(t, "keep-uuid", database.GetRequestsForEndpointID(t.Context(),"test-id", "", 1)[0].UUID)
 }
 
 func TestDeleteOldRequests(t *testing.T) {
-	database.Connect(":memory:")
+	threshold := time.Now().Add(-4 * time.Hour)
 
-	endpointID := "test-id"
+	t.Run("deletes requests created before the threshold", func(t *testing.T) {
+		freshDB(t)
 
-	threshold := time.Now().Add(-1 * 4 * time.Hour)
+		storeRequest(t.Context(), "uuid-delete", withCreatedAt(threshold.Add(-time.Hour)))
 
-	// It should delete items created before the threshold
-	database.CreateRequest(t.Context(), &database.Request{
-		UUID:       "uuid-delete",
-		EndpointID: endpointID,
-		IP:         "test-ip",
-		Method:     "GET",
-		Path:       "/test",
-		Body:       "test-body",
-		Headers:    datatypes.JSON(`{ "Test": "Test-Header" }`),
-		CreatedAt:  threshold.Add(-1 * time.Hour),
+		database.DeleteOldRequests(t.Context(), threshold)
+
+		assert.Equal(t, int64(0), database.CountRequests(t.Context()))
 	})
-	database.DeleteOldRequests(t.Context(),threshold)
-	assert.Equal(t, int64(0), database.CountRequests(t.Context()))
 
-	// It should not delete items created after the threshold
-	database.CreateRequest(t.Context(), &database.Request{
-		UUID:       "uuid-keep",
-		EndpointID: endpointID,
-		IP:         "test-ip",
-		Method:     "GET",
-		Path:       "/test",
-		Body:       "test-body",
-		Headers:    datatypes.JSON(`{ "Test": "Test-Header" }`),
-		CreatedAt:  threshold.Add(1 * time.Hour),
+	t.Run("keeps requests created after the threshold", func(t *testing.T) {
+		freshDB(t)
+
+		storeRequest(t.Context(), "uuid-keep", withCreatedAt(threshold.Add(time.Hour)))
+
+		database.DeleteOldRequests(t.Context(), threshold)
+
+		assert.Equal(t, int64(1), database.CountRequests(t.Context()))
 	})
-	database.DeleteOldRequests(t.Context(),threshold)
-	assert.Equal(t, int64(1), database.CountRequests(t.Context()))
 }

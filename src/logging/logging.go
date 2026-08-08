@@ -74,28 +74,34 @@ func replaceAttr(groups []string, a slog.Attr) slog.Attr {
 	return a
 }
 
+// resolveLevel picks the log level for an environment: info in production, so
+// a deployment is not paying to record its own debug chatter, and debug
+// everywhere else. An operator overrides either with LOG_LEVEL; an unrecognised
+// value leaves the environment's default in place.
+func resolveLevel(env, override string) slog.Level {
+	level := slog.LevelDebug
+	if env == "production" {
+		level = slog.LevelInfo
+	}
+	switch strings.ToLower(override) {
+	case "debug":
+		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	}
+	return level
+}
+
 // Init installs the process-wide slog logger: JSON to stdout, an OTel-named
 // service.name/deployment.environment base, request_id stamping and
-// sensitive-key redaction. The level defaults to info in production and debug
-// elsewhere, overridable with LOG_LEVEL (debug|info|warn|error).
+// sensitive-key redaction.
 func Init(service, env string) {
-	level := slog.LevelInfo
-	if env != "production" {
-		level = slog.LevelDebug
-	}
-	switch strings.ToLower(os.Getenv("LOG_LEVEL")) {
-	case "debug":
-		level = slog.LevelDebug
-	case "info":
-		level = slog.LevelInfo
-	case "warn":
-		level = slog.LevelWarn
-	case "error":
-		level = slog.LevelError
-	}
-
 	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level:       level,
+		Level:       resolveLevel(env, os.Getenv("LOG_LEVEL")),
 		ReplaceAttr: replaceAttr,
 	})
 	logger := slog.New(ctxHandler{handler}).With(

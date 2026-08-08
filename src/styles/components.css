@@ -89,24 +89,23 @@
     @apply font-mono;
   }
 
-  /* Instrument label: uppercase, for the capture surfaces. */
-  .field-label {
-    @apply block text-xs font-medium text-neutral-500 uppercase tracking-wide mb-2;
-  }
-
-  /* Section label inside a card. Same token as a field label with the spacing
-     a region heading needs. */
+  /* Instrument label: uppercase, for the capture surfaces. One type token, two
+     spellings. A field label always sits directly above its input, so it owns
+     that spacing; a region label heads a block or a row and takes its spacing
+     from the call site, because a heading inside a flex row must not carry a
+     bottom margin. */
+  .field-label,
   .region-label {
-    @apply text-xs font-medium text-neutral-500 uppercase tracking-wide mb-2;
+    @apply text-xs font-medium text-neutral-500 uppercase tracking-wide;
   }
 
-  /* Surfaces. panel carries the resting whisper; panel-flat is the same edge
-     without it, for surfaces that sit inside another panel. */
+  .field-label {
+    @apply block mb-2;
+  }
+
+  /* The one surface. A white fill, a 1px seam, and no shadow: the system
+     declares an edge once, so there is no second, quieter panel to reach for. */
   .panel {
-    @apply rounded-lg border border-neutral-200 bg-white;
-  }
-
-  .panel-flat {
     @apply rounded-lg border border-neutral-200 bg-white;
   }
 

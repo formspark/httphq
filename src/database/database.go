@@ -59,6 +59,19 @@ func CountRequests(ctx context.Context) int64 {
 	return count
 }
 
+// CountRequestsForEndpointID counts everything stored for an endpoint,
+// ignoring any search. The listing is both filtered and windowed, so it is the
+// only way to say how much a control that acts on the whole endpoint will
+// affect.
+func CountRequestsForEndpointID(ctx context.Context, endpointID string) int64 {
+	var count int64
+	result := DB.Model(&Request{}).Where(&Request{EndpointID: endpointID}).Count(&count)
+	if result.Error != nil {
+		slog.ErrorContext(ctx, "count requests for endpoint failed", "err", result.Error, "endpoint_id", endpointID)
+	}
+	return count
+}
+
 func GetRequestsForEndpointID(ctx context.Context, endpointID string, search string, limit int) []Request {
 	var items []Request
 	result := DB.
