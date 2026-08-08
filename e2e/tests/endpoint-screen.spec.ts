@@ -339,7 +339,7 @@ test.describe("Endpoint screen", () => {
       await page.locator('[data-test="method-filter"]').selectOption("PUT");
       await expect(
         page.locator('[data-test="copy-all-har-label"]'),
-      ).toContainText("Copy all (1)");
+      ).toContainText("Copy shown (1)");
 
       await page.locator('[data-test="copy-all-har"]').click();
       const clipboard = await page.evaluate(() =>
@@ -374,7 +374,10 @@ test.describe("Endpoint screen", () => {
 
       await search.fill("Nothing-matches-this");
       await expect(results).toContainText("0 results");
-      await expect(requests).toContainText("Waiting for requests");
+      // A stream hidden by a filter is not a stream that never arrived, so it
+      // must not claim to be still waiting.
+      await expect(requests).toContainText("No requests match this filter");
+      await expect(requests).not.toContainText("Waiting for requests");
     });
 
     test("filters by header key/value via the search box", async ({
@@ -428,13 +431,58 @@ test.describe("Endpoint screen", () => {
       );
     });
 
-    test("delete-all clears every request", async ({ page, request }) => {
+    test("delete-all asks before clearing every request", async ({
+      page,
+      request,
+    }) => {
       await post(request, endpointUrl, { data: "x" });
       await post(request, endpointUrl, { data: "y" });
+
       await page.locator('[data-test="delete-requests"]').click();
+      // Destructive and unrecoverable, so it confirms first; the requests are
+      // still there until the confirmation is accepted.
+      await expect(page.locator('[data-test="delete-confirm"]')).toBeVisible();
+      await expect(page.locator('[data-test="request"]')).toHaveCount(2);
+
+      await page.locator('[data-test="delete-cancel"]').click();
+      await expect(page.locator('[data-test="request"]')).toHaveCount(2);
+
+      await page.locator('[data-test="delete-requests"]').click();
+      await page.locator('[data-test="delete-confirm-button"]').click();
       await expect(page.locator('[data-test="requests"]')).toContainText(
         "Waiting for requests",
       );
+    });
+
+    test("a filtered-empty stream is not reported as waiting", async ({
+      page,
+      request,
+    }) => {
+      await post(request, endpointUrl, { data: "x" });
+      await expect(page.locator('[data-test="request"]')).toHaveCount(1);
+
+      await page
+        .locator('[data-test="search-input"]')
+        .fill("nothing-matches-this-term");
+      await expect(page.locator('[data-test="empty-filtered"]')).toBeVisible();
+      await expect(page.locator('[data-test="empty-waiting"]')).toHaveCount(0);
+
+      await page.locator('[data-test="clear-filters"]').click();
+      await expect(page.locator('[data-test="request"]')).toHaveCount(1);
+    });
+
+    test("a malformed header line is reported instead of dropped", async ({
+      page,
+    }) => {
+      await page.locator('[data-test="send-toggle"]').click();
+      await page
+        .locator('[data-test="send-headers"]')
+        .fill("Authorization Bearer sk_test_123");
+      await page.locator('[data-test="send-submit"]').click();
+      await expect(page.locator('[data-test="send-status"]')).toContainText(
+        "is not a header",
+      );
+      await expect(page.locator('[data-test="request"]')).toHaveCount(0);
     });
 
     test("delete-request removes a single card", async ({ page, request }) => {
