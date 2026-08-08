@@ -1,22 +1,26 @@
 {{template "partials/header" .}}
 
-<main class="flex-1 flex flex-col items-center text-center">
-  <div class="max-w-2xl mx-auto pt-10 sm:pt-16 pb-6 sm:pb-8 space-y-6">
+<main class="flex-1 flex flex-col">
+  <div
+    class="max-w-2xl mx-auto pt-10 sm:pt-16 pb-6 sm:pb-8 space-y-6 text-center"
+  >
+    <!-- The break is explicit rather than balanced: left to itself the line
+         splits after "HTTP", which strands the product's two key words apart. -->
     <h1
       class="text-3xl sm:text-5xl font-semibold tracking-tight text-slate-900"
     >
       Inspect HTTP requests<br class="hidden sm:inline" />
       in real&nbsp;time
     </h1>
-    <p class="text-base sm:text-lg text-slate-600 max-w-xl mx-auto">
+    <p class="text-base sm:text-lg text-slate-600 max-w-xl mx-auto text-pretty">
       Spin up a unique URL, point any client at it, and watch every request
-      stream in: headers, body, query string, timing.
+      arrive: method, headers, body, query string, client IP.
     </p>
 
     <form action="/endpoint" method="post" class="pt-2">
       <button
         data-test="create-endpoint"
-        class="inline-flex items-center justify-center gap-2 rounded-md bg-indigo-600 px-6 py-3 text-base text-white font-medium shadow-sm hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 transition"
+        class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-md bg-indigo-600 px-6 py-3 text-base text-white font-medium shadow-sm hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 transition"
       >
         Create endpoint
         <svg
@@ -32,26 +36,126 @@
         </svg>
       </button>
     </form>
+
+    <!-- The facts a visitor needs before pointing live traffic at a public URL.
+         Placed with the button rather than on the endpoint page, because that
+         is where the decision is made. -->
+    <p class="text-sm text-slate-600 max-w-md mx-auto text-pretty">
+      No account, no email, free forever. Requests are deleted after 4 hours,
+      and anyone with the URL can read them.
+    </p>
   </div>
+
+  <!-- Example capture: the product's own output, rendered from the same
+       components the endpoint page uses. The markup is static because the
+       landing page ships no JavaScript, so the syntax colours are written in
+       rather than produced by the highlighter. -->
+  <section
+    data-test="example-capture"
+    class="w-full max-w-4xl mx-auto pb-10 sm:pb-14"
+    aria-labelledby="example-heading"
+  >
+    <h2 id="example-heading" class="sr-only">An example captured request</h2>
+
+    <article
+      class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden text-left"
+    >
+      <header
+        class="flex items-center gap-3 px-4 sm:px-5 py-3 border-b border-slate-200"
+      >
+        <span
+          class="inline-flex items-center justify-center rounded px-2 py-0.5 text-xs font-semibold uppercase tracking-wide shrink-0 bg-emerald-50 text-emerald-700"
+          >POST</span
+        >
+        <span class="text-xs text-slate-500 font-mono truncate"
+          >/to/quiet-sunset-4821</span
+        >
+      </header>
+
+      <div class="p-4 sm:p-5 space-y-4">
+        <div>
+          <div
+            class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2"
+          >
+            Headers
+          </div>
+          <dl class="text-xs">
+            <div
+              class="flex flex-col sm:flex-row sm:gap-3 py-1 border-b border-slate-100 last:border-b-0"
+            >
+              <dt
+                class="text-slate-500 font-mono break-all sm:w-40 sm:shrink-0"
+              >
+                content-type
+              </dt>
+              <dd class="font-mono break-all min-w-0">application/json</dd>
+            </div>
+            <div
+              class="flex flex-col sm:flex-row sm:gap-3 py-1 border-b border-slate-100 last:border-b-0"
+            >
+              <dt
+                class="text-slate-500 font-mono break-all sm:w-40 sm:shrink-0"
+              >
+                user-agent
+              </dt>
+              <dd class="font-mono break-all min-w-0">Stripe/1.0</dd>
+            </div>
+            <div
+              class="flex flex-col sm:flex-row sm:gap-3 py-1 border-b border-slate-100 last:border-b-0"
+            >
+              <dt
+                class="text-slate-500 font-mono break-all sm:w-40 sm:shrink-0"
+              >
+                stripe-signature
+              </dt>
+              <dd class="font-mono break-all min-w-0">
+                t=1755600000,v1=5f2c8a1b9d4e
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <div>
+          <div
+            class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2"
+          >
+            Body
+          </div>
+          <pre
+            class="text-xs font-mono bg-slate-50 border border-slate-200 rounded p-3 overflow-auto"
+          ><span class="text-slate-800">{</span>
+  <span class="text-[#005cc5]">"type"</span><span class="text-slate-800">:</span> <span class="text-[#032f62]">"payment_intent.succeeded"</span><span class="text-slate-800">,</span>
+  <span class="text-[#005cc5]">"amount"</span><span class="text-slate-800">:</span> <span class="text-[#005cc5]">4200</span><span class="text-slate-800">,</span>
+  <span class="text-[#005cc5]">"currency"</span><span class="text-slate-800">:</span> <span class="text-[#032f62]">"eur"</span><span class="text-slate-800">,</span>
+  <span class="text-[#005cc5]">"livemode"</span><span class="text-slate-800">:</span> <span class="text-[#005cc5]">false</span>
+<span class="text-slate-800">}</span></pre>
+        </div>
+      </div>
+    </article>
+
+    <p class="mt-3 text-center text-sm text-slate-500 text-pretty">
+      An example capture. Yours appears the moment a request lands, with no
+      refresh.
+    </p>
+  </section>
 
   <!-- Common use cases -->
   <section
     data-test="use-cases"
-    class="w-full max-w-4xl mx-auto pt-2 pb-8 sm:pb-12 text-left"
-    aria-label="Common use cases"
+    class="w-full max-w-4xl mx-auto pb-8 sm:pb-12 text-left"
+    aria-labelledby="use-cases-heading"
   >
     <h2
-      class="text-center text-sm font-medium text-slate-500 uppercase tracking-wide mb-5"
+      id="use-cases-heading"
+      class="text-center text-base font-medium text-slate-900 mb-5"
     >
       Common use cases
     </h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <article
-        class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition"
-      >
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <article class="rounded-lg border border-slate-200 bg-white p-5">
         <div class="flex items-center gap-3 mb-2">
           <span
-            class="flex items-center justify-center w-9 h-9 rounded-md bg-indigo-50 text-indigo-600"
+            class="flex items-center justify-center w-9 h-9 rounded-md bg-indigo-50 text-indigo-600 shrink-0"
             aria-hidden="true"
           >
             <svg
@@ -67,18 +171,16 @@
           </span>
           <h3 class="font-medium text-slate-900">Test webhooks</h3>
         </div>
-        <p class="text-sm text-slate-600">
-          Verify what Stripe, GitHub, Slack and other providers actually send
+        <p class="text-sm text-slate-600 text-pretty">
+          See what Stripe, GitHub, Slack or your own scheduler actually sends
           before you write the handler.
         </p>
       </article>
 
-      <article
-        class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition"
-      >
+      <article class="rounded-lg border border-slate-200 bg-white p-5">
         <div class="flex items-center gap-3 mb-2">
           <span
-            class="flex items-center justify-center w-9 h-9 rounded-md bg-indigo-50 text-indigo-600"
+            class="flex items-center justify-center w-9 h-9 rounded-md bg-indigo-50 text-indigo-600 shrink-0"
             aria-hidden="true"
           >
             <svg
@@ -93,101 +195,19 @@
               <line x1="9" y1="21" x2="9" y2="9" />
             </svg>
           </span>
-          <h3 class="font-medium text-slate-900">Inspect form payloads</h3>
+          <h3 class="font-medium text-slate-900">Inspect payloads</h3>
         </div>
-        <p class="text-sm text-slate-600">
-          Point your HTML form's <code class="font-mono text-xs">action</code>
-          at a unique URL and see exactly what the browser submits.
+        <p class="text-sm text-slate-600 text-pretty">
+          Point an HTML form's <code class="font-mono text-xs">action</code>, a
+          mobile app, or a microcontroller at the URL and read every byte it
+          puts on the wire.
         </p>
       </article>
 
-      <article
-        class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition"
-      >
+      <article class="rounded-lg border border-slate-200 bg-white p-5">
         <div class="flex items-center gap-3 mb-2">
           <span
-            class="flex items-center justify-center w-9 h-9 rounded-md bg-indigo-50 text-indigo-600"
-            aria-hidden="true"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              class="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <polyline points="16 18 22 12 16 6" />
-              <polyline points="8 6 2 12 8 18" />
-            </svg>
-          </span>
-          <h3 class="font-medium text-slate-900">Debug API integrations</h3>
-        </div>
-        <p class="text-sm text-slate-600">
-          Inspect outbound calls from third-party services or your own client
-          libraries while you wire them up.
-        </p>
-      </article>
-
-      <article
-        class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition"
-      >
-        <div class="flex items-center gap-3 mb-2">
-          <span
-            class="flex items-center justify-center w-9 h-9 rounded-md bg-indigo-50 text-indigo-600"
-            aria-hidden="true"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              class="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-              <line x1="12" y1="18" x2="12" y2="18" />
-            </svg>
-          </span>
-          <h3 class="font-medium text-slate-900">Mobile &amp; IoT traffic</h3>
-        </div>
-        <p class="text-sm text-slate-600">
-          Point a device or microcontroller at the URL to see exactly what it
-          puts on the wire: headers, body, every byte.
-        </p>
-      </article>
-
-      <article
-        class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition"
-      >
-        <div class="flex items-center gap-3 mb-2">
-          <span
-            class="flex items-center justify-center w-9 h-9 rounded-md bg-indigo-50 text-indigo-600"
-            aria-hidden="true"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              class="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
-          </span>
-          <h3 class="font-medium text-slate-900">Verify cron jobs</h3>
-        </div>
-        <p class="text-sm text-slate-600">
-          Catch your scheduled tasks in the act and confirm they fire on time
-          with the headers and payload you expect.
-        </p>
-      </article>
-
-      <article
-        class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition"
-      >
-        <div class="flex items-center gap-3 mb-2">
-          <span
-            class="flex items-center justify-center w-9 h-9 rounded-md bg-indigo-50 text-indigo-600"
+            class="flex items-center justify-center w-9 h-9 rounded-md bg-indigo-50 text-indigo-600 shrink-0"
             aria-hidden="true"
           >
             <svg
@@ -202,16 +222,25 @@
               />
             </svg>
           </span>
-          <h3 class="font-medium text-slate-900">
-            Share captures with teammates
-          </h3>
+          <h3 class="font-medium text-slate-900">Settle it with a teammate</h3>
         </div>
-        <p class="text-sm text-slate-600">
-          Anyone with the URL can read the same stream. Handy for "is the
-          payload from your side malformed, or mine?" conversations.
+        <p class="text-sm text-slate-600 text-pretty">
+          Anyone with the URL reads the same stream. Handy for "is the payload
+          from your side malformed, or mine?" conversations.
         </p>
       </article>
     </div>
+
+    <p class="mt-6 text-center text-sm text-slate-500 text-pretty">
+      Open source and MIT licensed, and it runs as a single Go binary.
+      <a
+        href="https://github.com/formspark/httphq"
+        target="_blank"
+        rel="noopener"
+        class="rounded-sm underline underline-offset-2 hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        >See the repository</a
+      >.
+    </p>
   </section>
 </main>
 

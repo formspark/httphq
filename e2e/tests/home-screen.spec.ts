@@ -6,7 +6,9 @@ test.describe("Home screen", () => {
   });
 
   test("title should be correct", async ({ page }) => {
-    await expect(page).toHaveTitle("httphq");
+    await expect(page).toHaveTitle(
+      "httphq: inspect HTTP requests in real time",
+    );
   });
 
   test("page renders the hero copy", async ({ page }) => {
@@ -33,6 +35,18 @@ test.describe("Home screen", () => {
     const section = page.locator('[data-test="use-cases"]');
     await expect(section).toBeVisible();
     await expect(section).toContainText("Test webhooks");
-    await expect(section).toContainText("Inspect form payloads");
+    await expect(section).toContainText("Inspect payloads");
+  });
+
+  test("example capture shows a rendered request", async ({ page }) => {
+    const example = page.locator('[data-test="example-capture"]');
+    await expect(example).toBeVisible();
+    await expect(example).toContainText("POST");
+    await expect(example).toContainText("content-type");
+    await expect(example).toContainText("payment_intent.succeeded");
+  });
+
+  test("the page ships no javascript", async ({ page }) => {
+    await expect(page.locator("script")).toHaveCount(0);
   });
 });
