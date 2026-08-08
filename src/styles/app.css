@@ -2,7 +2,12 @@
    Everything here is import and configuration only; rules live in the modules
    so each one stays small enough to read in full. */
 
-@import "tailwindcss";
+/* source(none) turns off automatic detection so only the directives below are
+   scanned. Left on, Tailwind walks the whole repository and mines every
+   non-ignored file for class-like strings, which means prose that merely
+   discusses a class name (DESIGN.md, a critique write-up) silently adds rules
+   to the shipped stylesheet, and editing .gitignore changes the build output. */
+@import "tailwindcss" source(none);
 
 @import "./base.css";
 @import "./components.css";

@@ -1,5 +1,12 @@
-/* Patterns that utility classes cannot express: a native control restyled from
-   scratch, and a text affordance built from generated content. */
+/* Component classes for patterns that repeat across templates. Utilities stay
+   the default for one-off composition; anything that appears more than twice, or
+   whose tokens must not drift between call sites, lives here.
+
+   Focus is one system, not two: every control uses :focus-visible so a mouse
+   click never paints a ring on a button, while text fields still show one
+   because browsers treat click-focus on them as keyboard modality. The two ring
+   weights are deliberate and recorded in DESIGN.md: 2px indigo-500 on controls,
+   1px indigo-400 plus a border shift on fields. */
 
 @layer components {
   /* Native select with the chevron drawn in, anchored right after the value.
@@ -23,5 +30,109 @@
     width: 1.5ch;
     text-align: left;
     animation: httphq-dots 1.2s steps(4, end) infinite;
+  }
+
+  /* Focus ring, applied by the component classes below. Exposed separately for
+     the handful of elements that are not buttons or fields. */
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500;
+  }
+
+  /* Buttons. One geometry, one focus treatment; variants change colour only. */
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium;
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
+  }
+
+  .btn-danger {
+    @apply border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100;
+    @apply focus-visible:ring-rose-500;
+  }
+
+  .btn-primary {
+    @apply bg-indigo-600 px-4 py-2 text-white shadow-sm hover:bg-indigo-500;
+    @apply focus-visible:ring-offset-2;
+  }
+
+  /* Text-only action inside a card. Padded to clear the 24px target minimum
+     without changing where the label sits. */
+  .btn-inline {
+    @apply inline-flex items-center gap-1 rounded-sm px-1 py-1 text-sm text-slate-500;
+    @apply hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500;
+  }
+
+  .btn-inline-danger {
+    @apply hover:text-rose-600 focus-visible:ring-rose-500;
+  }
+
+  /* Form fields. The mono variant is for captured-data entry. */
+  .field {
+    @apply block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm;
+    @apply focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 focus-visible:border-indigo-500;
+  }
+
+  .field-mono {
+    @apply font-mono;
+  }
+
+  .field-label {
+    @apply block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1;
+  }
+
+  /* Section label inside a card. Same token as a field label with the spacing
+     a region heading needs. */
+  .region-label {
+    @apply text-xs font-medium text-slate-500 uppercase tracking-wide mb-2;
+  }
+
+  /* Surfaces. panel carries the resting whisper; panel-flat is the same edge
+     without it, for surfaces that sit inside another panel. */
+  .panel {
+    @apply rounded-lg border border-slate-200 bg-white shadow-sm;
+  }
+
+  .panel-flat {
+    @apply rounded-lg border border-slate-200 bg-white;
+  }
+
+  /* Key/value row. Stacks below the breakpoint so a value is never squeezed
+     into what is left of a fixed label column on a phone. */
+  .kv-row {
+    @apply flex flex-col sm:flex-row sm:gap-3 py-1.5 border-b border-slate-100 last:border-b-0;
+  }
+
+  .kv-row-tight {
+    @apply py-1;
+  }
+
+  .kv-key {
+    @apply text-slate-500 sm:w-40 sm:shrink-0;
+  }
+
+  .kv-value {
+    @apply min-w-0;
+  }
+
+  .icon {
+    @apply w-4 h-4 shrink-0;
+  }
+
+  .badge {
+    @apply inline-flex items-center justify-center rounded px-2 py-0.5 text-xs font-semibold uppercase tracking-wide shrink-0;
+  }
+
+  .code-block {
+    @apply text-xs font-mono bg-slate-50 border border-slate-200 rounded p-3 overflow-auto;
+  }
+
+  /* Absent value. slate-500 rather than slate-400: the lighter step measured
+     2.63:1 on white, under the 4.5:1 floor. */
+  .empty-value {
+    @apply text-xs text-slate-500 italic;
   }
 }
