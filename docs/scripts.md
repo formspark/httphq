@@ -16,7 +16,7 @@ go mod tidy
 Run project:
 
 ```bash
-go run ./src/application.go
+go run ./src
 ```
 
 Run unit tests:
