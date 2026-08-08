@@ -1,0 +1,13 @@
+{
+  "name": "httphq-assets",
+  "private": true,
+  "description": "Build-time stylesheet generation. The Go application does not depend on npm at runtime; public/app.css is committed and served from the binary's static directory.",
+  "scripts": {
+    "css": "tailwindcss --input ./src/styles/app.css --output ./public/app.css --minify",
+    "css:watch": "tailwindcss --input ./src/styles/app.css --output ./public/app.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.2.4",
+    "tailwindcss": "4.2.4"
+  }
+}

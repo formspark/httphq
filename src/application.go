@@ -98,13 +98,14 @@ func resolvePlatform(name string) platformConfig {
 // contentSecurityPolicy is the CSP sent on every response, assembled once at
 // startup because its only variable part is fixed for the process lifetime.
 //
-//   - script-src needs 'unsafe-eval' for Alpine (it compiles directive
-//     expressions via the Function constructor) and the Tailwind Play CDN
-//     (compiles utility classes at runtime). All page scripts are external so
-//     script-src does NOT need 'unsafe-inline'.
-//   - style-src needs 'unsafe-inline' because Tailwind Play CDN injects
-//     generated styles into <style> tags, and Alpine x-show toggles via
-//     inline display style.
+//   - script-src needs 'unsafe-eval' for Alpine, which compiles directive
+//     expressions via the Function constructor, and the two CDN origins that
+//     serve Alpine and the syntax highlighter to the endpoint page. All page
+//     scripts are external so script-src does NOT need 'unsafe-inline'.
+//   - style-src needs the CDN origin for the highlighter's theme, and
+//     'unsafe-inline' because Alpine's x-show toggles visibility through an
+//     inline display style. The application's own stylesheet is first-party
+//     and covered by 'self'.
 //   - The local design-tooling origin is allowed in development only: it serves
 //     an injected picker script and opens a socket back to itself. Production
 //     must never carry it, so it is gated on the environment rather than on a
@@ -149,6 +150,14 @@ func endpointURLs(scheme, host, endpointID string) (endpointURL, websocketURL st
 	}
 	return scheme + "://" + host + "/to/" + endpointID,
 		websocketScheme + "://" + host + "/ws/" + endpointID
+}
+
+// pageBaseURL is the scheme+host a rendered page is being served from, used to
+// build the absolute URLs that canonical and Open Graph tags require. It tracks
+// the request rather than a configured hostname so a self-hosted deployment
+// advertises itself, not httphq.com.
+func pageBaseURL(c fiber.Ctx) string {
+	return c.Scheme() + "://" + string(c.Request().Host())
 }
 
 // omitHeader reports whether a captured-request header is infrastructure noise
@@ -446,14 +455,22 @@ func main() {
 	})
 
 	application.Get("/", func(c fiber.Ctx) error {
+		base := pageBaseURL(c)
 		return c.Render("index", fiber.Map{
-			"Title": "httphq",
+			"Title":       "httphq: inspect HTTP requests in real time",
+			"Description": "Generate a unique URL, point any client at it, and watch every request arrive: method, headers, body, query string, client IP. No account, free forever.",
+			"Canonical":   base + "/",
+			"SocialImage": base + "/social-card.png",
 		})
 	})
 
 	application.Get("/contact", func(c fiber.Ctx) error {
+		base := pageBaseURL(c)
 		return c.Render("contact", fiber.Map{
-			"Title": "Contact | httphq",
+			"Title":       "Contact | httphq",
+			"Description": "Found a bug, have an idea, or want to say hi? Get in touch with the people who build httphq.",
+			"Canonical":   base + "/contact",
+			"SocialImage": base + "/social-card.png",
 		})
 	})
 
@@ -465,7 +482,11 @@ func main() {
 		host := string(c.Request().Host())
 		endpointURL, websocketURL := endpointURLs(c.Scheme(), host, endpointID)
 		return c.Render("endpoint", fiber.Map{
-			"Title":                endpointID + " | httphq",
+			"Title":       endpointID + " | httphq",
+			"Description": "Live capture stream for " + endpointID + ". Requests sent to this endpoint appear here in real time and are deleted after 4 hours.",
+			// No canonical: endpoint pages are per-user surfaces excluded by
+			// robots.txt, and pointing them at a shared URL would be a lie.
+			"AppScripts":           true,
 			"EndpointID":           endpointID,
 			"EndpointURL":          endpointURL,
 			"EndpointWebSocketURL": websocketURL,

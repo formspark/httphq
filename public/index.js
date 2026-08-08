@@ -1,4 +1,5 @@
-/* Shared helpers loaded on every page. */
+/* Shared helpers for the endpoint page. Loaded only where the capture stream
+   renders; the marketing and contact pages ship no JavaScript at all. */
 
 const TIME_DIVISIONS = [
   { amount: 60, name: "seconds" },
@@ -61,22 +62,3 @@ window.parseHeaderLines = function (text) {
   }
   return out;
 };
-
-/* App-wide style overrides (loading-dots animation, native-select chevron,
-   pointer cursor on actionable elements). Injected once at startup. */
-
-(function injectAppStyles() {
-  if (document.getElementById("httphq-app-style")) return;
-  const style = document.createElement("style");
-  style.id = "httphq-app-style";
-  style.textContent = [
-    // Loading dots in the empty state.
-    ".loading-dots::after{content:'';display:inline-block;width:1.5ch;text-align:left;animation:httphq-dots 1.2s steps(4,end) infinite}",
-    "@keyframes httphq-dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%,100%{content:'...'}}",
-    // Tailwind v4 doesn't set cursor:pointer on buttons by default; restore it.
-    "button:not(:disabled),summary,[role=button]:not(:disabled){cursor:pointer}",
-    // Custom select chevron, anchored right after the value with sane padding.
-    "select.app-select{appearance:none;-webkit-appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2364748b'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.083l3.71-3.853a.75.75 0 111.08 1.04l-4.25 4.41a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 0.5rem center;background-size:1.1em;padding-right:2rem}",
-  ].join("");
-  document.head.appendChild(style);
-})();

@@ -1,0 +1,25 @@
+/* Element defaults and the browser-owned surfaces the design system reclaims:
+   cursors, selection, and the native control accent. */
+
+@layer base {
+  /* Tailwind resets buttons to the default cursor; actionable controls get the
+     pointer back. */
+  button:not(:disabled),
+  summary,
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Selection, native control accent, and form-control rendering all ship with
+     browser defaults that belong to no design system. Bind them to the palette
+     so the parts the product does not draw still read as the product. */
+  ::selection {
+    background-color: var(--color-indigo-100);
+    color: var(--color-indigo-900);
+  }
+
+  :root {
+    accent-color: var(--color-indigo-600);
+    color-scheme: light;
+  }
+}

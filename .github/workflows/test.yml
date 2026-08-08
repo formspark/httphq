@@ -19,6 +19,22 @@ jobs:
           go-version-file: "go.mod"
           cache: false
       - run: go test ./...
+  styles:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".tool-versions"
+      - run: npm ci
+      # public/app.css is committed so the binary and container need no Node.
+      # A rebuild that changes it means a template or script gained a class the
+      # committed sheet does not carry, and the running app would be missing it.
+      - name: Rebuild stylesheet and check it matches the committed one
+        run: |
+          npm run css
+          git diff --exit-code --stat public/app.css \
+            || { echo "::error::public/app.css is stale. Run 'npm run css' and commit the result"; exit 1; }
   e2e:
     runs-on: ubuntu-latest
     defaults:

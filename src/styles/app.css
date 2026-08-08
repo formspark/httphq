@@ -1,0 +1,17 @@
+/* Stylesheet entry point. Built to public/app.css by `npm run css`.
+   Everything here is import and configuration only; rules live in the modules
+   so each one stays small enough to read in full. */
+
+@import "tailwindcss";
+
+@import "./base.css";
+@import "./components.css";
+@import "./motion.css";
+
+/* Class names are authored in the Go templates and in the endpoint page's
+   scripts. The method-badge palette in particular lives only in endpoint.js as
+   string literals, so dropping that source silently removes every badge colour
+   from the generated sheet. Only the scripts are scanned, never the generated
+   sheet next to them. */
+@source "../views";
+@source "../../public/*.js";

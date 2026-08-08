@@ -27,8 +27,8 @@ around.
 ## Product Purpose
 
 httphq generates a unique, disposable HTTP endpoint and shows every request
-sent to it in real time — method, path, client IP, headers, query string, and
-body — so a developer can see exactly what a client, provider, or device puts
+sent to it in real time: method, path, client IP, headers, query string, and
+body: so a developer can see exactly what a client, provider, or device puts
 on the wire.
 
 Success is a developer answering "what did it actually send?" in the shortest
@@ -55,8 +55,8 @@ positioned as a marketing surface for Formspark.
 
 ## Operating Context
 
-- The user is mid-task in another tool — a provider dashboard, a terminal, an
-  HTML form, a device, a scheduler — and httphq is the second window they keep
+- The user is mid-task in another tool: a provider dashboard, a terminal, an
+  HTML form, a device, a scheduler: and httphq is the second window they keep
   open beside it.
 - The capture URL is pasted into somewhere else entirely (Stripe/GitHub/Slack
   webhook settings, a form `action`, a curl command, firmware config) and then
@@ -107,8 +107,8 @@ Technical constraints:
   IDs are guessable in principle.
 - `robots.txt` allows only `/` and `/contact`; endpoint pages are disallowed.
 
-Terminology: *endpoint* (the generated capture target), *request* (one captured
-call), *capture URL* (`/to/<id>`), *HAR* (the export shape).
+Terminology: _endpoint_ (the generated capture target), _request_ (one captured
+call), _capture URL_ (`/to/<id>`), _HAR_ (the export shape).
 
 Undecided / not established: whether the 4-hour window, the 128-request list
 cap, or the 1 MiB body limit should ever be surfaced as configurable to users.

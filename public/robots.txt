@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /$
 Allow: /contact$
+Allow: /app.css
+Allow: /social-card.png
+Allow: /logo.svg
 Disallow: /

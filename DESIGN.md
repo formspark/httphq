@@ -1,6 +1,6 @@
 ---
 name: httphq
-description: A live arrivals board for HTTP requests — neutral chassis, one indigo control, color reserved for classifying traffic.
+description: A live arrivals board for HTTP requests: neutral chassis, one indigo control, color reserved for classifying traffic.
 colors:
   beacon-periwinkle: "#707ee7"
   signal-indigo: "oklch(51.1% 0.262 276.966)"
@@ -170,7 +170,7 @@ components:
 httphq is a board you watch, not a console you operate. Requests land at the
 top of the stream, get colour-coded by class, and expire. The whole visual
 system is built so a developer working in another window can glance over and
-read the board — status first, detail on approach — then go back to what they
+read the board, status first, detail on approach, then go back to what they
 were doing. Everything that isn't the arriving traffic is chassis: a slate
 field, white panels, hairline seams, and exactly one indigo control per view.
 
@@ -178,7 +178,7 @@ The register is precise, quiet and fast. Restraint here is not minimalism as a
 style choice; it is what makes the board readable. The interface never claims
 more than it can prove, never decorates a value it captured, and never puts a
 second thing in colour next to a method badge. Type is system-native and
-loads instantly — there is no webfont anywhere, and that is a feature of a tool
+loads instantly: there is no webfont anywhere, and that is a feature of a tool
 whose entire promise is being usable within seconds of arrival.
 
 Four looks are rejected outright, and all four are confirmed prohibitions
@@ -187,7 +187,7 @@ testimonial carousels), the dense enterprise console (dark chrome, packed
 toolbars, panels nested in panels), terminal cosplay (green-on-black, ASCII
 framing, faux-CRT effects), and playful dev-tool mascotry (cartoon characters,
 blob illustrations, jokey empty states). Monospace appears throughout, but as
-evidence handling — never as costume.
+evidence handling: never as costume.
 
 **Key Characteristics:**
 
@@ -196,7 +196,7 @@ evidence handling — never as costume.
 - Full-spectrum colour is spent entirely on the seven HTTP-method badges
 - Everything the client sent is monospace; everything httphq says is sans
 - A single breakpoint (40rem) governs the entire responsive system
-- Liveness is signalled in the browser chrome — tab title count, favicon dot — not by animating the page
+- Liveness is signalled in the browser chrome, tab title count, favicon dot, not by animating the page
 
 ## Colors
 
@@ -210,7 +210,7 @@ traffic.
   mark in `public/logo.svg` and the favicon set. It is lighter and considerably
   softer than the interface accent below. **Recorded intent:** this is the true
   brand primary and the interface accent should converge toward it in a future
-  pass. Until that happens the two coexist and neither moves — do not
+  pass. Until that happens the two coexist and neither moves: do not
   half-migrate individual components.
 - **Signal Indigo** (`oklch(51.1% 0.262 276.966)`): the current interface
   accent. It fills the one primary button per view, sets the endpoint URL in
@@ -222,19 +222,19 @@ traffic.
 The method spectrum. Seven hues, each existing only as a wash-and-ink pair on a
 badge, and defined in `public/endpoint.js` rather than in markup:
 
-- **GET — Instrument Blue** (ink `oklch(48.8% 0.243 264.376)` on wash `oklch(97% 0.014 254.604)`): reads, the default arrival.
-- **POST — Bench Emerald** (ink `oklch(50.8% 0.118 165.612)` on wash `oklch(97.9% 0.021 166.113)`): creates, and the most common arrival on a webhook endpoint.
-- **PUT — Signal Amber** (ink `oklch(55.5% 0.163 48.998)` on wash `oklch(98.7% 0.022 95.277)`): replaces.
-- **PATCH — Filament Violet** (ink `oklch(49.1% 0.27 292.581)` on wash `oklch(96.9% 0.016 293.756)`): modifies.
-- **DELETE — Warning Rose** (ink `oklch(51.4% 0.222 16.935)` on wash `oklch(96.9% 0.015 12.422)`): removes; shares its hue with the destructive controls, deliberately.
-- **HEAD — Neutral Slate** (ink `oklch(37.2% 0.044 257.287)` on wash `oklch(96.8% 0.007 247.896)`): metadata only, so it gets no hue at all.
-- **OPTIONS — Preflight Sky** (ink `oklch(50% 0.134 242.749)` on wash `oklch(97.7% 0.013 236.62)`): negotiation, usually a browser's preflight.
+- **GET: Instrument Blue** (ink `oklch(48.8% 0.243 264.376)` on wash `oklch(97% 0.014 254.604)`): reads, the default arrival.
+- **POST: Bench Emerald** (ink `oklch(50.8% 0.118 165.612)` on wash `oklch(97.9% 0.021 166.113)`): creates, and the most common arrival on a webhook endpoint.
+- **PUT: Signal Amber** (ink `oklch(55.5% 0.163 48.998)` on wash `oklch(98.7% 0.022 95.277)`): replaces.
+- **PATCH: Filament Violet** (ink `oklch(49.1% 0.27 292.581)` on wash `oklch(96.9% 0.016 293.756)`): modifies.
+- **DELETE: Warning Rose** (ink `oklch(51.4% 0.222 16.935)` on wash `oklch(96.9% 0.015 12.422)`): removes; shares its hue with the destructive controls, deliberately.
+- **HEAD: Neutral Slate** (ink `oklch(37.2% 0.044 257.287)` on wash `oklch(96.8% 0.007 247.896)`): metadata only, so it gets no hue at all.
+- **OPTIONS: Preflight Sky** (ink `oklch(50% 0.134 242.749)` on wash `oklch(97.7% 0.013 236.62)`): negotiation, usually a browser's preflight.
 
 Any method outside this set falls back to the HEAD pair.
 
 ### Neutral
 
-- **Board Field** (`oklch(98.4% 0.003 247.858)`): the page ground the panels sit on, and — reused deliberately — the fill of every code well and the endpoint URL chip, so raw data reads as recessed into the board.
+- **Board Field** (`oklch(98.4% 0.003 247.858)`): the page ground the panels sit on, and, reused deliberately, the fill of every code well and the endpoint URL chip, so raw data reads as recessed into the board.
 - **Panel White** (`#ffffff`): every card, disclosure, input and empty state.
 - **Hairline** (`oklch(92.9% 0.013 255.508)`): the 1px seam around panels, code wells and the sticky filter rail. The primary edge in the system.
 - **Hairline Faint** (`oklch(96.8% 0.007 247.896)`): the internal rules between header rows and detail rows, one step quieter than a panel edge so nested structure never out-shouts the container.
@@ -253,35 +253,34 @@ multipart bodies are highlighted by the pinned highlight.js GitHub light theme
 (`@highlightjs/cdn-assets@11.10.0/styles/github.min.css`), which ships plain
 sRGB hex outside the OKLCH system above. Verified against rendered captures:
 
-- **Key Blue** (`#005cc5`): object keys, numbers, booleans and the XML prolog — `hljs-attr`, `hljs-number`, `hljs-literal`, `hljs-meta`.
-- **String Navy** (`#032f62`): every quoted string value — `hljs-string`.
-- **Element Green** (`#22863a`): XML element names — `hljs-name`.
-- **Keyword Red** (`#d73a49`): language keywords — `hljs-keyword`.
+- **Key Blue** (`#005cc5`): object keys, numbers, booleans and the XML prolog: `hljs-attr`, `hljs-number`, `hljs-literal`, `hljs-meta`.
+- **String Navy** (`#032f62`): every quoted string value: `hljs-string`.
+- **Element Green** (`#22863a`): XML element names: `hljs-name`.
+- **Keyword Red** (`#d73a49`): language keywords: `hljs-keyword`.
 - Punctuation, braces and tag brackets carry no colour of their own; `hljs-punctuation` and `hljs-tag` inherit Body Ink, which is what keeps a highlighted payload from turning into confetti.
 
 ### Named Rules
 
 **The Borrowed Palette Rule.** The four syntax colours are a vendored theme, not
 system tokens. Never restyle individual `hljs-*` classes to bring them closer to
-the slate-and-indigo world — either swap the whole theme or leave it alone. A
+the slate-and-indigo world: either swap the whole theme or leave it alone. A
 half-retinted syntax palette reads as a bug in the highlighter.
 
 **The Board Rule.** Full-spectrum colour belongs to the method badge and
 nothing else. If a new element wants blue, emerald, amber, violet or sky, the
-answer is no — that vocabulary means "this is the class of traffic that
+answer is no: that vocabulary means "this is the class of traffic that
 arrived", and every additional user dilutes the only colour-coding on the page.
 
 **The One Indigo Rule.** At most one indigo-filled control exists per view. On
-the home page it is *Create endpoint*; on the endpoint page it is *Send*;
-on contact it is *Send message*. Everything else that is actionable is a slate
+the home page it is _Create endpoint_; on the endpoint page it is _Send_;
+on contact it is _Send message_. Everything else that is actionable is a slate
 outline or bare label ink that turns indigo on hover.
 
 **The Wash-and-Ink Rule.** Coloured chips are always a ~97%-lightness wash
 carrying a ~50%-lightness ink of the same hue. There are no saturated fills
 with white text anywhere except the single primary button.
 
-**The Rose Is Removal Rule.** Rose means something is about to be destroyed —
-the *Delete all* button, the per-request delete hover, the DELETE badge. Its one
+**The Rose Is Removal Rule.** Rose means something is about to be destroyed: the _Delete all_ button, the per-request delete hover, the DELETE badge. Its one
 sanctioned exception is the unread dot painted onto the favicon, where it means
 "traffic landed while you were away". Rose is never used for form validation or
 generic error text.
@@ -291,22 +290,24 @@ generic error text.
 **Display / Body Font:** system UI sans (`ui-sans-serif, system-ui, sans-serif`)
 **Label/Mono Font:** system monospace (`ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace`)
 
-**Character:** There is no webfont, and that is a decision, not an omission — a
+**Character:** There is no webfont, and that is a decision, not an omission: a
 tool promising a working URL in seconds cannot spend its first paint on a font
-request. The pairing is the operating system's own voice against its own
-terminal voice, which is exactly the contrast the product needs: httphq speaks
-in sans, the captured traffic speaks in mono.
+request. The same commitment governs the stylesheet: it is built ahead of time
+from `src/styles/app.css` into a first-party `/app.css`, so no page waits on a
+third party to have a layout. The pairing is the operating system's own voice
+against its own terminal voice, which is exactly the contrast the product needs:
+httphq speaks in sans, the captured traffic speaks in mono.
 
 ### Hierarchy
 
 - **Display** (600, 3rem desktop / 1.875rem below 40rem, line-height 1, -0.025em): the home hero headline. Appears once, on one page.
-- **Headline** (600, 1.875rem / 1.5rem below 40rem, line-height 1.2): page titles outside the hero, e.g. *Get in touch*.
-- **Title** (500, 1rem): card headings and the disclosure summary. Medium weight, never semibold — titles mark a region, they don't compete with the display.
+- **Headline** (600, 1.875rem / 1.5rem below 40rem, line-height 1.2): page titles outside the hero, e.g. _Get in touch_.
+- **Title** (500, 1rem): card headings and the disclosure summary. Medium weight, never semibold, because titles mark a region rather than competing with the display.
 - **Lede** (400, 1.125rem, line-height ~1.56): the one paragraph under the hero, capped at 36rem.
 - **Body** (400, 0.875rem, line-height ~1.43): the working size of the entire application chrome. Most of the product is set at 14px, not 16px.
-- **Label** (500, 0.75rem, +0.025em, uppercase): field labels — TIME, CLIENT IP, PATH, HEADERS, QUERY STRING, BODY, YOUR UNIQUE URL.
+- **Label** (500, 0.75rem, +0.025em, uppercase): field labels: TIME, CLIENT IP, PATH, HEADERS, QUERY STRING, BODY, YOUR UNIQUE URL.
 - **Badge** (600, 0.75rem, +0.025em, uppercase): method badges only.
-- **Mono** (400, 0.75rem): every captured value — headers, paths, IPs, query strings, bodies, the endpoint URL, and the request UUID.
+- **Mono** (400, 0.75rem): every captured value: headers, paths, IPs, query strings, bodies, the endpoint URL, and the request UUID.
 
 ### Named Rules
 
@@ -316,7 +317,7 @@ appears in sans, and interface copy never borrows mono for flavour.
 
 **The Two Uppercase Rule.** Uppercase exists in exactly two places: field
 labels and method badges. Both are 0.75rem with +0.025em tracking. Nothing else
-in the system is uppercased — not buttons, not navigation, not headings.
+in the system is uppercased: not buttons, not navigation, not headings.
 
 ## Layout
 
@@ -331,7 +332,7 @@ form at 36rem. Nothing runs the full 64rem except the request stream, which
 needs the width for header tables and body payloads.
 
 **One breakpoint.** The entire system responds at `sm` (40rem) and nowhere
-else — there is no `md`, `lg`, or `xl` anywhere in the templates. Below it the
+else: there is no `md`, `lg`, or `xl` anywhere in the templates. Below it the
 layout is a single stacked column with 1rem gutters and the smaller step of
 each type pair; above it the use-case grid becomes two columns, the URL row and
 filter bar become horizontal, and secondary button labels appear next to their
@@ -357,20 +358,20 @@ competing with a label column that a phone cannot afford. Each row is its own
 element, so its hairline-faint divider spans the entire row rather than sitting
 over one column.
 
-Header lists scroll internally at 16rem, bodies at 24rem — long payloads never
+Header lists scroll internally at 16rem, bodies at 24rem: long payloads never
 push the next request off the board.
 
 ## Elevation & Depth
 
-Hairline-first. The 1px hairline seam *is* the edge of a surface; the shadow
+Hairline-first. The 1px hairline seam _is_ the edge of a surface; the shadow
 underneath it is a whisper whose only job is to stop a white panel from looking
 pasted onto the slate field. Depth in this system is carried by the tonal step
-between board field and panel white, reinforced by a seam — not by lift.
+between board field and panel white, reinforced by a seam: not by lift.
 
 ### Shadow Vocabulary
 
 - **Resting whisper** (`box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)`): every panel, card, disclosure and primary button at rest. Barely perceptible by design.
-- **Hover lift** (`box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)`): applied only to the six use-case cards on the home page, and only on hover.
+- **Hover lift** (`box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)`): defined but **currently unused**. It was on the home page's use-case cards, which are not interactive: a surface that lifts under the cursor and then does nothing reads as a broken link. Available for a genuinely interactive card if one ever exists; not to be reintroduced on static content.
 
 ### Named Rules
 
@@ -386,9 +387,9 @@ above anywhere, and adding one would break the flatness the board depends on.
 
 Three radii, and each one encodes what a thing is:
 
-- **0.25rem** — data. Code wells, the endpoint URL chip, method badges. The tightest corner, for things that hold captured bytes.
-- **0.375rem** — controls. Every button, input, select, textarea and the use-case icon tiles.
-- **0.5rem** — panels. Cards, disclosures, the empty state, request articles.
+- **0.25rem**: data. Code wells, the endpoint URL chip, method badges. The tightest corner, for things that hold captured bytes.
+- **0.375rem**: controls. Every button, input, select, textarea and the use-case icon tiles.
+- **0.5rem**: panels. Cards, disclosures, the empty state, request articles.
 
 Borders are 1px and always present on a surface that has an edge; there are no
 borderless cards. Request articles clip their contents so the header's bottom
@@ -402,7 +403,7 @@ label rather than replacing one.
 
 The family has no exceptions: there is no emoji anywhere in the product. The
 retention notice carries a stroked alert triangle from the same set, inheriting
-label ink like every other icon. Keep it that way — an emoji brings its own
+label ink like every other icon. Keep it that way: an emoji brings its own
 colour and its own per-platform rendering, and one is enough to break the
 uniformity that makes this icon set read as a system.
 
@@ -413,7 +414,7 @@ new element takes the radius of the category it belongs to, not the radius that
 looks best next to its neighbour.
 
 **The Dashed-Means-Waiting Rule.** A dashed border means a container that is
-correctly empty and expecting content. It is used once — the waiting state — and
+correctly empty and expecting content. It is used once, the waiting state, and
 must never be borrowed for a disabled, errored, or drop-target surface.
 
 ## Components
@@ -422,36 +423,44 @@ must never be borrowed for a disabled, errored, or drop-target surface.
 
 - **Character:** calm instruments. Sized for accuracy rather than presence; nothing asks to be admired.
 - **Shape:** control radius (0.375rem) on every variant.
-- **Primary:** signal indigo fill, white label, medium weight, resting whisper shadow. Two sizes only — 0.75rem/1.5rem padding at 1rem type for the page's main action, and 0.5rem/1rem at 0.875rem inside panels.
+- **Primary:** signal indigo fill, white label, medium weight, resting whisper shadow. Two sizes only: 0.75rem/1.5rem padding at 1rem type for the page's main action, and 0.5rem/1rem at 0.875rem inside panels.
 - **Secondary:** white fill, control-edge stroke, control-ink label at 0.875rem medium, 0.5rem/0.75rem padding. Hovers to the board field.
 - **Destructive:** rose wash fill, rose edge stroke, deep rose label, 0.375rem/0.75rem padding. Hovers one wash step darker.
-- **Text-only:** no fill, no border, label ink at 0.75–0.875rem, resolving to signal indigo on hover — or to alert rose when the action deletes. Used for *Copy*, *Copy request*, and per-request *Delete*.
-- **Hover / Focus:** fills shift one step lighter on primary, one step darker on destructive. Focus is never suppressed: `outline: none` is always paired with a 2px `focus-visible` ring in **signal indigo lit** — the lighter step, not the fill colour — with a 2px white offset ring on filled buttons, so the ring reads against the indigo it sits on. Destructive controls ring in alert rose instead.
-- **Disabled:** 50% opacity and `not-allowed` cursor; used on *Copy all* when the stream is empty.
+- **Text-only:** no fill, no border, label ink at 0.75–0.875rem, resolving to signal indigo on hover, or to alert rose when the action deletes. Used for _Copy_, _Copy request_, and per-request _Delete_.
+- **Hover / Focus:** fills shift one step lighter on primary, one step darker on destructive. Focus is never suppressed: `outline: none` is always paired with a 2px `focus-visible` ring in **signal indigo lit** (the lighter step, not the fill colour), with a 2px white offset ring on filled buttons, so the ring reads against the indigo it sits on. Destructive controls ring in alert rose instead.
+- **Disabled:** 50% opacity and `not-allowed` cursor; used on _Copy all_ when the stream is empty.
 
 ### Cards / Containers
 
 - **Corner Style:** panel radius (0.5rem).
 - **Background:** panel white on the board field.
-- **Shadow Strategy:** resting whisper only; the six home-page use-case cards are the sole surfaces that lift on hover.
+- **Shadow Strategy:** resting whisper only. No surface in the product lifts on hover: elevation change is reserved for something that responds to the cursor, and every card here is static content.
 - **Border:** 1px hairline, always.
 - **Internal Padding:** 1rem below 40rem, 1.25rem above.
-- **Composition:** a request article is a header rule-separated from its body, with the method badge and UUID on the left and the copy/delete actions on the right; the body is a stack of labelled regions rather than a nested set of boxes. Its key/value rows follow the flex behaviour described in Layout — 10rem label column above the breakpoint, label stacked above value below it.
+- **Composition:** a request article is a header rule-separated from its body, with the method badge and UUID on the left and the copy/delete actions on the right; the body is a stack of labelled regions rather than a nested set of boxes. Its key/value rows follow the flex behaviour described in Layout: 10rem label column above the breakpoint, label stacked above value below it.
 
 ### Inputs / Fields
 
 - **Style:** white fill, 1px control-edge stroke, control radius, 0.5rem/0.75rem padding, 0.875rem type. Textareas and header/body fields use the mono stack with `spellcheck="false"`; ordinary text fields use sans.
-- **Focus:** `outline: none` paired with a 1px **focus indigo** ring and a **signal indigo lit** border — a tighter, quieter treatment than the 2px ring on buttons, because a focused field is already unambiguous. Note the three-way split: fields ring in indigo-400, buttons ring in indigo-500, and only fills use indigo-600.
+- **Focus:** `outline: none` paired with a 1px **focus indigo** ring and a **signal indigo lit** border. That is a tighter, quieter treatment than the 2px ring on buttons, because a focused field is already unambiguous. Note the three-way split: fields ring in indigo-400, buttons ring in indigo-500, and only fills use indigo-600.
 - **Labels:** the uppercase label style, 0.25–0.375rem above the field. The contact form is the one place labels are sentence-case medium body text, because it is a public form rather than an instrument panel.
 - **Select:** native `appearance: none` with a slate chevron inlined as a data-URI background, 1.1em, positioned 0.5rem from the right with 2rem of padding reserved. Note this chevron is the single literal hex in the system (`#64748b`) and is the slate-500 equivalent.
 
 ### Navigation
 
-There is none, and that is deliberate: the header is a centred wordmark linking
-home, at 1.875rem bold with tight tracking in control ink. Every other route is
-reachable from the footer — feedback, the GitHub repository with an inline
-brand glyph, and the Formspark credit — set at 0.875rem label ink, centred,
-hovering to signal indigo.
+There is none, and that is deliberate: the header is the periwinkle mark beside
+a centred wordmark linking home, at 1.875rem bold with tight tracking in control
+ink. The link wraps only the mark and wordmark, never the full header band.
+Every other route is reachable from the footer: feedback, the GitHub repository
+with an inline brand glyph, and the Formspark credit: set at 0.875rem label ink,
+centred, hovering to signal indigo.
+
+Every link carries its own padding and a 2.75rem minimum height. As bare inline
+text their hit area collapses to the text box, which lands under the 24px target
+minimum and makes the page's only exits hard to hit on a phone. Links also carry
+the same authored `focus-visible` ring as buttons rather than falling back to the
+browser's default outline, which is engine-specific and belongs to no design
+system.
 
 ### Method Badge
 
@@ -464,34 +473,47 @@ new method is a one-line addition in one place.
 ### Body Rendering
 
 A captured body is displayed through one of four paths, chosen by its
-`Content-Type`. All four land in the same code well — board-field fill, hairline
-border, data radius, 0.75rem mono, scrolling internally at 24rem — so the
+`Content-Type`. All four land in the same code well: board-field fill, hairline
+border, data radius, 0.75rem mono, scrolling internally at 24rem: so the
 container never signals which path ran; only the content does.
 
-- **JSON** — reparsed, pretty-printed at two-space indent, then highlighted.
-- **multipart/form-data** — parsed into a part list and serialised as a JSON array of `{name, value}` for fields and `{name, filename, contentType, size}` for files, then highlighted as JSON. A file's bytes are never shown, only its declared metadata.
-- **XML** — highlighted in place, unformatted; the payload keeps whatever whitespace it arrived with.
-- **Anything else** — HTML-escaped raw text, no highlighting, no reformatting.
+- **JSON**: reparsed, pretty-printed at two-space indent, then highlighted.
+- **multipart/form-data**: parsed into a part list and serialised as a JSON array of `{name, value}` for fields and `{name, filename, contentType, size}` for files, then highlighted as JSON. A file's bytes are never shown, only its declared metadata.
+- **XML**: highlighted in place, unformatted; the payload keeps whatever whitespace it arrived with.
+- **Anything else**: HTML-escaped raw text, no highlighting, no reformatting.
 
-An absent body or query string renders as an italic *None* in quiet ink rather
+An absent body or query string renders as an italic _None_ in quiet ink rather
 than an empty well, so a card with nothing in it still reads as a complete
-record. Escaping happens on every path — a captured body is attacker-controlled
+record. Escaping happens on every path: a captured body is attacker-controlled
 text and is never trusted as markup.
+
+### Browser Surfaces
+
+The parts the product does not draw still carry its palette, set once in the
+base layer: text selection is indigo wash behind indigo ink rather than the
+browser's blue, and `accent-color` is signal indigo so native checkboxes and the
+search field's clear affordance match the one accent. `color-scheme` is declared
+light, so form controls and scrollbars render in the world the system actually
+commits to rather than inverting under a dark OS preference.
+
+Motion respects `prefers-reduced-motion`: transitions and the waiting ellipsis
+collapse to a resting state. Every animation in this product is decorative, none carries meaning that is lost when it is removed, so reducing it is a clean
+substitution, not a degradation.
 
 ### Waiting State
 
 Panel-white, dashed control-edge border, 3rem/1rem padding, centred label ink:
-a 1rem line reading *Waiting for requests* followed by an animated ellipsis, and
+a 1rem line reading _Waiting for requests_ followed by an animated ellipsis, and
 a 0.875rem line explaining that requests will appear in real time. The ellipsis
-is a CSS `content` animation on four steps over 1.2s — the only looping motion
+is a CSS `content` animation on four steps over 1.2s: the only looping motion
 in the product.
 
 ### Liveness Indicator
 
 When a request arrives while the tab is hidden, the count is prefixed to the
 document title and the favicon is repainted on a canvas: a slate-800 disc, a
-white lowercase *h*, and a rose-600 dot at the upper right. Restoring
-visibility clears both. This is where the board announces itself — the page
+white lowercase _h_, and a rose-600 dot at the upper right. Restoring
+visibility clears both. This is where the board announces itself: the page
 body never flashes, animates, or auto-scrolls to claim attention.
 
 ## Do's and Don'ts
@@ -501,7 +523,7 @@ body never flashes, animates, or auto-scrolls to claim attention.
 - **Do** put every new surface on the board field with a panel-white fill, a 1px hairline seam, and the resting whisper shadow. That trio is the system's default surface.
 - **Do** set anything the client sent in monospace at 0.75rem, and anything httphq says in sans.
 - **Do** give a new region an uppercase 0.75rem/500/+0.025em label ink heading, and separate its rows with hairline-faint rules instead of nesting another bordered box.
-- **Do** pair `outline: none` with a visible `focus-visible` ring every single time — 2px signal-indigo-lit plus a white offset ring on buttons, 1px focus-indigo plus a border shift on fields.
+- **Do** pair `outline: none` with a visible `focus-visible` ring every single time: 2px signal-indigo-lit plus a white offset ring on buttons, 1px focus-indigo plus a border shift on fields.
 - **Do** take the radius from the category: 0.25rem for data, 0.375rem for controls, 0.5rem for panels.
 - **Do** design to the 40rem breakpoint alone, stacking below it and going horizontal above it.
 - **Do** keep icons at 24×24 viewBox, `stroke-width="2"`, `fill="none"`, `aria-hidden`, beside a text label.
@@ -512,7 +534,7 @@ body never flashes, animates, or auto-scrolls to claim attention.
 - **Don't** spend blue, emerald, amber, violet or sky on anything but a method badge. That spectrum is the traffic classification and nothing else.
 - **Don't** add a second indigo-filled button to a view. One primary action per screen, every other control outlined or bare.
 - **Don't** introduce a saturated fill with white text; coloured chips are a ~97% wash with a ~50% ink of the same hue.
-- **Don't** use rose for validation errors or generic failure text — rose means removal, plus the unread favicon dot.
+- **Don't** use rose for validation errors or generic failure text: rose means removal, plus the unread favicon dot.
 - **Don't** reach past the hover lift for elevation. There is no `shadow-lg` in this system, and a borderless card with a bigger shadow is wrong here even when it looks fine alone.
 - **Don't** add a webfont. The system stack is a performance commitment on a tool whose promise is a working URL in seconds.
 - **Don't** add a second breakpoint. If a layout can't resolve with `sm` alone, simplify the layout.
