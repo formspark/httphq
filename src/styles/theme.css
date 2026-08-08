@@ -1,0 +1,85 @@
+/* The palette. Authored in OKLCH rather than taken from Tailwind's defaults, so
+   the greys, the accent and the method spectrum belong to one family.
+
+   The neutral ramp sits on the mark's hue at very low chroma, which is why the
+   greys read as related to the brand instead of as a generic blue-grey. The
+   brand ramp carries the mark's hue and its chroma; the mark itself is too
+   light to hold white text (3.6:1), so the fill is the same colour darkened
+   until it passes, and #707ee7 stays exactly as it is in the logo.
+
+   The method spectrum keeps conventional meanings, GET blue and POST green and
+   DELETE red, but every ink is built at one lightness and every wash at
+   another, so the seven badges carry equal weight instead of inheriting seven
+   unrelated Tailwind defaults. */
+
+@theme {
+  /* Clear Tailwind's default palette: every colour in this product is
+     authored below, so a stock utility cannot leak in unnoticed. */
+  --color-*: initial;
+
+  --color-white: #fff;
+  --color-black: #000;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  /* Neutral chassis */
+  --color-neutral-50: oklch(98.4% 0.003 274);
+  --color-neutral-100: oklch(96.6% 0.006 274);
+  --color-neutral-200: oklch(92.8% 0.011 274);
+  --color-neutral-300: oklch(86.6% 0.018 274);
+  --color-neutral-400: oklch(70.2% 0.032 274);
+  --color-neutral-500: oklch(55.2% 0.038 274);
+  --color-neutral-600: oklch(44.4% 0.036 274);
+  --color-neutral-700: oklch(37% 0.034 274);
+  --color-neutral-800: oklch(27.8% 0.032 274);
+  --color-neutral-900: oklch(20.6% 0.03 274);
+  --color-neutral-950: oklch(12.8% 0.026 274);
+
+  /* Brand, anchored on the mark */
+  --color-brand-50: oklch(96.5% 0.022 275.25);
+  --color-brand-100: oklch(93.2% 0.042 275.25);
+  --color-brand-200: oklch(87.5% 0.075 275.25);
+  --color-brand-300: oklch(79.5% 0.11 275.25);
+  --color-brand-400: oklch(70% 0.14 275.25);
+  --color-brand-500: oklch(57.5% 0.157 275.25);
+  --color-brand-600: oklch(52% 0.157 275.25);
+  --color-brand-700: oklch(46% 0.15 275.25);
+  --color-brand-800: oklch(39% 0.13 275.25);
+  --color-brand-900: oklch(33% 0.105 275.25);
+  --color-mark: #707ee7;
+
+  /* Method spectrum */
+  --color-get-ink: oklch(50% 0.155 255);
+  --color-get-wash: oklch(97% 0.025 255);
+  --color-post-ink: oklch(50% 0.115 157);
+  --color-post-wash: oklch(97% 0.018 157);
+  --color-put-ink: oklch(50% 0.135 62);
+  --color-put-wash: oklch(97% 0.022 62);
+  --color-patch-ink: oklch(50% 0.165 308);
+  --color-patch-wash: oklch(97% 0.026 308);
+  --color-delete-ink: oklch(50% 0.17 19);
+  --color-delete-wash: oklch(97% 0.027 19);
+  --color-options-ink: oklch(50% 0.13 213);
+  --color-options-wash: oklch(97% 0.021 213);
+  --color-head-ink: oklch(37% 0.034 274);
+  --color-head-wash: oklch(96.6% 0.006 274);
+
+  /* Syntax highlighting. Vendored from the highlight.js GitHub theme rather
+     than authored here, so these are plain sRGB and deliberately outside the
+     OKLCH families above. They are tokens so the marketing page's static
+     example can reference them instead of hard-coding hex. */
+  --color-syntax-key: #005cc5;
+  --color-syntax-string: #032f62;
+  --color-syntax-name: #22863a;
+  --color-syntax-keyword: #d73a49;
+
+  /* Destructive and stream status */
+  --color-danger-50: oklch(97% 0.02 19);
+  --color-danger-100: oklch(94% 0.04 19);
+  --color-danger-200: oklch(89% 0.07 19);
+  --color-danger-500: oklch(62% 0.19 19);
+  --color-danger-600: oklch(55% 0.185 19);
+  --color-danger-700: oklch(48% 0.165 19);
+  --color-live: oklch(62% 0.145 157);
+  --color-pending: oklch(68% 0.145 62);
+}

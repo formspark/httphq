@@ -9,6 +9,7 @@
    to the shipped stylesheet, and editing .gitignore changes the build output. */
 @import "tailwindcss" source(none);
 
+@import "./theme.css";
 @import "./base.css";
 @import "./components.css";
 @import "./motion.css";

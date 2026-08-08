@@ -4,194 +4,136 @@
   "title": "Design System: httphq",
   "extensions": {
     "colorMeta": {
-      "beacon-periwinkle": {
+      "mark": {
         "role": "primary",
-        "displayName": "Beacon Periwinkle",
-        "canonical": "oklch(63.2% 0.157 275.252)",
+        "displayName": "The Mark",
+        "canonical": "#707ee7",
+        "note": "The periwinkle diamond in the logo and favicon set. Origin of the brand ramp; too light to hold white text, so it is never a fill."
+      },
+      "brand-600": {
+        "role": "primary",
+        "displayName": "Brand",
+        "canonical": "oklch(52% 0.157 275.25)",
         "tonalRamp": [
-          "oklch(15% 0.157 275.252)",
-          "oklch(26% 0.157 275.252)",
-          "oklch(37% 0.157 275.252)",
-          "oklch(48% 0.157 275.252)",
-          "oklch(59% 0.157 275.252)",
-          "oklch(70% 0.157 275.252)",
-          "oklch(82% 0.157 275.252)",
-          "oklch(93% 0.157 275.252)"
+          "oklch(33% 0.105 275.25)",
+          "oklch(39% 0.13 275.25)",
+          "oklch(46% 0.15 275.25)",
+          "oklch(52% 0.157 275.25)",
+          "oklch(57.5% 0.157 275.25)",
+          "oklch(70% 0.14 275.25)",
+          "oklch(87.5% 0.075 275.25)",
+          "oklch(96.5% 0.022 275.25)"
+        ],
+        "note": "The mark's hue and chroma, darkened until white text clears the contrast floor."
+      },
+      "neutral-50": {
+        "role": "neutral",
+        "displayName": "Field",
+        "canonical": "oklch(98.4% 0.003 274)",
+        "tonalRamp": [
+          "oklch(12.8% 0.026 274)",
+          "oklch(20.6% 0.03 274)",
+          "oklch(27.8% 0.032 274)",
+          "oklch(37% 0.034 274)",
+          "oklch(44.4% 0.036 274)",
+          "oklch(70.2% 0.032 274)",
+          "oklch(92.8% 0.011 274)",
+          "oklch(98.4% 0.003 274)"
         ]
       },
-      "signal-indigo": {
-        "role": "primary",
-        "displayName": "Signal Indigo",
-        "canonical": "oklch(51.1% 0.262 276.966)",
-        "tonalRamp": [
-          "oklch(25.7% 0.09 281.288)",
-          "oklch(35.9% 0.144 278.697)",
-          "oklch(39.8% 0.195 277.366)",
-          "oklch(45.7% 0.24 277.023)",
-          "oklch(51.1% 0.262 276.966)",
-          "oklch(67.3% 0.182 276.935)",
-          "oklch(87% 0.065 274.039)",
-          "oklch(96.2% 0.018 272.314)"
-        ]
-      },
-      "ink-body": {
+      "neutral-800": {
         "role": "neutral",
         "displayName": "Body Ink",
-        "canonical": "oklch(27.9% 0.041 260.031)",
+        "canonical": "oklch(27.8% 0.032 274)",
         "tonalRamp": [
-          "oklch(12.9% 0.042 264.695)",
-          "oklch(20.8% 0.042 265.755)",
-          "oklch(27.9% 0.041 260.031)",
-          "oklch(37.2% 0.044 257.287)",
-          "oklch(44.6% 0.043 257.281)",
-          "oklch(70.4% 0.04 256.788)",
-          "oklch(92.9% 0.013 255.508)",
-          "oklch(98.4% 0.003 247.858)"
+          "oklch(12.8% 0.026 274)",
+          "oklch(20.6% 0.03 274)",
+          "oklch(27.8% 0.032 274)",
+          "oklch(37% 0.034 274)",
+          "oklch(44.4% 0.036 274)",
+          "oklch(70.2% 0.032 274)",
+          "oklch(92.8% 0.011 274)",
+          "oklch(98.4% 0.003 274)"
         ]
       },
-      "board-field": {
-        "role": "neutral",
-        "displayName": "Board Field",
-        "canonical": "oklch(98.4% 0.003 247.858)",
+      "danger-600": {
+        "role": "secondary",
+        "displayName": "Danger",
+        "canonical": "oklch(55% 0.185 19)",
         "tonalRamp": [
-          "oklch(12.9% 0.042 264.695)",
-          "oklch(20.8% 0.042 265.755)",
-          "oklch(27.9% 0.041 260.031)",
-          "oklch(37.2% 0.044 257.287)",
-          "oklch(44.6% 0.043 257.281)",
-          "oklch(70.4% 0.04 256.788)",
-          "oklch(92.9% 0.013 255.508)",
-          "oklch(98.4% 0.003 247.858)"
+          "oklch(48% 0.165 19)",
+          "oklch(55% 0.185 19)",
+          "oklch(62% 0.19 19)",
+          "oklch(89% 0.07 19)",
+          "oklch(94% 0.04 19)",
+          "oklch(97% 0.02 19)"
         ]
       },
-      "method-get-ink": {
+      "get-ink": {
         "role": "tertiary",
-        "displayName": "Instrument Blue",
-        "canonical": "oklch(48.8% 0.243 264.376)",
-        "tonalRamp": [
-          "oklch(28.2% 0.091 267.935)",
-          "oklch(37.9% 0.146 265.522)",
-          "oklch(42.4% 0.199 265.638)",
-          "oklch(48.8% 0.243 264.376)",
-          "oklch(54.6% 0.245 262.881)",
-          "oklch(70.7% 0.165 254.624)",
-          "oklch(88.2% 0.059 254.128)",
-          "oklch(97% 0.014 254.604)"
-        ]
+        "displayName": "GET",
+        "canonical": "oklch(50% 0.155 255)",
+        "note": "Method badge ink, built at 50% lightness on a 97% wash of the same hue."
       },
-      "method-post-ink": {
+      "post-ink": {
         "role": "tertiary",
-        "displayName": "Bench Emerald",
-        "canonical": "oklch(50.8% 0.118 165.612)",
-        "tonalRamp": [
-          "oklch(26.2% 0.051 172.552)",
-          "oklch(37.8% 0.077 168.94)",
-          "oklch(43.2% 0.095 166.913)",
-          "oklch(50.8% 0.118 165.612)",
-          "oklch(59.6% 0.145 163.225)",
-          "oklch(76.5% 0.177 163.223)",
-          "oklch(90.5% 0.093 164.15)",
-          "oklch(97.9% 0.021 166.113)"
-        ]
+        "displayName": "POST",
+        "canonical": "oklch(50% 0.115 157)",
+        "note": "Method badge ink, built at 50% lightness on a 97% wash of the same hue."
       },
-      "method-put-ink": {
+      "put-ink": {
         "role": "tertiary",
-        "displayName": "Signal Amber",
-        "canonical": "oklch(55.5% 0.163 48.998)",
-        "tonalRamp": [
-          "oklch(27.9% 0.077 45.635)",
-          "oklch(41.4% 0.112 45.904)",
-          "oklch(47.3% 0.137 46.201)",
-          "oklch(55.5% 0.163 48.998)",
-          "oklch(66.6% 0.179 58.318)",
-          "oklch(82.8% 0.189 84.429)",
-          "oklch(92.4% 0.12 95.746)",
-          "oklch(98.7% 0.022 95.277)"
-        ]
+        "displayName": "PUT",
+        "canonical": "oklch(50% 0.135 62)",
+        "note": "Method badge ink, built at 50% lightness on a 97% wash of the same hue."
       },
-      "method-patch-ink": {
+      "patch-ink": {
         "role": "tertiary",
-        "displayName": "Filament Violet",
-        "canonical": "oklch(49.1% 0.27 292.581)",
-        "tonalRamp": [
-          "oklch(28.3% 0.141 291.089)",
-          "oklch(38% 0.189 293.745)",
-          "oklch(43.2% 0.232 292.759)",
-          "oklch(49.1% 0.27 292.581)",
-          "oklch(54.1% 0.281 293.009)",
-          "oklch(70.2% 0.183 293.541)",
-          "oklch(89.4% 0.057 293.283)",
-          "oklch(96.9% 0.016 293.756)"
-        ]
+        "displayName": "PATCH",
+        "canonical": "oklch(50% 0.165 308)",
+        "note": "Method badge ink, built at 50% lightness on a 97% wash of the same hue."
       },
-      "method-delete-ink": {
+      "delete-ink": {
         "role": "tertiary",
-        "displayName": "Warning Rose",
-        "canonical": "oklch(51.4% 0.222 16.935)",
-        "tonalRamp": [
-          "oklch(27.1% 0.105 12.094)",
-          "oklch(41% 0.159 10.272)",
-          "oklch(45.5% 0.188 13.697)",
-          "oklch(51.4% 0.222 16.935)",
-          "oklch(58.6% 0.253 17.585)",
-          "oklch(71.2% 0.194 13.428)",
-          "oklch(89.2% 0.058 10.001)",
-          "oklch(96.9% 0.015 12.422)"
-        ]
+        "displayName": "DELETE",
+        "canonical": "oklch(50% 0.17 19)",
+        "note": "Method badge ink, built at 50% lightness on a 97% wash of the same hue."
       },
-      "method-options-ink": {
+      "options-ink": {
         "role": "tertiary",
-        "displayName": "Preflight Sky",
-        "canonical": "oklch(50% 0.134 242.749)",
-        "tonalRamp": [
-          "oklch(29.3% 0.066 243.157)",
-          "oklch(39.1% 0.09 240.876)",
-          "oklch(44.3% 0.11 240.79)",
-          "oklch(50% 0.134 242.749)",
-          "oklch(58.8% 0.158 241.966)",
-          "oklch(74.6% 0.16 232.661)",
-          "oklch(90.1% 0.058 230.902)",
-          "oklch(97.7% 0.013 236.62)"
-        ]
+        "displayName": "OPTIONS",
+        "canonical": "oklch(50% 0.13 213)",
+        "note": "Method badge ink, built at 50% lightness on a 97% wash of the same hue."
+      },
+      "head-ink": {
+        "role": "tertiary",
+        "displayName": "HEAD",
+        "canonical": "oklch(37% 0.034 274)",
+        "note": "Method badge ink, built at 50% lightness on a 97% wash of the same hue."
       },
       "syntax-key": {
         "role": "tertiary",
-        "displayName": "Key Blue",
+        "displayName": "Syntax Key",
         "canonical": "#005cc5",
-        "note": "Vendored from the highlight.js GitHub light theme; no tonal ramp because the borrowed palette has no scale. Covers hljs-attr, hljs-number, hljs-literal, hljs-meta."
+        "note": "Vendored from the highlight.js GitHub theme, deliberately outside the OKLCH families."
       },
       "syntax-string": {
         "role": "tertiary",
-        "displayName": "String Navy",
+        "displayName": "Syntax String",
         "canonical": "#032f62",
-        "note": "Vendored highlight.js theme colour for hljs-string. Not a system token; do not restyle in isolation."
+        "note": "Vendored from the highlight.js GitHub theme, deliberately outside the OKLCH families."
       },
       "syntax-name": {
         "role": "tertiary",
-        "displayName": "Element Green",
+        "displayName": "Syntax Name",
         "canonical": "#22863a",
-        "note": "Vendored highlight.js theme colour for XML element names (hljs-name)."
+        "note": "Vendored from the highlight.js GitHub theme, deliberately outside the OKLCH families."
       },
       "syntax-keyword": {
         "role": "tertiary",
-        "displayName": "Keyword Red",
+        "displayName": "Syntax Keyword",
         "canonical": "#d73a49",
-        "note": "Vendored highlight.js theme colour for hljs-keyword."
-      },
-      "alert-rose": {
-        "role": "secondary",
-        "displayName": "Alert Rose",
-        "canonical": "oklch(58.6% 0.253 17.585)",
-        "tonalRamp": [
-          "oklch(27.1% 0.105 12.094)",
-          "oklch(41% 0.159 10.272)",
-          "oklch(45.5% 0.188 13.697)",
-          "oklch(51.4% 0.222 16.935)",
-          "oklch(58.6% 0.253 17.585)",
-          "oklch(71.2% 0.194 13.428)",
-          "oklch(89.2% 0.058 10.001)",
-          "oklch(96.9% 0.015 12.422)"
-        ]
+        "note": "Vendored from the highlight.js GitHub theme, deliberately outside the OKLCH families."
       }
     },
     "typographyMeta": {
@@ -228,43 +170,27 @@
         "purpose": "Every captured value: headers, paths, IPs, query strings, bodies, endpoint URL, request UUID."
       }
     },
-    "shadows": [
-      {
-        "name": "resting-whisper",
-        "value": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
-        "purpose": "Every panel, card, disclosure and primary button at rest. Its only job is to stop white from looking pasted onto the slate field."
-      },
-      {
-        "name": "hover-lift",
-        "value": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-        "purpose": "Defined but currently unused. Elevation change is reserved for surfaces that respond to the cursor; every card in the product is static content."
-      }
-    ],
+    "shadows": [],
     "motion": [
       {
         "name": "default-transition",
         "value": "150ms cubic-bezier(0.4, 0, 0.2, 1)",
-        "purpose": "Every hover and focus state change: button fills, text-action colour shifts, card lift."
+        "purpose": "Hover and focus state changes."
       },
       {
         "name": "disclosure-chevron",
-        "value": "transform 150ms cubic-bezier(0.4, 0, 0.2, 1)",
-        "purpose": "The Send-a-test-request summary chevron rotates 180 degrees on open."
+        "value": "transform 150ms",
+        "purpose": "The send-panel chevron rotates on open."
       },
       {
         "name": "waiting-ellipsis",
         "value": "1.2s steps(4, end) infinite",
-        "purpose": "The four-step CSS content animation in the waiting state. The only looping motion in the product."
-      },
-      {
-        "name": "copy-confirm",
-        "value": "1500ms label swap",
-        "purpose": "Copy controls swap their label to Copied! and revert after 1.5s. Send status clears after 2s."
+        "purpose": "The only looping motion in the product."
       },
       {
         "name": "reduced-motion",
         "value": "@media (prefers-reduced-motion: reduce)",
-        "purpose": "Transitions and the waiting ellipsis collapse to a resting state. All motion here is decorative, so removing it substitutes cleanly."
+        "purpose": "All motion is decorative, so removing it substitutes cleanly."
       }
     ],
     "breakpoints": [
@@ -278,127 +204,100 @@
     {
       "name": "Primary Button",
       "kind": "button",
-      "refersTo": "button-primary",
-      "description": "The one indigo-filled action per view. Two sizes only: page action (1rem type) and in-panel (0.875rem).",
-      "html": "<button class=\"ds-btn-primary\">Create endpoint<svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><line x1=\"5\" y1=\"12\" x2=\"19\" y2=\"12\"/><polyline points=\"12 5 19 12 12 19\"/></svg></button>",
-      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; background: oklch(51.1% 0.262 276.966); color: #fff; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 1rem; font-weight: 500; line-height: 1.5; padding: 0.75rem 1.5rem; border: none; border-radius: 0.375rem; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); cursor: pointer; transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-primary:hover { background: oklch(58.5% 0.233 277.117); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 2px #fff, 0 0 0 4px oklch(58.5% 0.233 277.117); } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }"
+      "refersTo": "btn-primary",
+      "description": "The one brand-filled action per view. Flat: no border, no shadow.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Send</button>",
+      "css": ".ds-btn { display:inline-flex; align-items:center; justify-content:center; gap:.375rem; border-radius:.375rem; font-family:ui-sans-serif,system-ui,sans-serif; font-size:.875rem; font-weight:500; padding:.375rem .75rem; border:1px solid transparent; cursor:pointer; transition:background-color 150ms cubic-bezier(.4,0,.2,1); } .ds-btn-primary { background:oklch(52% 0.157 275.25); color:#fff; padding:.5rem 1rem; } .ds-btn-primary:hover { background:oklch(57.5% 0.157 275.25); } .ds-btn-primary:focus-visible { outline:none; box-shadow:0 0 0 2px #fff, 0 0 0 4px oklch(57.5% 0.157 275.25); }"
     },
     {
       "name": "Secondary Button",
       "kind": "button",
-      "refersTo": "button-secondary",
-      "description": "White fill with a control-edge stroke. Every non-primary action that still needs a button shape.",
-      "html": "<button class=\"ds-btn-secondary\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><rect x=\"9\" y=\"9\" width=\"13\" height=\"13\" rx=\"2\"/><path d=\"M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1\"/></svg>Copy</button>",
-      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; background: #fff; color: oklch(37.2% 0.044 257.287); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; line-height: 1.429; padding: 0.5rem 0.75rem; border: 1px solid oklch(86.9% 0.022 252.894); border-radius: 0.375rem; cursor: pointer; transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-secondary:hover { background: oklch(98.4% 0.003 247.858); } .ds-btn-secondary:focus-visible { outline: none; box-shadow: 0 0 0 2px oklch(58.5% 0.233 277.117); } .ds-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }"
+      "refersTo": "btn-secondary",
+      "description": "White fill with a neutral seam. Hovers to neutral-100, never to the page field.",
+      "html": "<button class=\"ds-btn ds-btn-secondary\">Copy shown (3)</button>",
+      "css": ".ds-btn { display:inline-flex; align-items:center; gap:.375rem; border-radius:.375rem; font-family:ui-sans-serif,system-ui,sans-serif; font-size:.875rem; font-weight:500; padding:.375rem .75rem; cursor:pointer; } .ds-btn-secondary { background:#fff; color:oklch(37% 0.034 274); border:1px solid oklch(86.6% 0.018 274); } .ds-btn-secondary:hover { background:oklch(96.6% 0.006 274); border-color:oklch(70.2% 0.032 274); }"
     },
     {
       "name": "Destructive Button",
       "kind": "button",
-      "refersTo": "button-destructive",
-      "description": "Rose wash with a rose stroke. Reserved for actions that destroy captured data.",
-      "html": "<button class=\"ds-btn-destructive\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><polyline points=\"3 6 5 6 21 6\"/><path d=\"M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6\"/><path d=\"M10 11v6\"/><path d=\"M14 11v6\"/></svg>Delete all</button>",
-      "css": ".ds-btn-destructive { display: inline-flex; align-items: center; gap: 0.375rem; background: oklch(96.9% 0.015 12.422); color: oklch(51.4% 0.222 16.935); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; line-height: 1.429; padding: 0.375rem 0.75rem; border: 1px solid oklch(89.2% 0.058 10.001); border-radius: 0.375rem; cursor: pointer; transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-destructive:hover { background: oklch(94.1% 0.03 12.58); } .ds-btn-destructive:focus-visible { outline: none; box-shadow: 0 0 0 2px oklch(64.5% 0.246 16.439); }"
+      "refersTo": "btn-danger",
+      "description": "One destructive variant, solid. A tinted one would share its fill with the danger surfaces it sits on.",
+      "html": "<button class=\"ds-btn ds-btn-danger\">Delete all (3)</button>",
+      "css": ".ds-btn { display:inline-flex; align-items:center; gap:.375rem; border-radius:.375rem; font-family:ui-sans-serif,system-ui,sans-serif; font-size:.875rem; font-weight:500; padding:.375rem .75rem; cursor:pointer; } .ds-btn-danger { background:oklch(55% 0.185 19); color:#fff; border:1px solid transparent; } .ds-btn-danger:hover { background:oklch(48% 0.165 19); }"
     },
     {
-      "name": "Text Action",
-      "kind": "button",
-      "refersTo": "button-secondary",
-      "description": "No fill, no border. Label ink resolving to signal indigo on hover: or alert rose when the action deletes.",
-      "html": "<div style=\"display:flex;gap:1rem;align-items:center\"><button class=\"ds-action\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><rect x=\"9\" y=\"2\" width=\"6\" height=\"4\" rx=\"1\"/><path d=\"M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2\"/></svg>Copy request</button><button class=\"ds-action ds-action-danger\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><line x1=\"18\" y1=\"6\" x2=\"6\" y2=\"18\"/><line x1=\"6\" y1=\"6\" x2=\"18\" y2=\"18\"/></svg>Delete</button></div>",
-      "css": ".ds-action { display: inline-flex; align-items: center; gap: 0.25rem; background: none; border: none; padding: 0; color: oklch(55.4% 0.046 257.417); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; line-height: 1.429; cursor: pointer; transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-action:hover { color: oklch(51.1% 0.262 276.966); } .ds-action-danger:hover { color: oklch(58.6% 0.253 17.585); } .ds-action:focus-visible { outline: none; box-shadow: 0 0 0 2px oklch(58.5% 0.233 277.117); border-radius: 0.25rem; }"
-    },
-    {
-      "name": "Labelled Input",
+      "name": "Field",
       "kind": "input",
-      "refersTo": "input-field",
-      "description": "Uppercase field label above a white field with a control-edge stroke. Focus tightens to a 1px indigo ring plus a border shift.",
-      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Headers</span><textarea class=\"ds-input ds-input-mono\" rows=\"2\" spellcheck=\"false\" placeholder=\"Content-Type: application/json\"></textarea></label>",
-      "css": ".ds-field { display: block; } .ds-field-label { display: block; margin-bottom: 0.25rem; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; font-weight: 500; line-height: 1.333; letter-spacing: 0.025em; text-transform: uppercase; color: oklch(55.4% 0.046 257.417); } .ds-input { display: block; width: 100%; box-sizing: border-box; background: #fff; color: oklch(27.9% 0.041 260.031); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; line-height: 1.429; padding: 0.5rem 0.75rem; border: 1px solid oklch(86.9% 0.022 252.894); border-radius: 0.375rem; } .ds-input-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; } .ds-input::placeholder { color: oklch(70.4% 0.04 256.788); } .ds-input:focus { outline: none; border-color: oklch(58.5% 0.233 277.117); box-shadow: 0 0 0 1px oklch(67.3% 0.182 276.935); }"
-    },
-    {
-      "name": "Select",
-      "kind": "input",
-      "refersTo": "input-field",
-      "description": "Native select with appearance stripped and a slate chevron inlined as a data-URI, 1.1em at 0.5rem from the right.",
-      "html": "<select class=\"ds-select\"><option>Any method</option><option>GET</option><option>POST</option></select>",
-      "css": ".ds-select { appearance: none; -webkit-appearance: none; background-color: #fff; background-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2364748b'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.083l3.71-3.853a.75.75 0 111.08 1.04l-4.25 4.41a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E\"); background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 1.1em; color: oklch(27.9% 0.041 260.031); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; line-height: 1.429; padding: 0.5rem 2rem 0.5rem 0.75rem; border: 1px solid oklch(86.9% 0.022 252.894); border-radius: 0.375rem; cursor: pointer; } .ds-select:focus { outline: none; border-color: oklch(58.5% 0.233 277.117); box-shadow: 0 0 0 1px oklch(67.3% 0.182 276.935); }"
+      "refersTo": "field",
+      "description": "One input component. Fields taking HTTP syntax add a mono variant; nothing else differs between forms.",
+      "html": "<label><span class=\"ds-field-label\">Headers</span><textarea class=\"ds-field ds-field-mono\" rows=\"3\" placeholder=\"Content-Type: application/json\"></textarea></label>",
+      "css": ".ds-field-label { display:block; font-family:ui-sans-serif,system-ui,sans-serif; font-size:.75rem; font-weight:500; letter-spacing:.025em; text-transform:uppercase; color:oklch(55.2% 0.038 274); margin-bottom:.5rem; } .ds-field { display:block; width:100%; box-sizing:border-box; background:#fff; color:oklch(27.8% 0.032 274); font-family:ui-sans-serif,system-ui,sans-serif; font-size:.875rem; padding:.5rem .75rem; border:1px solid oklch(86.6% 0.018 274); border-radius:.375rem; } .ds-field-mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; } .ds-field:focus-visible { outline:none; border-color:oklch(57.5% 0.157 275.25); box-shadow:0 0 0 1px oklch(70% 0.14 275.25); }"
     },
     {
       "name": "Method Badge",
       "kind": "chip",
-      "refersTo": "method-badge",
-      "description": "The signature component. Seven wash-and-ink pairs; the only saturated colour in the request stream. Unknown methods fall back to the HEAD pair.",
-      "html": "<div style=\"display:flex;flex-wrap:wrap;gap:0.5rem\"><span class=\"ds-badge ds-badge-get\">GET</span><span class=\"ds-badge ds-badge-post\">POST</span><span class=\"ds-badge ds-badge-put\">PUT</span><span class=\"ds-badge ds-badge-patch\">PATCH</span><span class=\"ds-badge ds-badge-delete\">DELETE</span><span class=\"ds-badge ds-badge-head\">HEAD</span><span class=\"ds-badge ds-badge-options\">OPTIONS</span></div>",
-      "css": ".ds-badge { display: inline-flex; align-items: center; justify-content: center; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; font-weight: 600; line-height: 1.333; letter-spacing: 0.025em; text-transform: uppercase; padding: 0.125rem 0.5rem; border-radius: 0.25rem; } .ds-badge-get { background: oklch(97% 0.014 254.604); color: oklch(48.8% 0.243 264.376); } .ds-badge-post { background: oklch(97.9% 0.021 166.113); color: oklch(50.8% 0.118 165.612); } .ds-badge-put { background: oklch(98.7% 0.022 95.277); color: oklch(55.5% 0.163 48.998); } .ds-badge-patch { background: oklch(96.9% 0.016 293.756); color: oklch(49.1% 0.27 292.581); } .ds-badge-delete { background: oklch(96.9% 0.015 12.422); color: oklch(51.4% 0.222 16.935); } .ds-badge-head { background: oklch(96.8% 0.007 247.896); color: oklch(37.2% 0.044 257.287); } .ds-badge-options { background: oklch(97.7% 0.013 236.62); color: oklch(50% 0.134 242.749); }"
+      "refersTo": "badge",
+      "description": "Seven wash-and-ink pairs, every ink at 50% lightness and every wash at 97%.",
+      "html": "<div style=\"display:flex;gap:.5rem;flex-wrap:wrap\"><span class=\"ds-badge ds-badge-get\">GET</span><span class=\"ds-badge ds-badge-post\">POST</span><span class=\"ds-badge ds-badge-put\">PUT</span><span class=\"ds-badge ds-badge-patch\">PATCH</span><span class=\"ds-badge ds-badge-delete\">DELETE</span><span class=\"ds-badge ds-badge-head\">HEAD</span><span class=\"ds-badge ds-badge-options\">OPTIONS</span></div>",
+      "css": ".ds-badge { display:inline-flex; align-items:center; border-radius:.25rem; padding:.125rem .5rem; font-family:ui-sans-serif,system-ui,sans-serif; font-size:.75rem; font-weight:600; letter-spacing:.025em; text-transform:uppercase; } .ds-badge-get { background:oklch(97% 0.025 255); color:oklch(50% 0.155 255); } .ds-badge-post { background:oklch(97% 0.018 157); color:oklch(50% 0.115 157); } .ds-badge-put { background:oklch(97% 0.022 62); color:oklch(50% 0.135 62); } .ds-badge-patch { background:oklch(97% 0.026 308); color:oklch(50% 0.165 308); } .ds-badge-delete { background:oklch(97% 0.027 19); color:oklch(50% 0.17 19); } .ds-badge-head { background:oklch(96.6% 0.006 274); color:oklch(37% 0.034 274); } .ds-badge-options { background:oklch(97% 0.021 213); color:oklch(50% 0.13 213); }"
     },
     {
-      "name": "Request Panel",
+      "name": "Panel",
       "kind": "card",
       "refersTo": "panel",
-      "description": "One captured request: a rule-separated header carrying the badge and UUID, then labelled regions separated by hairline-faint rules rather than nested boxes. Key/value rows are flex: a 10rem label column above 40rem, label stacked above value below it.",
-      "html": "<article class=\"ds-panel\"><header class=\"ds-panel-head\"><span class=\"ds-badge ds-badge-post\">POST</span><a class=\"ds-uuid\" href=\"#\">3f9a1c72-8d40-4e11-b6a2-9c7f0e5d2a18</a></header><div class=\"ds-panel-body\"><div class=\"ds-label\">Details</div><dl class=\"ds-rows\"><div class=\"ds-row\"><dt>Time</dt><dd>2 minutes ago</dd></div><div class=\"ds-row\"><dt>Client IP</dt><dd class=\"ds-mono\">203.0.113.42</dd></div><div class=\"ds-row\"><dt>Path</dt><dd class=\"ds-mono\">/to/quiet-sunset-4821</dd></div></dl><div class=\"ds-label\" style=\"margin-top:1rem\">Body</div><pre class=\"ds-well\">{\n  \"event\": \"payment.succeeded\",\n  \"amount\": 4200\n}</pre></div></article>",
-      "css": ".ds-panel { background: #fff; border: 1px solid oklch(92.9% 0.013 255.508); border-radius: 0.5rem; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); overflow: hidden; font-family: ui-sans-serif, system-ui, sans-serif; } .ds-panel-head { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1.25rem; border-bottom: 1px solid oklch(92.9% 0.013 255.508); } .ds-uuid { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.75rem; color: oklch(55.4% 0.046 257.417); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ds-uuid:hover { color: oklch(51.1% 0.262 276.966); } .ds-panel-body { padding: 1.25rem; } .ds-label { font-size: 0.75rem; font-weight: 500; line-height: 1.333; letter-spacing: 0.025em; text-transform: uppercase; color: oklch(55.4% 0.046 257.417); margin-bottom: 0.5rem; } .ds-rows { margin: 0; font-size: 0.875rem; color: oklch(27.9% 0.041 260.031); } .ds-row { display: flex; flex-direction: column; padding: 0.375rem 0; border-bottom: 1px solid oklch(96.8% 0.007 247.896); } .ds-row:last-child { border-bottom: none; } .ds-row dt { color: oklch(55.4% 0.046 257.417); } .ds-row dd { margin: 0; min-width: 0; } @media (min-width: 40rem) { .ds-row { flex-direction: row; gap: 0.75rem; } .ds-row dt { width: 10rem; flex-shrink: 0; } } .ds-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.75rem; } .ds-well { margin: 0; background: oklch(98.4% 0.003 247.858); border: 1px solid oklch(92.9% 0.013 255.508); border-radius: 0.25rem; padding: 0.75rem; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.75rem; line-height: 1.333; color: oklch(27.9% 0.041 260.031); overflow: auto; }"
+      "description": "The default surface. A seam declares the edge; there are no shadows in this system.",
+      "html": "<div class=\"ds-panel\"><div class=\"ds-field-label\">Send requests to this URL</div><code class=\"ds-code\">http://httphq.com/to/quiet-sunset-4821</code></div>",
+      "css": ".ds-panel { background:#fff; border:1px solid oklch(92.8% 0.011 274); border-radius:.5rem; padding:1.25rem; font-family:ui-sans-serif,system-ui,sans-serif; } .ds-field-label { display:block; font-size:.75rem; font-weight:500; letter-spacing:.025em; text-transform:uppercase; color:oklch(55.2% 0.038 274); margin-bottom:.5rem; } .ds-code { display:block; background:oklch(98.4% 0.003 274); border:1px solid oklch(92.8% 0.011 274); border-radius:.25rem; padding:.5rem .75rem; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.75rem; color:oklch(46% 0.15 275.25); }"
     },
     {
-      "name": "Body Rendering",
+      "name": "Code Block",
       "kind": "custom",
-      "refersTo": "code-well",
-      "description": "A captured body in its code well, highlighted by the vendored highlight.js GitHub theme. Four content-type paths land in this same container: pretty-printed JSON, a multipart part list serialised as JSON, XML, or escaped raw text.",
-      "html": "<div><div class=\"ds-label\">Body</div><pre class=\"ds-well\"><span class=\"ds-hl-punct\">{</span>\n  <span class=\"ds-hl-attr\">\"type\"</span><span class=\"ds-hl-punct\">:</span> <span class=\"ds-hl-string\">\"payment_intent.succeeded\"</span><span class=\"ds-hl-punct\">,</span>\n  <span class=\"ds-hl-attr\">\"amount\"</span><span class=\"ds-hl-punct\">:</span> <span class=\"ds-hl-attr\">4200</span><span class=\"ds-hl-punct\">,</span>\n  <span class=\"ds-hl-attr\">\"livemode\"</span><span class=\"ds-hl-punct\">:</span> <span class=\"ds-hl-attr\">false</span>\n<span class=\"ds-hl-punct\">}</span></pre><div class=\"ds-label\" style=\"margin-top:1rem\">Query string</div><p class=\"ds-none\">None</p></div>",
-      "css": ".ds-label { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; font-weight: 500; line-height: 1.333; letter-spacing: 0.025em; text-transform: uppercase; color: oklch(55.4% 0.046 257.417); margin-bottom: 0.5rem; } .ds-well { margin: 0; background: oklch(98.4% 0.003 247.858); border: 1px solid oklch(92.9% 0.013 255.508); border-radius: 0.25rem; padding: 0.75rem; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.75rem; line-height: 1.333; color: oklch(27.9% 0.041 260.031); max-height: 24rem; overflow: auto; } .ds-hl-punct { color: oklch(27.9% 0.041 260.031); } .ds-hl-attr { color: #005cc5; } .ds-hl-string { color: #032f62; } .ds-hl-name { color: #22863a; } .ds-hl-keyword { color: #d73a49; } .ds-none { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; font-style: italic; color: oklch(70.4% 0.04 256.788); }"
-    },
-    {
-      "name": "Waiting State",
-      "kind": "custom",
-      "refersTo": "empty-state",
-      "description": "The dashed-means-waiting container. Its four-step ellipsis is the only looping animation in the product.",
-      "html": "<div class=\"ds-empty\"><p class=\"ds-empty-title\">Waiting for requests<span class=\"ds-dots\" aria-hidden=\"true\"></span></p><p class=\"ds-empty-sub\">Requests sent to your URL will appear here in real time.</p></div>",
-      "css": ".ds-empty { background: #fff; border: 1px dashed oklch(86.9% 0.022 252.894); border-radius: 0.5rem; padding: 3rem 1rem; text-align: center; color: oklch(55.4% 0.046 257.417); font-family: ui-sans-serif, system-ui, sans-serif; } .ds-empty-title { margin: 0; font-size: 1rem; line-height: 1.5; } .ds-empty-sub { margin: 0.5rem 0 0; font-size: 0.875rem; line-height: 1.429; } .ds-dots::after { content: ''; display: inline-block; width: 1.5ch; text-align: left; animation: ds-dots 1.2s steps(4, end) infinite; } @keyframes ds-dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75%, 100% { content: '...'; } }"
-    },
-    {
-      "name": "Wordmark & Footer",
-      "kind": "nav",
-      "refersTo": "button-secondary",
-      "description": "There is no navigation bar. A centred wordmark links home; every other route lives in the centred footer.",
-      "html": "<div class=\"ds-chrome\"><a class=\"ds-wordmark\" href=\"/\">httphq</a><footer class=\"ds-footer\"><div><a class=\"ds-footer-link\" href=\"/contact\">Send us feedback</a></div><div><a class=\"ds-footer-link\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-2c-3.2.7-3.87-1.37-3.87-1.37-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.24 3.34.95.1-.74.4-1.24.72-1.52-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.15 1.17.91-.25 1.89-.38 2.86-.38.97 0 1.95.13 2.86.38 2.18-1.48 3.14-1.17 3.14-1.17.63 1.58.23 2.75.12 3.04.74.8 1.18 1.82 1.18 3.07 0 4.4-2.69 5.36-5.26 5.65.41.36.78 1.06.78 2.13v3.16c0 .31.21.66.8.55C20.71 21.39 24 17.08 24 12 24 5.65 18.85.5 12.5.5h-.5Z\"/></svg><span>formspark/httphq</span></a></div></footer></div>",
-      "css": ".ds-chrome { font-family: ui-sans-serif, system-ui, sans-serif; text-align: center; } .ds-wordmark { display: inline-block; padding: 1.5rem 0; font-size: 1.875rem; font-weight: 700; letter-spacing: -0.025em; color: oklch(37.2% 0.044 257.287); text-decoration: none; } .ds-footer { padding-top: 2rem; font-size: 0.875rem; line-height: 1.429; color: oklch(55.4% 0.046 257.417); } .ds-footer > div + div { margin-top: 0.75rem; } .ds-footer-link { display: inline-flex; align-items: center; gap: 0.375rem; color: inherit; text-decoration: none; transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-footer-link:hover { color: oklch(51.1% 0.262 276.966); text-decoration: underline; } .ds-footer-link:focus-visible { outline: none; box-shadow: 0 0 0 2px oklch(58.5% 0.233 277.117); border-radius: 0.25rem; }"
+      "refersTo": "code-block",
+      "description": "A captured body. Highlighting stops above 40,000 characters; the body is still shown in full.",
+      "html": "<pre class=\"ds-code-block\"><span class=\"ds-punct\">{</span>\n  <span class=\"ds-key\">\"type\"</span><span class=\"ds-punct\">:</span> <span class=\"ds-string\">\"payment_intent.succeeded\"</span>\n<span class=\"ds-punct\">}</span></pre>",
+      "css": ".ds-code-block { margin:0; background:oklch(98.4% 0.003 274); border:1px solid oklch(92.8% 0.011 274); border-radius:.25rem; padding:.75rem; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.75rem; color:oklch(27.8% 0.032 274); overflow:auto; } .ds-punct { color:oklch(27.8% 0.032 274); } .ds-key { color:#005cc5; } .ds-string { color:#032f62; }"
     }
   ],
   "narrative": {
     "northStar": "The Arrivals Board",
-    "overview": "httphq is a board you watch, not a console you operate. Requests land at the top of the stream, get colour-coded by class, and expire. The whole visual system is built so a developer working in another window can glance over and read the board, status first, detail on approach, then go back to what they were doing. Everything that isn't the arriving traffic is chassis: a slate field, white panels, hairline seams, and exactly one indigo control per view.\n\nThe register is precise, quiet and fast. Restraint here is not minimalism as a style choice; it is what makes the board readable. The interface never claims more than it can prove, never decorates a value it captured, and never puts a second thing in colour next to a method badge. Type is system-native and loads instantly, there is no webfont anywhere, and that is a feature of a tool whose entire promise is being usable within seconds of arrival.\n\nFour looks are rejected outright, and all four are confirmed prohibitions rather than taste: marketing-SaaS gloss (gradient meshes, floating mockups, testimonial carousels), the dense enterprise console (dark chrome, packed toolbars, panels nested in panels), terminal cosplay (green-on-black, ASCII framing, faux-CRT effects), and playful dev-tool mascotry (cartoon characters, blob illustrations, jokey empty states). Monospace appears throughout, but as evidence handling, never as costume.",
+    "overview": "httphq is a board you watch, not a console you operate. Requests land at the\ntop of the stream, get colour-coded by class, and expire. The whole visual\nsystem is built so a developer working in another window can glance over and\nread the board, status first, detail on approach, then go back to what they\nwere doing. Everything that isn't the arriving traffic is chassis: a slate\nfield, white panels, hairline seams, and exactly one indigo control per view.\n\nThe register is precise, quiet and fast. Restraint here is not minimalism as a\nstyle choice; it is what makes the board readable. The interface never claims\nmore than it can prove, never decorates a value it captured, and never puts a\nsecond thing in colour next to a method badge. Type is system-native and\nloads instantly: there is no webfont anywhere, and that is a feature of a tool\nwhose entire promise is being usable within seconds of arrival.\n\nFour looks are rejected outright, and all four are confirmed prohibitions\nrather than taste: marketing-SaaS gloss (gradient meshes, floating mockups,\ntestimonial carousels), the dense enterprise console (dark chrome, packed\ntoolbars, panels nested in panels), terminal cosplay (green-on-black, ASCII\nframing, faux-CRT effects), and playful dev-tool mascotry (cartoon characters,\nblob illustrations, jokey empty states). Monospace appears throughout, but as\nevidence handling: never as costume.",
     "keyCharacteristics": [
-      "A slate-50 field with white panels; hairline seams, not shadows, make the edges",
+      "A neutral-50 field with white panels; hairline seams and no shadows anywhere make the edges",
       "One indigo action per view; every other control is a slate outline or bare text",
       "Full-spectrum colour is spent entirely on the seven HTTP-method badges",
       "Everything the client sent is monospace; everything httphq says is sans",
       "A single breakpoint (40rem) governs the entire responsive system",
-      "Liveness is signalled in the browser chrome, tab title count, favicon dot, not by animating the page"
+      "Liveness is stated, never performed: a connection indicator on the page, a count in the tab title, a dot on the favicon. The page body never flashes, animates or auto-scrolls to claim attention"
     ],
     "rules": [
       {
-        "name": "The Borrowed Palette Rule",
-        "body": "The four syntax colours are a vendored theme, not system tokens. Never restyle individual hljs-* classes to bring them closer to the slate-and-indigo world: either swap the whole theme or leave it alone. A half-retinted syntax palette reads as a bug in the highlighter.",
+        "name": "The Chroma Rule",
+        "body": "The accent carries the mark's chroma of 0.157, not more. A higher-chroma violet reads as a generic framework purple and fights the neutral chassis; the softness is the identity, and lightness is the only axis that moves when contrast demands it.",
         "section": "colors"
       },
       {
         "name": "The Board Rule",
-        "body": "Full-spectrum colour belongs to the method badge and nothing else. If a new element wants blue, emerald, amber, violet or sky, the answer is no: that vocabulary means \"this is the class of traffic that arrived\", and every additional user dilutes the only colour-coding on the page.",
+        "body": "Full-spectrum colour belongs to the method badge and nothing else. If a new element wants blue, green, amber or violet, the answer is no: that vocabulary means \"this is the class of traffic that arrived\", and every additional user dilutes the only colour-coding on the page.",
         "section": "colors"
       },
       {
-        "name": "The One Indigo Rule",
-        "body": "At most one indigo-filled control exists per view. On the home page it is Create endpoint; on the endpoint page it is Send; on contact it is Send message. Everything else that is actionable is a slate outline or bare label ink that turns indigo on hover.",
+        "name": "The One Accent Rule",
+        "body": "At most one brand-filled control exists per view. Everything else that is actionable is a neutral outline or bare text that turns brand on hover.",
         "section": "colors"
       },
       {
         "name": "The Wash-and-Ink Rule",
-        "body": "Coloured chips are always a ~97%-lightness wash carrying a ~50%-lightness ink of the same hue. There are no saturated fills with white text anywhere except the single primary button.",
+        "body": "Coloured chips are a 97%-lightness wash carrying a 50%-lightness ink of the same hue. There are no saturated fills with white text anywhere except the single primary button.",
         "section": "colors"
       },
       {
-        "name": "The Rose Is Removal Rule",
-        "body": "Rose means something is about to be destroyed: the Delete all button, the per-request delete hover, the DELETE badge. Its one sanctioned exception is the unread dot painted onto the favicon, where it means \"traffic landed while you were away\". Rose is never used for form validation or generic error text.",
+        "name": "The Danger Is Removal Rule",
+        "body": "Danger means something is about to be destroyed: the delete controls and the DELETE badge, which share the hue deliberately. Its one sanctioned exception is the unread dot on the favicon. It is never used for form validation or generic error text.",
+        "section": "colors"
+      },
+      {
+        "name": "The Borrowed Palette Rule",
+        "body": "The four syntax-highlighting colours are a vendored theme, not system tokens. Never restyle individual `hljs-*` classes to bring them closer to this palette: either swap the whole theme or leave it alone. A half-retinted syntax palette reads as a bug in the highlighter.",
         "section": "colors"
       },
       {
@@ -412,13 +311,18 @@
         "section": "typography"
       },
       {
-        "name": "The Hairline-First Rule",
-        "body": "If a surface needs to be distinguished, give it a hairline seam before you give it a shadow. A panel with no border and a heavier shadow is wrong in this system even when it looks fine in isolation.",
+        "name": "The One Edge Rule",
+        "body": "A surface declares its edge once, with a seam. If a new component seems to need a shadow, the real problem is that it is not distinct from what surrounds it, and the fix is tone or spacing.",
         "section": "elevation"
       },
       {
-        "name": "The Shadow-Is-A-Response Rule",
-        "body": "Nothing above the resting whisper exists at rest. shadow-md appears only as a hover response; there is no shadow-lg or above anywhere, and adding one would break the flatness the board depends on.",
+        "name": "The No-Lift Rule",
+        "body": "Nothing changes elevation on hover, because nothing has elevation to change. Hover is expressed in colour: a fill steps lighter, a border steps darker, bare text turns brand.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Never-Hover-To-The-Field Rule",
+        "body": "A white surface must never hover to neutral-50, because that is the page it sits on: the control dissolves into the background at the exact moment it should respond. White surfaces hover to neutral-100 and darken their seam to neutral-400. With no shadow to fall back on, the colour step is the whole signal.",
         "section": "elevation"
       },
       {
@@ -433,27 +337,27 @@
       }
     ],
     "dos": [
-      "Do put every new surface on the board field with a panel-white fill, a 1px hairline seam, and the resting whisper shadow. That trio is the system's default surface.",
-      "Do set anything the client sent in monospace at 0.75rem, and anything httphq says in sans.",
-      "Do give a new region an uppercase 0.75rem/500/+0.025em label ink heading, and separate its rows with hairline-faint rules instead of nesting another bordered box.",
-      "Do pair outline: none with a visible focus-visible ring every single time: 2px signal-indigo-lit plus a white offset ring on buttons, 1px focus-indigo plus a border shift on fields.",
-      "Do take the radius from the category: 0.25rem for data, 0.375rem for controls, 0.5rem for panels.",
-      "Do design to the 40rem breakpoint alone, stacking below it and going horizontal above it.",
-      "Do keep icons at 24×24 viewBox, stroke-width 2, fill none, aria-hidden, beside a text label.",
-      "Do signal background activity in the tab title and favicon rather than in the page."
+      "**Do** put every new surface on the neutral-50 field with a white fill and a 1px neutral-200 seam. That pair is the system's default surface, and it carries no shadow.",
+      "**Do** set anything the client sent in monospace at 0.75rem, and anything httphq says in sans.",
+      "**Do** give a new region an uppercase 0.75rem/500/+0.025em neutral-500 heading, and separate its rows with neutral-100 rules instead of nesting another bordered box.",
+      "**Do** pair `outline: none` with a visible `focus-visible` ring every single time: 2px brand-500 plus a white offset ring on buttons, 1px brand-400 plus a border shift on fields.",
+      "**Do** take the radius from the category: 0.25rem for data, 0.375rem for controls, 0.5rem for panels.",
+      "**Do** design to the 40rem breakpoint alone, stacking below it and going horizontal above it.",
+      "**Do** keep icons at 24×24 viewBox, `stroke-width=\"2\"`, `fill=\"none\"`, `aria-hidden`, beside a text label.",
+      "**Do** state connection and background activity plainly: an indicator on the page, a count in the tab title, a dot on the favicon. Never by animating the body."
     ],
     "donts": [
-      "Don't spend blue, emerald, amber, violet or sky on anything but a method badge. That spectrum is the traffic classification and nothing else.",
-      "Don't add a second indigo-filled button to a view. One primary action per screen, every other control outlined or bare.",
-      "Don't introduce a saturated fill with white text; coloured chips are a ~97% wash with a ~50% ink of the same hue.",
-      "Don't use rose for validation errors or generic failure text: rose means removal, plus the unread favicon dot.",
-      "Don't reach past the hover lift for elevation. There is no shadow-lg in this system, and a borderless card with a bigger shadow is wrong here even when it looks fine alone.",
-      "Don't add a webfont. The system stack is a performance commitment on a tool whose promise is a working URL in seconds.",
-      "Don't add a second breakpoint. If a layout can't resolve with sm alone, simplify the layout.",
-      "Don't uppercase anything that isn't a field label or a method badge.",
-      "Don't borrow the dashed border for disabled, errored, or drop-target surfaces; it means \"correctly empty, expecting content\".",
-      "Don't animate the page to announce arrivals, auto-scroll the stream, or add a second looping animation beside the waiting ellipsis.",
-      "Don't half-migrate the accent toward the mark's periwinkle. Until that convergence is done deliberately across the mark, favicons and UI together, signal-indigo remains the interface accent everywhere."
+      "**Don't** spend a method hue on anything but a method badge. The seven wash-and-ink pairs are the traffic classification and nothing else.",
+      "**Don't** add a second brand-filled button to a view. One primary action per screen; everything else is an outlined, bare, or destructive control.",
+      "**Don't** introduce a saturated fill with white text beyond the two that exist: the brand primary and the destructive button. Coloured chips are a 97% wash carrying a 50% ink of the same hue, never a fill.",
+      "**Don't** use danger for validation errors or generic failure text: it means removal, plus the unread favicon dot.",
+      "**Don't** add a shadow. There are none in this system, and a border under a shadow is two mechanisms declaring one edge.",
+      "**Don't** add a webfont. The system stack is a performance commitment on a tool whose promise is a working URL in seconds.",
+      "**Don't** add a second breakpoint. If a layout can't resolve with `sm` alone, simplify the layout.",
+      "**Don't** uppercase anything that isn't a field label or a method badge.",
+      "**Don't** borrow the dashed border for disabled, errored, or drop-target surfaces; it means \"correctly empty, expecting content\".",
+      "**Don't** animate the page to announce arrivals, auto-scroll the stream, or add a second looping animation beside the waiting ellipsis.",
+      "**Don't** reach for a stock framework colour. Tailwind's defaults are cleared in `theme.css`, so a stock utility silently renders nothing; every colour comes from the authored ramps."
     ]
   }
 }
