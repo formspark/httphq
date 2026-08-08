@@ -1,78 +1,64 @@
-import { test, expect, type APIRequestContext } from "@playwright/test";
-
-const randomId = () => Math.random().toString(36).slice(2, 7);
-
-const post = async (
-  request: APIRequestContext,
-  url: string,
-  init: { data?: string | object; headers?: Record<string, string> } = {},
-) => request.post(url, init);
+import { test, expect } from "@playwright/test";
+import {
+  captureUrl,
+  newEndpointId,
+  readClipboard,
+  readClipboardJson,
+  send,
+  type HarDocument,
+} from "./support/harness";
 
 test.describe("Endpoint screen", () => {
-  let testId: string;
+  let endpointId: string;
   let endpointPath: string;
   let endpointUrl: string;
 
   test.beforeEach(async ({ page }) => {
-    testId = randomId();
-    endpointPath = `/to/${testId}`;
-    endpointUrl = `http://localhost:8080${endpointPath}`;
-    await page.goto(`/${testId}`);
+    endpointId = newEndpointId();
+    endpointPath = `/to/${endpointId}`;
+    endpointUrl = captureUrl(endpointId);
+    await page.goto(`/${endpointId}`);
     // Wait for Alpine to mount and the empty state to render so subsequent
     // assertions don't race with initialization.
     await expect(page.locator('[data-test="endpoint-url"]')).toBeVisible();
   });
 
-  test("title is the endpoint id", async ({ page }) => {
-    await expect(page).toHaveTitle(`${testId} | httphq`);
-  });
+  test.describe("Page", () => {
+    test("the title is the endpoint id", async ({ page }) => {
+      await expect(page).toHaveTitle(`${endpointId} | httphq`);
+    });
 
-  test("endpoint URL is shown with copy button", async ({ page }) => {
-    await expect(page.locator('[data-test="endpoint-url"]')).toContainText(
-      endpointUrl,
-    );
-    await expect(page.locator('[data-test="copy-url"]')).toBeVisible();
-  });
+    test("the endpoint URL is shown with a copy button", async ({ page }) => {
+      await expect(page.locator('[data-test="endpoint-url"]')).toContainText(
+        endpointUrl,
+      );
+      await expect(page.locator('[data-test="copy-url"]')).toBeVisible();
+    });
 
-  test("copy-url button writes the URL to the clipboard", async ({ page }) => {
-    await page.locator('[data-test="copy-url"]').click();
-    const clipboard = await page.evaluate(() => navigator.clipboard.readText());
-    expect(clipboard).toBe(endpointUrl);
-    await expect(page.locator('[data-test="copy-url-label"]')).toContainText(
-      "Copied!",
-    );
-  });
-
-  test("disclaimer about 4-hour retention is visible", async ({ page }) => {
-    await expect(
-      page.getByText("Requests are deleted after 4 hours"),
-    ).toBeVisible();
-  });
-
-  test.describe("Send a test request panel", () => {
-    test("submitting the panel produces a captured request", async ({
+    test("the copy-url button writes the URL to the clipboard", async ({
       page,
     }) => {
-      await page.locator('[data-test="send-toggle"]').click();
-      await page.locator('[data-test="send-method"]').selectOption("PUT");
-      await page
-        .locator('[data-test="send-headers"]')
-        .fill("X-Source: panel\nContent-Type: application/json");
-      await page.locator('[data-test="send-body"]').fill('{"hello":"panel"}');
-      await page.locator('[data-test="send-submit"]').click();
+      await page.locator('[data-test="copy-url"]').click();
+      expect(await readClipboard(page)).toBe(endpointUrl);
+      await expect(page.locator('[data-test="copy-url-label"]')).toContainText(
+        "Copied!",
+      );
+    });
 
-      const card = page.locator('[data-test="request"]').first();
-      await expect(card).toContainText("PUT");
-      await expect(card.locator('[data-test="request-headers"]')).toContainText(
-        "X-Source",
-      );
-      await expect(card.locator('[data-test="request-body"]')).toContainText(
-        "panel",
-      );
+    test("the retention and visibility terms are stated", async ({ page }) => {
+      await expect(
+        page.getByText("Requests are deleted after 4 hours"),
+      ).toBeVisible();
+    });
+
+    test("the connection indicator settles on live", async ({ page }) => {
+      await expect(
+        page.locator('[data-test="connection-status"]'),
+      ).toContainText("Live");
     });
   });
 
-  test.describe("Requests list", () => {
+  test.describe("Capture stream", () => {
     test("shows the empty state when no requests exist", async ({ page }) => {
       await expect(page.locator('[data-test="requests"]')).toContainText(
         "Waiting for requests",
@@ -83,7 +69,7 @@ test.describe("Endpoint screen", () => {
       page,
       request,
     }) => {
-      await post(request, endpointUrl, { data: "Hello, World!" });
+      await send(request, endpointUrl, { data: "Hello, World!" });
       await expect(page.locator('[data-test="requests"]')).not.toContainText(
         "Waiting for requests",
       );
@@ -93,7 +79,7 @@ test.describe("Endpoint screen", () => {
       page,
       request,
     }) => {
-      await post(request, endpointUrl, { data: "Real-time-payload" });
+      await send(request, endpointUrl, { data: "Real-time-payload" });
       await expect(page.locator('[data-test="requests"]')).toContainText(
         "Real-time-payload",
       );
@@ -103,7 +89,7 @@ test.describe("Endpoint screen", () => {
       page,
       request,
     }) => {
-      await post(request, endpointUrl, {
+      await send(request, endpointUrl, {
         data: "Hello, World!",
         headers: { "Content-Type": "text/plain" },
       });
@@ -121,11 +107,116 @@ test.describe("Endpoint screen", () => {
       );
     });
 
+    test("renders the query string, and says so when there is none", async ({
+      page,
+      request,
+    }) => {
+      await send(request, `${endpointUrl}?event=charge.succeeded`, {
+        data: "x",
+      });
+      const withQuery = page.locator('[data-test="query-string"]').first();
+      await expect(withQuery).toContainText("event=charge.succeeded");
+      await expect(
+        page.locator('[data-test="request-path"]').first(),
+      ).toContainText("?event=charge.succeeded");
+
+      await send(request, endpointUrl, { data: "y" });
+      await expect(
+        page.locator('[data-test="query-string"]').first(),
+      ).toContainText("None");
+    });
+
+    test("a bodyless request reports no body rather than an empty panel", async ({
+      page,
+      request,
+    }) => {
+      await send(request, endpointUrl, { method: "GET" });
+      await expect(
+        page.locator('[data-test="request-body"]').first(),
+      ).toContainText("None");
+    });
+
+    test("the header count matches the headers listed", async ({
+      page,
+      request,
+    }) => {
+      await send(request, endpointUrl, {
+        data: "x",
+        headers: { "X-One": "1", "X-Two": "2" },
+      });
+      const headers = page.locator('[data-test="request-headers"]').first();
+      await expect(headers).toContainText("X-One");
+      await expect(headers).toContainText("X-Two");
+      await expect(headers).toContainText(/Headers\s*\(\d+\)/);
+    });
+
+    test("delete-request removes a single card", async ({ page, request }) => {
+      await send(request, endpointUrl, { data: "first" });
+      const response = await send(request, endpointUrl, {
+        data: { msg: "second" },
+      });
+      const uuid = response.headers()["httphq-request-uuid"];
+      const card = page.locator(`#request-${uuid}`);
+      await expect(card).toBeAttached();
+      await card.locator('[data-test="delete-request"]').click();
+      await expect(card).not.toBeAttached();
+    });
+
+    test("delete-all asks before clearing every request", async ({
+      page,
+      request,
+    }) => {
+      await send(request, endpointUrl, { data: "x" });
+      await send(request, endpointUrl, { data: "y" });
+
+      await page.locator('[data-test="delete-requests"]').click();
+      // Destructive and unrecoverable, so it confirms first; the requests are
+      // still there until the confirmation is accepted.
+      await expect(page.locator('[data-test="delete-confirm"]')).toBeVisible();
+      await expect(page.locator('[data-test="request"]')).toHaveCount(2);
+
+      await page.locator('[data-test="delete-cancel"]').click();
+      await expect(page.locator('[data-test="request"]')).toHaveCount(2);
+
+      await page.locator('[data-test="delete-requests"]').click();
+      await page.locator('[data-test="delete-confirm-button"]').click();
+      await expect(page.locator('[data-test="requests"]')).toContainText(
+        "Waiting for requests",
+      );
+    });
+
+    // Rendering every capture at once is a five-figure node count and a visible
+    // stall, so the rest stay in the store until asked for.
+    test("only a page of cards is rendered until more are asked for", async ({
+      page,
+      request,
+    }) => {
+      const overOnePage = 26;
+      for (let i = 0; i < overOnePage; i++) {
+        await send(request, endpointUrl, { data: `payload-${i}` });
+      }
+      await expect(page.locator('[data-test="search-results"]')).toContainText(
+        `${overOnePage} results`,
+      );
+
+      await expect(page.locator('[data-test="request"]')).toHaveCount(25);
+      const showMore = page.locator('[data-test="show-more"]');
+      await expect(showMore).toContainText("Show 1 more");
+
+      await showMore.click();
+      await expect(page.locator('[data-test="request"]')).toHaveCount(
+        overOnePage,
+      );
+      await expect(showMore).toBeHidden();
+    });
+  });
+
+  test.describe("Body rendering", () => {
     test("pretty-prints JSON bodies via highlight.js", async ({
       page,
       request,
     }) => {
-      await post(request, endpointUrl, {
+      await send(request, endpointUrl, {
         data: { hello: "world", arr: [1, 2, 3] },
         headers: { "Content-Type": "application/json" },
       });
@@ -140,13 +231,28 @@ test.describe("Endpoint screen", () => {
     });
 
     test("highlights XML bodies", async ({ page, request }) => {
-      await post(request, endpointUrl, {
+      await send(request, endpointUrl, {
         data: "<root><a>1</a></root>",
         headers: { "Content-Type": "application/xml" },
       });
       const body = page.locator('[data-test="request-body"]').first();
       const tagCount = await body.locator("pre span.hljs-tag").count();
       expect(tagCount).toBeGreaterThan(0);
+    });
+
+    // A body is captured bytes, never markup: it is escaped on the way onto the
+    // page rather than rendered.
+    test("an HTML body is displayed as text, not rendered", async ({
+      page,
+      request,
+    }) => {
+      await send(request, endpointUrl, {
+        data: "<img src=x onerror=alert(1)>",
+        headers: { "Content-Type": "text/html" },
+      });
+      const body = page.locator('[data-test="request-body"]').first();
+      await expect(body).toContainText("onerror=alert(1)");
+      await expect(body.locator("img")).toHaveCount(0);
     });
 
     test("renders multipart/form-data fields as a parsed JSON array", async ({
@@ -207,161 +313,21 @@ test.describe("Endpoint screen", () => {
       page,
       request,
     }) => {
-      await post(request, endpointUrl, {
+      await send(request, endpointUrl, {
         data: "not-actually-parseable-multipart",
         headers: { "Content-Type": "multipart/form-data" },
       });
       const body = page.locator('[data-test="request-body"]').first();
       await expect(body).toContainText("not-actually-parseable-multipart");
     });
+  });
 
-    test("body copy button writes raw body to clipboard", async ({
-      page,
-      request,
-    }) => {
-      const raw = '{"copy":"me"}';
-      await post(request, endpointUrl, {
-        data: raw,
-        headers: { "Content-Type": "application/json" },
-      });
-      const card = page.locator('[data-test="request"]').first();
-      await card.locator('[data-test="copy-body"]').click();
-      const clipboard = await page.evaluate(() =>
-        navigator.clipboard.readText(),
-      );
-      expect(clipboard).toBe(raw);
-    });
-
-    test("headers copy button writes the headers JSON to clipboard", async ({
-      page,
-      request,
-    }) => {
-      await post(request, endpointUrl, {
-        data: "x",
-        headers: { "X-Sample": "value" },
-      });
-      const card = page.locator('[data-test="request"]').first();
-      await card.locator('[data-test="copy-headers"]').click();
-      const clipboard = await page.evaluate(() =>
-        navigator.clipboard.readText(),
-      );
-      const parsed = JSON.parse(clipboard);
-      expect(parsed["X-Sample"]).toBe("value");
-    });
-
-    test("request copy button writes a HAR-shaped document to the clipboard", async ({
-      page,
-      request,
-    }) => {
-      const raw = '{"hello":"world"}';
-      const response = await request.post(`${endpointUrl}?a=1&b=2`, {
-        data: raw,
-        headers: { "Content-Type": "application/json", "X-Sample": "value" },
-      });
-      const uuid = response.headers()["httphq-request-uuid"];
-      const card = page.locator(`#request-${uuid}`);
-      await expect(card).toBeAttached();
-
-      await card.locator('[data-test="copy-request-har"]').click();
-      const clipboard = await page.evaluate(() =>
-        navigator.clipboard.readText(),
-      );
-      const har = JSON.parse(clipboard);
-
-      expect(har.creator.name).toBe("httphq");
-      expect(har.entries).toHaveLength(1);
-      const entry = har.entries[0];
-      expect(entry.id).toBe(uuid);
-      expect(entry.request.method).toBe("POST");
-      expect(entry.request.url).toBe(`${endpointUrl}?a=1&b=2`);
-      expect(entry.request.httpVersion).toBe("HTTP/1.1");
-      expect(entry.request.queryString).toEqual([
-        { name: "a", value: "1" },
-        { name: "b", value: "2" },
-      ]);
-      expect(entry.request.headers).toContainEqual({
-        name: "X-Sample",
-        value: "value",
-      });
-      expect(entry.request.postData).toEqual({
-        mimeType: "application/json",
-        text: raw,
-      });
-      expect(entry.request.bodySize).toBe(raw.length);
-    });
-
-    test("request copy button label flips to Copied!", async ({
-      page,
-      request,
-    }) => {
-      await post(request, endpointUrl, { data: "x" });
-      const card = page.locator('[data-test="request"]').first();
-      await card.locator('[data-test="copy-request-har"]').click();
-      await expect(
-        card.locator('[data-test="copy-request-har-label"]'),
-      ).toContainText("Copied!");
-    });
-
-    test("copy-all writes every visible request, newest first", async ({
-      page,
-      request,
-    }) => {
-      await post(request, endpointUrl, { data: "first" });
-      await expect(page.locator('[data-test="request"]')).toHaveCount(1);
-      await post(request, endpointUrl, { data: "second" });
-      await expect(page.locator('[data-test="request"]')).toHaveCount(2);
-
-      await page.locator('[data-test="copy-all-har"]').click();
-      const clipboard = await page.evaluate(() =>
-        navigator.clipboard.readText(),
-      );
-      const har = JSON.parse(clipboard);
-
-      expect(har.entries).toHaveLength(2);
-      expect(
-        har.entries.map(
-          (e: { request: { postData: { text: string } } }) =>
-            e.request.postData.text,
-        ),
-      ).toEqual(["second", "first"]);
-    });
-
-    test("copy-all is scoped to the method filter", async ({
-      page,
-      request,
-    }) => {
-      await post(request, endpointUrl, { data: "p" });
-      await request.fetch(endpointUrl, { method: "PUT", data: "u" });
-      await expect(page.locator('[data-test="search-results"]')).toContainText(
-        "2 results",
-      );
-
-      await page.locator('[data-test="method-filter"]').selectOption("PUT");
-      await expect(
-        page.locator('[data-test="copy-all-har-label"]'),
-      ).toContainText("Copy shown (1)");
-
-      await page.locator('[data-test="copy-all-har"]').click();
-      const clipboard = await page.evaluate(() =>
-        navigator.clipboard.readText(),
-      );
-      const har = JSON.parse(clipboard);
-
-      expect(har.entries).toHaveLength(1);
-      expect(har.entries[0].request.method).toBe("PUT");
-    });
-
-    test("copy-all is disabled while nothing has been captured", async ({
-      page,
-    }) => {
-      await expect(page.locator('[data-test="copy-all-har"]')).toBeDisabled();
-    });
-
+  test.describe("Filtering", () => {
     test("filters by request body via the search box", async ({
       page,
       request,
     }) => {
-      await post(request, endpointUrl, { data: "Hello, World!" });
+      await send(request, endpointUrl, { data: "Hello, World!" });
       const requests = page.locator('[data-test="requests"]');
       const results = page.locator('[data-test="search-results"]');
       const search = page.locator('[data-test="search-input"]');
@@ -386,7 +352,7 @@ test.describe("Endpoint screen", () => {
     }) => {
       const key = "A-Test";
       const value = "Hello-Header";
-      await post(request, endpointUrl, {
+      await send(request, endpointUrl, {
         data: "x",
         headers: { [key]: value },
       });
@@ -407,13 +373,26 @@ test.describe("Endpoint screen", () => {
       await expect(results).toContainText("0 results");
     });
 
-    test("method filter narrows the list to matching methods", async ({
+    test("filters by query string via the search box", async ({
       page,
       request,
     }) => {
-      await post(request, endpointUrl, { data: "p1" });
-      await request.fetch(endpointUrl, { method: "PUT", data: "p2" });
-      await request.fetch(endpointUrl, { method: "DELETE" });
+      await send(request, `${endpointUrl}?event=charge.succeeded`, {
+        data: "x",
+      });
+      const results = page.locator('[data-test="search-results"]');
+
+      await page.locator('[data-test="search-input"]').fill("charge.succeeded");
+      await expect(results).toContainText("1 result");
+    });
+
+    test("the method filter narrows the list to matching methods", async ({
+      page,
+      request,
+    }) => {
+      await send(request, endpointUrl, { data: "p1" });
+      await send(request, endpointUrl, { method: "PUT", data: "p2" });
+      await send(request, endpointUrl, { method: "DELETE" });
 
       await expect(page.locator('[data-test="search-results"]')).toContainText(
         "3 results",
@@ -431,34 +410,11 @@ test.describe("Endpoint screen", () => {
       );
     });
 
-    test("delete-all asks before clearing every request", async ({
-      page,
-      request,
-    }) => {
-      await post(request, endpointUrl, { data: "x" });
-      await post(request, endpointUrl, { data: "y" });
-
-      await page.locator('[data-test="delete-requests"]').click();
-      // Destructive and unrecoverable, so it confirms first; the requests are
-      // still there until the confirmation is accepted.
-      await expect(page.locator('[data-test="delete-confirm"]')).toBeVisible();
-      await expect(page.locator('[data-test="request"]')).toHaveCount(2);
-
-      await page.locator('[data-test="delete-cancel"]').click();
-      await expect(page.locator('[data-test="request"]')).toHaveCount(2);
-
-      await page.locator('[data-test="delete-requests"]').click();
-      await page.locator('[data-test="delete-confirm-button"]').click();
-      await expect(page.locator('[data-test="requests"]')).toContainText(
-        "Waiting for requests",
-      );
-    });
-
     test("a filtered-empty stream is not reported as waiting", async ({
       page,
       request,
     }) => {
-      await post(request, endpointUrl, { data: "x" });
+      await send(request, endpointUrl, { data: "x" });
       await expect(page.locator('[data-test="request"]')).toHaveCount(1);
 
       await page
@@ -471,6 +427,270 @@ test.describe("Endpoint screen", () => {
       await expect(page.locator('[data-test="request"]')).toHaveCount(1);
     });
 
+    // Delete-all clears the endpoint, not the filtered view its neighbour
+    // copies, so its count stays the whole stream.
+    test("the delete-all count is the whole stream, not the filtered view", async ({
+      page,
+      request,
+    }) => {
+      await send(request, endpointUrl, { data: "p" });
+      await send(request, endpointUrl, { method: "PUT", data: "u" });
+      await expect(page.locator('[data-test="request"]')).toHaveCount(2);
+
+      await page.locator('[data-test="method-filter"]').selectOption("PUT");
+
+      await expect(
+        page.locator('[data-test="copy-all-har-label"]'),
+      ).toContainText("Copy shown (1)");
+      await expect(
+        page.locator('[data-test="delete-requests-label"]'),
+      ).toContainText("Delete all (2)");
+    });
+
+    // The search runs on the server, so the list it returns is not the
+    // endpoint. A destructive control must not take its count from it.
+    test("a search does not shrink the delete-all count", async ({
+      page,
+      request,
+    }) => {
+      await send(request, endpointUrl, { data: "alpha" });
+      await send(request, endpointUrl, { data: "beta" });
+      await expect(page.locator('[data-test="request"]')).toHaveCount(2);
+
+      await page.locator('[data-test="search-input"]').fill("alpha");
+      await expect(page.locator('[data-test="search-results"]')).toContainText(
+        "1 result",
+      );
+      await expect(
+        page.locator('[data-test="delete-requests-label"]'),
+      ).toContainText("Delete all (2)");
+
+      await page.locator('[data-test="delete-requests"]').click();
+      await expect(page.locator('[data-test="delete-confirm"]')).toContainText(
+        "Delete all 2 captured requests?",
+      );
+    });
+
+    test("a search that hides everything still reports the endpoint total", async ({
+      page,
+      request,
+    }) => {
+      await send(request, endpointUrl, { data: "alpha" });
+      await expect(page.locator('[data-test="request"]')).toHaveCount(1);
+
+      await page
+        .locator('[data-test="search-input"]')
+        .fill("nothing-matches-this-term");
+
+      await expect(page.locator('[data-test="empty-filtered"]')).toContainText(
+        "1 captured on this endpoint",
+      );
+    });
+  });
+
+  test.describe("Copying", () => {
+    test("the body copy button writes the raw body to the clipboard", async ({
+      page,
+      request,
+    }) => {
+      const raw = '{"copy":"me"}';
+      await send(request, endpointUrl, {
+        data: raw,
+        headers: { "Content-Type": "application/json" },
+      });
+      const card = page.locator('[data-test="request"]').first();
+      await card.locator('[data-test="copy-body"]').click();
+      expect(await readClipboard(page)).toBe(raw);
+    });
+
+    test("the headers copy button writes the headers JSON to the clipboard", async ({
+      page,
+      request,
+    }) => {
+      await send(request, endpointUrl, {
+        data: "x",
+        headers: { "X-Sample": "value" },
+      });
+      const card = page.locator('[data-test="request"]').first();
+      await card.locator('[data-test="copy-headers"]').click();
+      const parsed = await readClipboardJson<Record<string, string>>(page);
+      expect(parsed["X-Sample"]).toBe("value");
+    });
+
+    test("the query copy button writes the raw query string", async ({
+      page,
+      request,
+    }) => {
+      await send(request, `${endpointUrl}?a=1&b=2`, { data: "x" });
+      const card = page.locator('[data-test="request"]').first();
+      await card.locator('[data-test="copy-query"]').click();
+      expect(await readClipboard(page)).toBe("a=1&b=2");
+    });
+
+    test("the request copy button writes a HAR-shaped document", async ({
+      page,
+      request,
+    }) => {
+      const raw = '{"hello":"world"}';
+      const response = await send(request, `${endpointUrl}?a=1&b=2`, {
+        data: raw,
+        headers: { "Content-Type": "application/json", "X-Sample": "value" },
+      });
+      const uuid = response.headers()["httphq-request-uuid"];
+      const card = page.locator(`#request-${uuid}`);
+      await expect(card).toBeAttached();
+
+      await card.locator('[data-test="copy-request-har"]').click();
+      const har = await readClipboardJson<HarDocument>(page);
+
+      expect(har.creator.name).toBe("httphq");
+      expect(har.entries).toHaveLength(1);
+      const entry = har.entries[0];
+      expect(entry.id).toBe(uuid);
+      expect(entry.request.method).toBe("POST");
+      expect(entry.request.url).toBe(`${endpointUrl}?a=1&b=2`);
+      expect(entry.request.httpVersion).toBe("HTTP/1.1");
+      expect(entry.request.queryString).toEqual([
+        { name: "a", value: "1" },
+        { name: "b", value: "2" },
+      ]);
+      expect(entry.request.headers).toContainEqual({
+        name: "X-Sample",
+        value: "value",
+      });
+      expect(entry.request.postData).toEqual({
+        mimeType: "application/json",
+        text: raw,
+      });
+      expect(entry.request.bodySize).toBe(raw.length);
+    });
+
+    // httphq never observes a response, so an entry that carried one would be
+    // reporting data it does not have.
+    test("a HAR entry claims nothing about the response", async ({
+      page,
+      request,
+    }) => {
+      await send(request, endpointUrl, { data: "x" });
+      const card = page.locator('[data-test="request"]').first();
+      await card.locator('[data-test="copy-request-har"]').click();
+      const har = await readClipboardJson<HarDocument>(page);
+
+      expect(har.entries[0]).not.toHaveProperty("response");
+      expect(har.entries[0]).not.toHaveProperty("timings");
+      expect(har.entries[0]).not.toHaveProperty("cache");
+    });
+
+    test("a bodyless request omits postData", async ({ page, request }) => {
+      await send(request, endpointUrl, { method: "GET" });
+      const card = page.locator('[data-test="request"]').first();
+      await card.locator('[data-test="copy-request-har"]').click();
+      const har = await readClipboardJson<HarDocument>(page);
+
+      expect(har.entries[0].request).not.toHaveProperty("postData");
+      expect(har.entries[0].request.bodySize).toBe(0);
+    });
+
+    test("the request copy button label flips to Copied!", async ({
+      page,
+      request,
+    }) => {
+      await send(request, endpointUrl, { data: "x" });
+      const card = page.locator('[data-test="request"]').first();
+      await card.locator('[data-test="copy-request-har"]').click();
+      await expect(
+        card.locator('[data-test="copy-request-har-label"]'),
+      ).toContainText("Copied!");
+    });
+
+    test("copy-all writes every visible request, newest first", async ({
+      page,
+      request,
+    }) => {
+      await send(request, endpointUrl, { data: "first" });
+      await expect(page.locator('[data-test="request"]')).toHaveCount(1);
+      await send(request, endpointUrl, { data: "second" });
+      await expect(page.locator('[data-test="request"]')).toHaveCount(2);
+
+      await page.locator('[data-test="copy-all-har"]').click();
+      const har = await readClipboardJson<HarDocument>(page);
+
+      expect(har.entries).toHaveLength(2);
+      expect(har.entries.map((e) => e.request.postData?.text)).toEqual([
+        "second",
+        "first",
+      ]);
+    });
+
+    test("copy-all is scoped to the method filter", async ({
+      page,
+      request,
+    }) => {
+      await send(request, endpointUrl, { data: "p" });
+      await send(request, endpointUrl, { method: "PUT", data: "u" });
+      await expect(page.locator('[data-test="search-results"]')).toContainText(
+        "2 results",
+      );
+
+      await page.locator('[data-test="method-filter"]').selectOption("PUT");
+      await expect(
+        page.locator('[data-test="copy-all-har-label"]'),
+      ).toContainText("Copy shown (1)");
+
+      await page.locator('[data-test="copy-all-har"]').click();
+      const har = await readClipboardJson<HarDocument>(page);
+
+      expect(har.entries).toHaveLength(1);
+      expect(har.entries[0].request.method).toBe("PUT");
+    });
+
+    // Copying nothing produces an empty document, which reads as a failed
+    // export rather than an empty stream.
+    test("copy-all is disabled while nothing has been captured", async ({
+      page,
+    }) => {
+      await expect(page.locator('[data-test="copy-all-har"]')).toBeDisabled();
+    });
+  });
+
+  test.describe("Sending a test request", () => {
+    test("submitting the panel produces a captured request", async ({
+      page,
+    }) => {
+      await page.locator('[data-test="send-toggle"]').click();
+      await page.locator('[data-test="send-method"]').selectOption("PUT");
+      await page
+        .locator('[data-test="send-headers"]')
+        .fill("X-Source: panel\nContent-Type: application/json");
+      await page.locator('[data-test="send-body"]').fill('{"hello":"panel"}');
+      await page.locator('[data-test="send-submit"]').click();
+
+      const card = page.locator('[data-test="request"]').first();
+      await expect(card).toContainText("PUT");
+      await expect(card.locator('[data-test="request-headers"]')).toContainText(
+        "X-Source",
+      );
+      await expect(card.locator('[data-test="request-body"]')).toContainText(
+        "panel",
+      );
+    });
+
+    test("the path and query field reaches the capture", async ({ page }) => {
+      await page.locator('[data-test="send-toggle"]').click();
+      await page
+        .locator('[data-test="send-path"]')
+        .fill("/orders/8821?event=charge.succeeded");
+      await page.locator('[data-test="send-submit"]').click();
+
+      const card = page.locator('[data-test="request"]').first();
+      await expect(card.locator('[data-test="request-path"]')).toContainText(
+        `${endpointPath}/orders/8821?event=charge.succeeded`,
+      );
+    });
+
+    // Silently discarding a line that is one typo away from an Authorization
+    // header, and then reporting success, sends the user chasing an auth bug
+    // that does not exist.
     test("a malformed header line is reported instead of dropped", async ({
       page,
     }) => {
@@ -484,22 +704,10 @@ test.describe("Endpoint screen", () => {
       );
       await expect(page.locator('[data-test="request"]')).toHaveCount(0);
     });
-
-    test("delete-request removes a single card", async ({ page, request }) => {
-      await post(request, endpointUrl, { data: "first" });
-      const response = await request.post(endpointUrl, {
-        data: { msg: "second" },
-      });
-      const uuid = response.headers()["httphq-request-uuid"];
-      const card = page.locator(`#request-${uuid}`);
-      await expect(card).toBeAttached();
-      await card.locator('[data-test="delete-request"]').click();
-      await expect(card).not.toBeAttached();
-    });
   });
 
   test.describe("Tab indicator", () => {
-    test("title shows unread counter when the tab is hidden and resets on focus", async ({
+    test("the title counts unread arrivals while hidden and resets on focus", async ({
       page,
       request,
     }) => {
@@ -512,11 +720,11 @@ test.describe("Endpoint screen", () => {
         document.dispatchEvent(new Event("visibilitychange"));
       });
 
-      await post(request, endpointUrl, { data: "background-1" });
-      await expect.poll(async () => page.title()).toContain(`(1)`);
+      await send(request, endpointUrl, { data: "background-1" });
+      await expect.poll(async () => page.title()).toContain("(1)");
 
-      await post(request, endpointUrl, { data: "background-2" });
-      await expect.poll(async () => page.title()).toContain(`(2)`);
+      await send(request, endpointUrl, { data: "background-2" });
+      await expect.poll(async () => page.title()).toContain("(2)");
 
       // Bring the tab back to foreground.
       await page.evaluate(() => {
@@ -527,7 +735,9 @@ test.describe("Endpoint screen", () => {
         document.dispatchEvent(new Event("visibilitychange"));
       });
 
-      await expect.poll(async () => page.title()).toBe(`${testId} | httphq`);
+      await expect
+        .poll(async () => page.title())
+        .toBe(`${endpointId} | httphq`);
     });
   });
 });

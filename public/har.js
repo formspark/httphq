@@ -3,7 +3,8 @@
    The field names and value shapes follow HAR 1.2 so the output is familiar to
    HAR tooling, but entries carry only a `request`: httphq never observes a
    response, so `response`, `timings` and `cache` are omitted rather than
-   emitted as stubs that would read as captured data. Loaded on every page. */
+   emitted as stubs that would read as captured data. Loaded on the endpoint
+   page only. */
 
 (function () {
   const CREATOR = { name: "httphq", version: "1" };

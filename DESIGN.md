@@ -456,13 +456,23 @@ must never be borrowed for a disabled, errored, or drop-target surface.
 
 The system is implemented, not only described. `src/styles/components.css`
 carries the classes these entries specify (`.btn` and its variants, `.field`,
-`.field-label`, `.panel`, `.kv-row`, `.icon`, `.badge`, `.code-block`,
-`.empty-value`, `.btn-lg`), and templates compose them rather
+`.field-label`, `.region-label`, `.panel`, `.kv-row`, `.icon`, `.badge`,
+`.code-block`, `.empty-value`, `.btn-lg`), and templates compose them rather
 than repeating utility strings. Every page uses them: a template that re-spells
 a component as a utility string is the bug, not a shortcut. Utilities stay the default for one-off composition; anything whose
 tokens must not drift between call sites belongs in that file. Before adding a
-variant, check whether an existing class should absorb it: eight spellings of one
-button is how two nominally identical controls ended up 4px apart.
+variant, check whether an existing class should absorb it. Several spellings of
+one component is how two nominally identical controls come to sit a few pixels
+apart.
+
+There is one surface class, `.panel`: a white fill, a 1px neutral-200 seam and
+no shadow. A second, quieter panel would be the One Edge Rule broken by another
+name, so a surface that needs to read as nested takes its distinction from
+spacing or tone rather than from a class of its own.
+
+`.field-label` and `.region-label` carry one type token between them. The field
+label owns the spacing above its input; the region label takes spacing from the
+call site, because a heading inside a flex row must not carry a bottom margin.
 
 ### Buttons
 
@@ -503,9 +513,9 @@ Every other route is reachable from the footer: feedback, the GitHub repository
 with an inline brand glyph, and the Formspark credit: set at 0.875rem neutral-500,
 centred, hovering to brand-600.
 
-Every link carries its own padding and a 2.75rem minimum height. As bare inline
-text their hit area collapses to the text box, which lands under the 24px target
-minimum and makes the page's only exits hard to hit on a phone. Links also carry
+Every link carries its own padding and a 2.75rem minimum height. Bare inline
+text has a hit area no larger than its text box, which lands under the 24px
+target minimum and makes the page's only exits hard to hit on a phone. Links also carry
 the same authored `focus-visible` ring as buttons rather than falling back to the
 browser's default outline, which is engine-specific and belongs to no design
 system.
@@ -551,10 +561,10 @@ substitution, not a degradation.
 ### Render Window
 
 The stream renders 25 cards and reveals another 25 per press of a Show more
-control, rather than rendering everything the store holds. Each card is roughly
-104 DOM nodes, so a full page of them is a five-figure node count and a visible
-stall on every filter change. The store still holds every captured request; only
-the DOM is bounded.
+control, rather than rendering everything the store holds. Each card is around a
+hundred DOM nodes, so a full endpoint's worth is a five-figure node count and a
+visible stall on every filter change. The store still holds every captured
+request; only the DOM is bounded.
 
 ### Waiting State
 

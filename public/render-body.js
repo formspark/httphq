@@ -141,7 +141,7 @@ window.renderBody = function (body, headers) {
   // Best-effort JSON pretty + highlight.
   try {
     return highlightPrettyJSON(JSON.parse(body));
-  } catch (_) {
+  } catch {
     // not JSON
   }
   // Heuristic: looks like XML/HTML if it starts with '<'
