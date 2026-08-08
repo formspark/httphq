@@ -94,6 +94,7 @@
       sendForm: { method: "POST", body: "", headers: "" },
       sendStatus: "",
       copyLabel: "Copy",
+      copiedKey: null,
       _baseTitle: document.title,
       _unread: 0,
 
@@ -166,6 +167,21 @@
           await window.copyToClipboard(text);
           this.copyLabel = "Copied!";
           setTimeout(() => (this.copyLabel = "Copy"), 1500);
+        } catch (err) {
+          console.error(err);
+        }
+      },
+
+      // Copies requests as a HAR-shaped document. `key` names the button that
+      // should read "Copied!" — several buttons share this one component
+      // instance, so a single label field can't tell them apart.
+      async copyHar(requests, key) {
+        try {
+          await window.copyToClipboard(window.buildHarExport(requests));
+          this.copiedKey = key;
+          setTimeout(() => {
+            if (this.copiedKey === key) this.copiedKey = null;
+          }, 1500);
         } catch (err) {
           console.error(err);
         }
