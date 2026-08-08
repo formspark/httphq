@@ -1,6 +1,6 @@
 ---
 name: httphq
-description: A live arrivals board for HTTP requests: neutral chassis, one indigo control, color reserved for classifying traffic.
+description: "A live arrivals board for HTTP requests. Neutral chassis, one indigo control, color reserved for classifying traffic."
 colors:
   beacon-periwinkle: "#707ee7"
   signal-indigo: "oklch(51.1% 0.262 276.966)"
@@ -239,7 +239,7 @@ Any method outside this set falls back to the HEAD pair.
 - **Hairline** (`oklch(92.9% 0.013 255.508)`): the 1px seam around panels, code wells and the sticky filter rail. The primary edge in the system.
 - **Hairline Faint** (`oklch(96.8% 0.007 247.896)`): the internal rules between header rows and detail rows, one step quieter than a panel edge so nested structure never out-shouts the container.
 - **Control Edge** (`oklch(86.9% 0.022 252.894)`): the visible stroke on inputs, selects, and secondary buttons; also the dashed edge of the waiting state.
-- **Quiet Ink** (`oklch(70.4% 0.04 256.788)`): placeholders and the italic "None" for an absent query string or body.
+- **Quiet Ink** (`oklch(70.4% 0.04 256.788)`): input placeholders only. It is deliberately not used for an absent value: the italic "None" that marks one measured 2.63:1 on white in this step, so it carries Label Ink instead.
 - **Label Ink** (`oklch(55.4% 0.046 257.417)`): field labels, meta rows, timestamps, and the resting colour of every text-only control.
 - **Prose Ink** (`oklch(44.6% 0.043 257.281)`): descriptive sentences on the home and contact pages.
 - **Control Ink** (`oklch(37.2% 0.044 257.287)`): secondary button labels, the disclosure summary, and the wordmark.
@@ -419,6 +419,15 @@ must never be borrowed for a disabled, errored, or drop-target surface.
 
 ## Components
 
+The system is implemented, not only described. `src/styles/components.css`
+carries the classes these entries specify (`.btn` and its variants, `.field`,
+`.field-label`, `.panel`, `.kv-row`, `.icon`, `.badge`, `.code-block`,
+`.empty-value`), and templates compose them rather than repeating utility
+strings. Utilities stay the default for one-off composition; anything whose
+tokens must not drift between call sites belongs in that file. Before adding a
+variant, check whether an existing class should absorb it: eight spellings of one
+button is how two nominally identical controls ended up 4px apart.
+
 ### Buttons
 
 - **Character:** calm instruments. Sized for accuracy rather than presence; nothing asks to be admired.
@@ -426,7 +435,7 @@ must never be borrowed for a disabled, errored, or drop-target surface.
 - **Primary:** signal indigo fill, white label, medium weight, resting whisper shadow. Two sizes only: 0.75rem/1.5rem padding at 1rem type for the page's main action, and 0.5rem/1rem at 0.875rem inside panels.
 - **Secondary:** white fill, control-edge stroke, control-ink label at 0.875rem medium, 0.5rem/0.75rem padding. Hovers to the board field.
 - **Destructive:** rose wash fill, rose edge stroke, deep rose label, 0.375rem/0.75rem padding. Hovers one wash step darker.
-- **Text-only:** no fill, no border, label ink at 0.75–0.875rem, resolving to signal indigo on hover, or to alert rose when the action deletes. Used for _Copy_, _Copy request_, and per-request _Delete_.
+- **Text-only:** no fill, no border, label ink at 0.875rem, resolving to signal indigo on hover, or to alert rose when the action deletes. Used for _Copy_, _Copy request_, and per-request _Delete_. It carries its own padding so the hit area clears the 24px target minimum, and the same authored focus ring as every other control: inside a card that repeats N times, falling back to the browser default multiplies the inconsistency by N.
 - **Hover / Focus:** fills shift one step lighter on primary, one step darker on destructive. Focus is never suppressed: `outline: none` is always paired with a 2px `focus-visible` ring in **signal indigo lit** (the lighter step, not the fill colour), with a 2px white offset ring on filled buttons, so the ring reads against the indigo it sits on. Destructive controls ring in alert rose instead.
 - **Disabled:** 50% opacity and `not-allowed` cursor; used on _Copy all_ when the stream is empty.
 
@@ -437,7 +446,7 @@ must never be borrowed for a disabled, errored, or drop-target surface.
 - **Shadow Strategy:** resting whisper only. No surface in the product lifts on hover: elevation change is reserved for something that responds to the cursor, and every card here is static content.
 - **Border:** 1px hairline, always.
 - **Internal Padding:** 1rem below 40rem, 1.25rem above.
-- **Composition:** a request article is a header rule-separated from its body, with the method badge and UUID on the left and the copy/delete actions on the right; the body is a stack of labelled regions rather than a nested set of boxes. Its key/value rows follow the flex behaviour described in Layout: 10rem label column above the breakpoint, label stacked above value below it.
+- **Composition:** a request article is a header rule-separated from its body, with the method badge and the requested path on the left and the copy/delete actions on the right. The path carries the query string inline, because to the person reading it they are one thing: the URL the client addressed; the body is a stack of labelled regions rather than a nested set of boxes. Its key/value rows follow the flex behaviour described in Layout: 10rem label column above the breakpoint, label stacked above value below it.
 
 ### Inputs / Fields
 
@@ -482,7 +491,7 @@ container never signals which path ran; only the content does.
 - **XML**: highlighted in place, unformatted; the payload keeps whatever whitespace it arrived with.
 - **Anything else**: HTML-escaped raw text, no highlighting, no reformatting.
 
-An absent body or query string renders as an italic _None_ in quiet ink rather
+An absent body or query string renders as an italic _None_ in label ink rather
 than an empty well, so a card with nothing in it still reads as a complete
 record. Escaping happens on every path: a captured body is attacker-controlled
 text and is never trusted as markup.
