@@ -19,7 +19,7 @@
   }
 
   :root {
-    accent-color: var(--color-indigo-600);
+    accent-color: var(--color-brand-600);
     color-scheme: light;
   }
 }
