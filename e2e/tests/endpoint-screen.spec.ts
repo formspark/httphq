@@ -249,6 +249,114 @@ test.describe("Endpoint screen", () => {
       expect(parsed["X-Sample"]).toBe("value");
     });
 
+    test("request copy button writes a HAR-shaped document to the clipboard", async ({
+      page,
+      request,
+    }) => {
+      const raw = '{"hello":"world"}';
+      const response = await request.post(`${endpointUrl}?a=1&b=2`, {
+        data: raw,
+        headers: { "Content-Type": "application/json", "X-Sample": "value" },
+      });
+      const uuid = response.headers()["httphq-request-uuid"];
+      const card = page.locator(`#request-${uuid}`);
+      await expect(card).toBeAttached();
+
+      await card.locator('[data-test="copy-request-har"]').click();
+      const clipboard = await page.evaluate(() =>
+        navigator.clipboard.readText(),
+      );
+      const har = JSON.parse(clipboard);
+
+      expect(har.creator.name).toBe("httphq");
+      expect(har.entries).toHaveLength(1);
+      const entry = har.entries[0];
+      expect(entry.id).toBe(uuid);
+      expect(entry.request.method).toBe("POST");
+      expect(entry.request.url).toBe(`${endpointUrl}?a=1&b=2`);
+      expect(entry.request.httpVersion).toBe("HTTP/1.1");
+      expect(entry.request.queryString).toEqual([
+        { name: "a", value: "1" },
+        { name: "b", value: "2" },
+      ]);
+      expect(entry.request.headers).toContainEqual({
+        name: "X-Sample",
+        value: "value",
+      });
+      expect(entry.request.postData).toEqual({
+        mimeType: "application/json",
+        text: raw,
+      });
+      expect(entry.request.bodySize).toBe(raw.length);
+    });
+
+    test("request copy button label flips to Copied!", async ({
+      page,
+      request,
+    }) => {
+      await post(request, endpointUrl, { data: "x" });
+      const card = page.locator('[data-test="request"]').first();
+      await card.locator('[data-test="copy-request-har"]').click();
+      await expect(
+        card.locator('[data-test="copy-request-har-label"]'),
+      ).toContainText("Copied!");
+    });
+
+    test("copy-all writes every visible request, newest first", async ({
+      page,
+      request,
+    }) => {
+      await post(request, endpointUrl, { data: "first" });
+      await expect(page.locator('[data-test="request"]')).toHaveCount(1);
+      await post(request, endpointUrl, { data: "second" });
+      await expect(page.locator('[data-test="request"]')).toHaveCount(2);
+
+      await page.locator('[data-test="copy-all-har"]').click();
+      const clipboard = await page.evaluate(() =>
+        navigator.clipboard.readText(),
+      );
+      const har = JSON.parse(clipboard);
+
+      expect(har.entries).toHaveLength(2);
+      expect(
+        har.entries.map(
+          (e: { request: { postData: { text: string } } }) =>
+            e.request.postData.text,
+        ),
+      ).toEqual(["second", "first"]);
+    });
+
+    test("copy-all is scoped to the method filter", async ({
+      page,
+      request,
+    }) => {
+      await post(request, endpointUrl, { data: "p" });
+      await request.fetch(endpointUrl, { method: "PUT", data: "u" });
+      await expect(page.locator('[data-test="search-results"]')).toContainText(
+        "2 results",
+      );
+
+      await page.locator('[data-test="method-filter"]').selectOption("PUT");
+      await expect(
+        page.locator('[data-test="copy-all-har-label"]'),
+      ).toContainText("Copy all (1)");
+
+      await page.locator('[data-test="copy-all-har"]').click();
+      const clipboard = await page.evaluate(() =>
+        navigator.clipboard.readText(),
+      );
+      const har = JSON.parse(clipboard);
+
+      expect(har.entries).toHaveLength(1);
+      expect(har.entries[0].request.method).toBe("PUT");
+    });
+
+    test("copy-all is disabled while nothing has been captured", async ({
+      page,
+    }) => {
+      await expect(page.locator('[data-test="copy-all-har"]')).toBeDisabled();
+    });
+
     test("filters by request body via the search box", async ({
       page,
       request,
