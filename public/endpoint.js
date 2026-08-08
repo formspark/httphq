@@ -3,15 +3,17 @@
 (function () {
   const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
 
-  // Tailwind classes for each HTTP method badge.
+  // Palette for each HTTP method badge. Every ink is built at one lightness and
+  // every wash at another, so the seven read as one family rather than as seven
+  // unrelated defaults. Defined in src/styles/theme.css.
   const METHOD_CLASSES = {
-    GET: "bg-blue-50 text-blue-700",
-    POST: "bg-emerald-50 text-emerald-700",
-    PUT: "bg-amber-50 text-amber-700",
-    PATCH: "bg-violet-50 text-violet-700",
-    DELETE: "bg-rose-50 text-rose-700",
-    HEAD: "bg-slate-100 text-slate-700",
-    OPTIONS: "bg-sky-50 text-sky-700",
+    GET: "bg-get-wash text-get-ink",
+    POST: "bg-post-wash text-post-ink",
+    PUT: "bg-put-wash text-put-ink",
+    PATCH: "bg-patch-wash text-patch-ink",
+    DELETE: "bg-delete-wash text-delete-ink",
+    HEAD: "bg-head-wash text-head-ink",
+    OPTIONS: "bg-options-wash text-options-ink",
   };
 
   // How many cards are in the DOM at once, and how many more each reveal adds.
@@ -246,7 +248,7 @@
       },
 
       methodBadge(method) {
-        return METHOD_CLASSES[method] || "bg-slate-100 text-slate-700";
+        return METHOD_CLASSES[method] || "bg-head-wash text-head-ink";
       },
 
       formatTimeAgo: window.formatTimeAgo,
@@ -346,7 +348,7 @@
     c.height = 32;
     const ctx = c.getContext("2d");
     // Soft background so the dot is visible against any browser tab style.
-    ctx.fillStyle = "#1e293b"; // slate-800
+    ctx.fillStyle = "#1e293b"; // neutral-800
     ctx.beginPath();
     ctx.arc(16, 16, 14, 0, 2 * Math.PI);
     ctx.fill();
@@ -356,7 +358,7 @@
     ctx.textBaseline = "middle";
     ctx.fillText("h", 16, 17);
     // Red badge in upper right
-    ctx.fillStyle = "#e11d48"; // rose-600
+    ctx.fillStyle = "#e11d48"; // danger-600
     ctx.beginPath();
     ctx.arc(24, 8, 7, 0, 2 * Math.PI);
     ctx.fill();

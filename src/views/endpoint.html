@@ -14,15 +14,18 @@
 
   <!-- Endpoint URL panel -->
   <section class="mt-2 mb-6" aria-labelledby="endpoint-url-heading">
-    <div class="panel p-4 sm:p-5 space-y-3">
-      <h2 id="endpoint-url-heading" class="region-label mb-0">
+    <!-- Explicit spacing rather than space-y: a label belongs to its field, so
+         the gap above the field is smaller than the gap to the note below it.
+         Equal gaps make the label read as floating between the two. -->
+    <div class="panel p-4 sm:p-5">
+      <h2 id="endpoint-url-heading" class="region-label mb-2">
         Send requests to this URL
       </h2>
       <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
         <code
           data-test="endpoint-url"
           x-ref="endpointUrl"
-          class="flex-1 select-all break-all rounded bg-slate-50 border border-slate-200 px-3 py-2 text-xs font-mono text-indigo-700"
+          class="flex-1 select-all break-all rounded bg-neutral-50 border border-neutral-200 px-3 py-2 text-xs font-mono text-brand-700"
           >{{.EndpointURL}}</code
         >
         <button
@@ -49,7 +52,7 @@
           >
         </button>
       </div>
-      <p class="text-xs text-slate-500">
+      <p class="mt-3 text-xs text-neutral-500">
         Anyone with this URL can read every request sent to it. Requests are
         deleted after 4 hours.
       </p>
@@ -61,7 +64,7 @@
     <details class="group panel">
       <summary
         data-test="send-toggle"
-        class="list-none px-4 sm:px-5 py-3 flex items-center gap-2 font-medium text-slate-700 hover:bg-slate-50 focus-ring rounded-lg"
+        class="list-none px-4 sm:px-5 py-3 flex items-center gap-2 font-medium text-neutral-700 hover:bg-neutral-100 focus-ring focus-visible:ring-inset rounded-lg group-open:rounded-b-none"
       >
         <svg
           viewBox="0 0 24 24"
@@ -74,12 +77,12 @@
           <path d="M22 2L11 13" />
           <path d="M22 2l-7 20-4-9-9-4 20-7z" />
         </svg>
-        <h2 id="send-heading" class="text-base font-medium">
+        <h2 id="send-heading" class="text-sm font-medium">
           Send a test request
         </h2>
         <svg
           viewBox="0 0 24 24"
-          class="icon text-slate-400 transition group-open:rotate-180"
+          class="icon text-neutral-400 transition group-open:rotate-180"
           fill="none"
           stroke="currentColor"
           stroke-width="2"
@@ -91,7 +94,7 @@
 
       <form
         @submit.prevent="sendCustom()"
-        class="border-t border-slate-200 p-4 sm:p-5 space-y-3"
+        class="border-t border-neutral-200 p-4 sm:p-5 space-y-4"
       >
         <label class="block sm:max-w-[10rem]">
           <span class="field-label">Method</span>
@@ -115,7 +118,8 @@
         </label>
         <label class="block">
           <span class="field-label">
-            Path and query <span class="normal-case">(optional)</span>
+            Path and query
+            <span class="normal-case font-normal">(optional)</span>
           </span>
           <input
             data-test="send-path"
@@ -129,8 +133,8 @@
         <label class="block">
           <span class="field-label">
             Headers
-            <span class="normal-case"
-              >(one per line, <code>Key: Value</code>)</span
+            <span class="normal-case font-normal"
+              >(one per line, <code class="font-normal">Key: Value</code>)</span
             >
           </span>
           <textarea
@@ -157,7 +161,7 @@
           <p
             data-test="send-status"
             class="text-xs"
-            :class="sendFailed ? 'text-rose-700' : 'text-slate-500'"
+            :class="sendFailed ? 'text-danger-700' : 'text-neutral-500'"
             x-text="sendStatus"
           ></p>
           <button
@@ -174,12 +178,12 @@
 
   <!-- Stream controls -->
   <div
-    class="mb-4 flex items-center justify-between gap-4 text-sm text-slate-500"
+    class="mb-4 flex items-center justify-between gap-4 text-sm text-neutral-500"
   >
     <p data-test="connection-status" class="inline-flex items-center gap-2">
       <span
         class="inline-block w-2 h-2 rounded-full shrink-0"
-        :class="connection === 'live' ? 'bg-emerald-500' : connection === 'connecting' ? 'bg-amber-500' : 'bg-rose-500'"
+        :class="connection === 'live' ? 'bg-live' : connection === 'connecting' ? 'bg-pending' : 'bg-danger-500'"
         aria-hidden="true"
       ></span>
       <span
@@ -222,7 +226,7 @@
         type="button"
         data-test="delete-requests"
         @click="confirmDeleteAll()"
-        class="btn btn-danger"
+        class="btn btn-secondary"
       >
         <svg
           viewBox="0 0 24 24"
@@ -254,9 +258,9 @@
     x-show="pendingDeleteAll"
     x-cloak
     data-test="delete-confirm"
-    class="mb-4 panel-flat border-rose-200 bg-rose-50 p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between"
+    class="mb-4 panel-flat border-danger-200 bg-danger-50 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 justify-between"
   >
-    <p class="text-sm text-rose-700">
+    <p class="text-sm text-danger-700">
       Delete all
       <span x-text="$store.main.requests.length"></span> captured requests? This
       cannot be undone.
@@ -283,7 +287,7 @@
 
   <!-- Filter bar -->
   <div
-    class="sticky top-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-slate-50/95 backdrop-blur border-y border-slate-200 mb-4 flex flex-col sm:flex-row gap-3 sm:items-center"
+    class="sticky top-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-neutral-50/95 backdrop-blur border-y border-neutral-200 mb-4 flex flex-col sm:flex-row gap-3 sm:items-center"
   >
     <label for="method-filter" class="sr-only">Filter by method</label>
     <select
@@ -310,7 +314,7 @@
     />
     <span
       data-test="search-results"
-      class="text-sm text-slate-500 sm:text-right shrink-0"
+      class="text-sm text-neutral-500 sm:text-right shrink-0"
       x-text="`${$store.main.visibleRequests.length} ${$store.main.visibleRequests.length === 1 ? 'result' : 'results'}`"
       >0 results</span
     >
@@ -328,7 +332,7 @@
     <template x-if="streamState === 'waiting'">
       <div
         data-test="empty-waiting"
-        class="rounded-lg border border-dashed border-slate-300 bg-white py-12 px-4 text-center text-slate-500"
+        class="rounded-lg border border-dashed border-neutral-300 bg-white py-12 px-4 text-center text-neutral-500"
       >
         <p class="text-base">
           Waiting for requests<span
@@ -347,9 +351,9 @@
     <template x-if="streamState === 'filtered'">
       <div
         data-test="empty-filtered"
-        class="panel py-12 px-4 text-center text-slate-500"
+        class="panel py-12 px-4 text-center text-neutral-500"
       >
-        <p class="text-base text-slate-900">No requests match this filter.</p>
+        <p class="text-base text-neutral-900">No requests match this filter.</p>
         <p class="mt-2 text-sm">
           <span x-text="$store.main.requests.length"></span> captured on this
           endpoint.
@@ -374,7 +378,7 @@
         :aria-label="`${request.method} ${request.path}`"
       >
         <header
-          class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-slate-200"
+          class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-neutral-200"
         >
           <div class="flex items-center gap-3 min-w-0">
             <span
@@ -386,7 +390,7 @@
             <span
               data-test="request-path"
               x-text="request.path + (request.queryString ? '?' + request.queryString : '')"
-              class="text-xs text-slate-700 font-mono truncate"
+              class="text-xs text-neutral-700 font-mono truncate"
             ></span>
           </div>
           <div class="flex items-center gap-2 shrink-0">
@@ -450,7 +454,7 @@
                 <dd class="kv-value">
                   <span x-text="formatClock(request.createdAt)"></span>
                   <span
-                    class="text-slate-500"
+                    class="text-neutral-500"
                     x-text="`(${tick, formatTimeAgo(request.createdAt)})`"
                   ></span>
                 </dd>
@@ -476,11 +480,11 @@
           <div data-test="request-headers">
             <div class="flex items-center justify-between mb-2">
               <h3
-                class="text-xs font-medium text-slate-500 uppercase tracking-wide"
+                class="text-xs font-medium text-neutral-500 uppercase tracking-wide"
               >
                 Headers
                 <span
-                  class="normal-case"
+                  class="normal-case font-normal"
                   x-text="`(${Object.keys(request.headers).length})`"
                 ></span>
               </h3>
@@ -525,7 +529,7 @@
         <div data-test="query-string" class="px-4 sm:px-5 pb-3">
           <div class="flex items-center justify-between mb-1">
             <h3
-              class="text-xs font-medium text-slate-500 uppercase tracking-wide"
+              class="text-xs font-medium text-neutral-500 uppercase tracking-wide"
             >
               Query string
             </h3>
@@ -553,11 +557,11 @@
         <div data-test="request-body" class="px-4 sm:px-5 pb-4 sm:pb-5">
           <div class="flex items-center justify-between mb-1">
             <h3
-              class="text-xs font-medium text-slate-500 uppercase tracking-wide"
+              class="text-xs font-medium text-neutral-500 uppercase tracking-wide"
             >
               Body
               <span
-                class="normal-case"
+                class="normal-case font-normal"
                 x-show="request.body"
                 x-text="`(${formatBytes(request.body.length)})`"
               ></span>
@@ -602,7 +606,7 @@
       >
         <span x-text="`Show ${Math.min(hiddenCount, pageSize)} more`"></span>
       </button>
-      <p class="mt-2 text-xs text-slate-500">
+      <p class="mt-2 text-xs text-neutral-500">
         <span x-text="renderedRequests.length"></span> of
         <span x-text="$store.main.visibleRequests.length"></span> shown
       </p>
