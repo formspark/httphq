@@ -181,14 +181,22 @@
     class="mb-4 flex items-center justify-between gap-4 text-sm text-neutral-500"
   >
     <p data-test="connection-status" class="inline-flex items-center gap-2">
+      <!-- The static class and the fallback text both state the connecting
+           state, because that is what the component initialises to. Claiming
+           "Live" before the socket has opened made every load flicker through
+           three states on its way to the truth. -->
       <span
-        class="inline-block w-2 h-2 rounded-full shrink-0"
-        :class="connection === 'live' ? 'bg-live' : connection === 'connecting' ? 'bg-pending' : 'bg-danger-500'"
+        class="inline-block w-2 h-2 rounded-full shrink-0 bg-pending"
+        :class="{
+          'bg-live': connection === 'live',
+          'bg-pending': connection === 'connecting',
+          'bg-danger-500': connection === 'disconnected',
+        }"
         aria-hidden="true"
       ></span>
       <span
-        x-text="connection === 'live' ? 'Live' : connection === 'connecting' ? 'Reconnecting…' : 'Disconnected'"
-        >Live</span
+        x-text="connection === 'live' ? 'Live' : connection === 'connecting' ? 'Connecting…' : 'Disconnected'"
+        >Connecting…</span
       >
     </p>
     <div class="flex items-center gap-2">
@@ -316,8 +324,7 @@
       data-test="search-results"
       class="text-sm text-neutral-500 sm:text-right shrink-0"
       x-text="`${$store.main.visibleRequests.length} ${$store.main.visibleRequests.length === 1 ? 'result' : 'results'}`"
-      >0 results</span
-    >
+    ></span>
   </div>
 
   <!-- Requests list -->
