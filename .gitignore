@@ -12,3 +12,6 @@ node_modules
 /e2e/playwright-report
 /e2e/blob-report
 /e2e/.cache
+
+# Impeccable critique snapshots are local tooling output, not source.
+.impeccable/critique/
