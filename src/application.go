@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -123,6 +126,69 @@ func buildContentSecurityPolicy() string {
 		"img-src 'self' data:; " +
 		"connect-src 'self' ws: wss:" + designTooling + "; " +
 		"frame-ancestors 'none'"
+}
+
+// assetVersions maps a served static path to a short hash of its contents,
+// computed once at startup. The stylesheet and the page scripts live at fixed
+// paths, so without a version in the URL a CDN or a browser can pair a cached
+// copy of one deploy with the HTML of the next: every class name the new markup
+// asks for resolves to nothing and the page renders unstyled. Versioning the URL
+// makes a changed asset a different URL, which no cache can confuse for the old
+// one.
+var assetVersions = map[string]string{}
+
+// versionedAssets are the first-party files referenced from the templates whose
+// contents change between deploys. Images are excluded: they are replaced rarely
+// and never in a way that breaks a page that fetched the previous copy.
+var versionedAssets = []string{
+	"/app.css",
+	"/index.js",
+	"/render-body.js",
+	"/har.js",
+	"/endpoint.js",
+}
+
+func hashAsset(path string) string {
+	f, err := os.Open("./public" + path)
+	if err != nil {
+		slog.Warn("asset missing, serving unversioned", "path", path, "err", err)
+		return ""
+	}
+	defer f.Close()
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		slog.Warn("asset unreadable, serving unversioned", "path", path, "err", err)
+		return ""
+	}
+	return hex.EncodeToString(h.Sum(nil))[:10]
+}
+
+// assetURL is exposed to templates as `asset`. Production reads the map computed
+// at startup. Development re-hashes, but only when the file's modification time
+// has moved, so an edited stylesheet is picked up without a restart and without
+// re-reading every asset on every render.
+var assetMu sync.Mutex
+var assetStamps = map[string]time.Time{}
+
+func assetURL(path string) string {
+	if isProduction {
+		if version := assetVersions[path]; version != "" {
+			return path + "?v=" + version
+		}
+		return path
+	}
+
+	assetMu.Lock()
+	defer assetMu.Unlock()
+	info, err := os.Stat("./public" + path)
+	if err == nil && !info.ModTime().Equal(assetStamps[path]) {
+		assetStamps[path] = info.ModTime()
+		assetVersions[path] = hashAsset(path)
+	}
+	if version := assetVersions[path]; version != "" {
+		return path + "?v=" + version
+	}
+	return path
 }
 
 // trustedProxyConfig lists the peers whose X-Forwarded-* headers Fiber may
@@ -320,6 +386,11 @@ func main() {
 	/* Server */
 
 	engine := html.New("./src/views", ".html")
+
+	for _, path := range versionedAssets {
+		assetVersions[path] = hashAsset(path)
+	}
+	engine.AddFunc("asset", assetURL)
 
 	if !isProduction {
 		engine.Reload(true)

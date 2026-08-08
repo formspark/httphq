@@ -38,7 +38,7 @@
     <!-- Built from src/styles/app.css by `npm run css`. The only stylesheet on
          the marketing and contact pages, and the only render-blocking resource
          anywhere: no page waits on a third party to have a layout. -->
-    <link rel="stylesheet" href="/app.css" />
+    <link rel="stylesheet" href="{{asset `/app.css`}}" />
 
     {{if .AppScripts}}
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
@@ -61,10 +61,10 @@
     <!-- App scripts must register their alpine:init listeners BEFORE Alpine
          loads, because Alpine v3 schedules its first alpine:init dispatch via
          queueMicrotask at the end of its own script execution. -->
-    <script defer src="/index.js"></script>
-    <script defer src="/render-body.js"></script>
-    <script defer src="/har.js"></script>
-    <script defer src="/endpoint.js"></script>
+    <script defer src="{{asset `/index.js`}}"></script>
+    <script defer src="{{asset `/render-body.js`}}"></script>
+    <script defer src="{{asset `/har.js`}}"></script>
+    <script defer src="{{asset `/endpoint.js`}}"></script>
 
     <!-- Alpine.js (loaded last so app scripts can subscribe first). -->
     <script
