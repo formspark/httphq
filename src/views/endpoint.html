@@ -5,30 +5,35 @@
   x-data="endpointPage"
   data-endpoint-id="{{.EndpointID}}"
 >
+  <h1 class="sr-only">Captured requests for {{.EndpointID}}</h1>
+
+  <!-- Arrivals, status and confirmations are announced here. Everything on this
+       page changes without a navigation, so without a live region a screen
+       reader user is told nothing at all. -->
+  <p class="sr-only" role="status" aria-live="polite" x-text="announcement"></p>
+
   <!-- Endpoint URL panel -->
-  <section class="mt-2 mb-6">
-    <div
-      class="rounded-lg border border-slate-200 bg-white shadow-sm p-4 sm:p-5 space-y-3"
-    >
-      <div class="text-sm font-medium text-slate-500 uppercase tracking-wide">
-        Your unique URL
-      </div>
+  <section class="mt-2 mb-6" aria-labelledby="endpoint-url-heading">
+    <div class="panel p-4 sm:p-5 space-y-3">
+      <h2 id="endpoint-url-heading" class="region-label mb-0">
+        Send requests to this URL
+      </h2>
       <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
         <code
           data-test="endpoint-url"
           x-ref="endpointUrl"
-          class="flex-1 select-all break-all rounded bg-slate-50 border border-slate-200 px-3 py-2 text-sm font-mono text-indigo-700"
+          class="flex-1 select-all break-all rounded bg-slate-50 border border-slate-200 px-3 py-2 text-xs font-mono text-indigo-700"
           >{{.EndpointURL}}</code
         >
         <button
           type="button"
           data-test="copy-url"
-          @click="copy($refs.endpointUrl.textContent)"
-          class="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          @click="copy($refs.endpointUrl.textContent, 'url')"
+          class="btn btn-secondary shrink-0"
         >
           <svg
             viewBox="0 0 24 24"
-            class="w-4 h-4"
+            class="icon"
             fill="none"
             stroke="currentColor"
             stroke-width="2"
@@ -37,24 +42,30 @@
             <rect x="9" y="9" width="13" height="13" rx="2" />
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
           </svg>
-          <span x-text="copyLabel" data-test="copy-url-label">Copy</span>
+          <span
+            data-test="copy-url-label"
+            x-text="copiedKey === 'url' ? 'Copied!' : 'Copy'"
+            >Copy</span
+          >
         </button>
       </div>
+      <p class="text-xs text-slate-500">
+        Anyone with this URL can read every request sent to it. Requests are
+        deleted after 4 hours.
+      </p>
     </div>
   </section>
 
   <!-- Send custom request panel -->
-  <section class="mb-6">
-    <details
-      class="group rounded-lg border border-slate-200 bg-white shadow-sm"
-    >
+  <section class="mb-6" aria-labelledby="send-heading">
+    <details class="group panel">
       <summary
         data-test="send-toggle"
-        class="list-none px-4 sm:px-5 py-3 flex items-center gap-2 font-medium text-slate-700 hover:bg-slate-50"
+        class="list-none px-4 sm:px-5 py-3 flex items-center gap-2 font-medium text-slate-700 hover:bg-slate-50 focus-ring rounded-lg"
       >
         <svg
           viewBox="0 0 24 24"
-          class="w-4 h-4 shrink-0"
+          class="icon"
           fill="none"
           stroke="currentColor"
           stroke-width="2"
@@ -63,10 +74,12 @@
           <path d="M22 2L11 13" />
           <path d="M22 2l-7 20-4-9-9-4 20-7z" />
         </svg>
-        <span>Send a test request</span>
+        <h2 id="send-heading" class="text-base font-medium">
+          Send a test request
+        </h2>
         <svg
           viewBox="0 0 24 24"
-          class="w-4 h-4 text-slate-400 transition group-open:rotate-180"
+          class="icon text-slate-400 transition group-open:rotate-180"
           fill="none"
           stroke="currentColor"
           stroke-width="2"
@@ -81,55 +94,76 @@
         class="border-t border-slate-200 p-4 sm:p-5 space-y-3"
       >
         <label class="block sm:max-w-[10rem]">
-          <span
-            class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1"
-            >Method</span
-          >
+          <span class="field-label">Method</span>
+          <!-- The options are literal rather than rendered from METHODS with
+               x-for: the browser resets a select to index 0 when its options
+               arrive after the model binds, which silently desynced the
+               displayed method from the one actually sent. -->
           <select
             data-test="send-method"
             x-model="sendForm.method"
-            class="app-select block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-500"
+            class="field app-select"
           >
-            <template x-for="m in METHODS" :key="m">
-              <option :value="m" x-text="m"></option>
-            </template>
+            <option value="GET">GET</option>
+            <option value="POST">POST</option>
+            <option value="PUT">PUT</option>
+            <option value="PATCH">PATCH</option>
+            <option value="DELETE">DELETE</option>
+            <option value="HEAD">HEAD</option>
+            <option value="OPTIONS">OPTIONS</option>
           </select>
         </label>
         <label class="block">
-          <span
-            class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1"
-          >
-            Headers (one per line, <code class="font-mono">Key: Value</code>)
+          <span class="field-label">
+            Path and query <span class="normal-case">(optional)</span>
+          </span>
+          <input
+            data-test="send-path"
+            type="text"
+            x-model="sendForm.path"
+            spellcheck="false"
+            placeholder="/orders/8821?event=charge.succeeded"
+            class="field field-mono"
+          />
+        </label>
+        <label class="block">
+          <span class="field-label">
+            Headers
+            <span class="normal-case"
+              >(one per line, <code>Key: Value</code>)</span
+            >
           </span>
           <textarea
             data-test="send-headers"
             x-model="sendForm.headers"
-            rows="2"
+            rows="4"
             spellcheck="false"
             placeholder="Content-Type: application/json"
-            class="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-500"
+            class="field field-mono"
           ></textarea>
         </label>
         <label class="block">
-          <span
-            class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1"
-            >Body</span
-          >
+          <span class="field-label">Body</span>
           <textarea
             data-test="send-body"
             x-model="sendForm.body"
             rows="4"
             spellcheck="false"
             placeholder='{"hello":"world"}'
-            class="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-500"
+            class="field field-mono"
           ></textarea>
         </label>
-        <div class="flex items-center justify-between">
-          <p class="text-xs text-slate-500" x-text="sendStatus"></p>
+        <div class="flex items-start justify-between gap-4">
+          <p
+            data-test="send-status"
+            class="text-xs"
+            :class="sendFailed ? 'text-rose-700' : 'text-slate-500'"
+            x-text="sendStatus"
+          ></p>
           <button
             type="submit"
             data-test="send-submit"
-            class="inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm text-white font-medium shadow-sm hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500"
+            class="btn btn-primary shrink-0"
           >
             Send
           </button>
@@ -138,26 +172,20 @@
     </details>
   </section>
 
-  <!-- Disclaimer + delete-all -->
+  <!-- Stream controls -->
   <div
     class="mb-4 flex items-center justify-between gap-4 text-sm text-slate-500"
   >
-    <p class="inline-flex items-center gap-2">
-      <svg
-        viewBox="0 0 24 24"
-        class="w-4 h-4 shrink-0"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
+    <p data-test="connection-status" class="inline-flex items-center gap-2">
+      <span
+        class="inline-block w-2 h-2 rounded-full shrink-0"
+        :class="connection === 'live' ? 'bg-emerald-500' : connection === 'connecting' ? 'bg-amber-500' : 'bg-rose-500'"
         aria-hidden="true"
+      ></span>
+      <span
+        x-text="connection === 'live' ? 'Live' : connection === 'connecting' ? 'Reconnecting…' : 'Disconnected'"
+        >Live</span
       >
-        <path
-          d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-        />
-        <line x1="12" y1="9" x2="12" y2="13" />
-        <line x1="12" y1="17" x2="12" y2="17" />
-      </svg>
-      <span>Requests are deleted after 4 hours</span>
     </p>
     <div class="flex items-center gap-2">
       <button
@@ -166,11 +194,11 @@
         @click="copyHar($store.main.visibleRequests, '__all__')"
         :disabled="$store.main.visibleRequests.length === 0"
         title="Copy every request shown as HAR-shaped JSON"
-        class="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="btn btn-secondary"
       >
         <svg
           viewBox="0 0 24 24"
-          class="w-4 h-4"
+          class="icon"
           fill="none"
           stroke="currentColor"
           stroke-width="2"
@@ -181,20 +209,24 @@
             d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
           />
         </svg>
+        <!-- Server-rendered fallback so the button carries a label before Alpine
+             hydrates and if it never does. Without it the control renders as a
+             bare icon, shorter than its neighbour and unreadable. -->
         <span
           data-test="copy-all-har-label"
-          x-text="copiedKey === '__all__' ? 'Copied!' : `Copy all (${$store.main.visibleRequests.length})`"
-        ></span>
+          x-text="copiedKey === '__all__' ? 'Copied!' : `Copy shown (${$store.main.visibleRequests.length})`"
+          >Copy shown</span
+        >
       </button>
       <button
         type="button"
         data-test="delete-requests"
-        @click="$store.main.deleteRequests()"
-        class="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-700 hover:bg-rose-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+        @click="confirmDeleteAll()"
+        class="btn btn-danger"
       >
         <svg
           viewBox="0 0 24 24"
-          class="w-4 h-4"
+          class="icon"
           fill="none"
           stroke="currentColor"
           stroke-width="2"
@@ -205,6 +237,45 @@
           <path d="M10 11v6" />
           <path d="M14 11v6" />
         </svg>
+        <!-- Names the scope explicitly: this clears the endpoint, not the
+             filtered view its neighbour copies. -->
+        <span
+          data-test="delete-requests-label"
+          x-text="`Delete all (${$store.main.requests.length})`"
+          >Delete all</span
+        >
+      </button>
+    </div>
+  </div>
+
+  <!-- Inline confirmation, in place of a modal: the register suits the page and
+       it keeps the count next to the control that acts on it. -->
+  <div
+    x-show="pendingDeleteAll"
+    x-cloak
+    data-test="delete-confirm"
+    class="mb-4 panel-flat border-rose-200 bg-rose-50 p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between"
+  >
+    <p class="text-sm text-rose-700">
+      Delete all
+      <span x-text="$store.main.requests.length"></span> captured requests? This
+      cannot be undone.
+    </p>
+    <div class="flex items-center gap-2 shrink-0">
+      <button
+        type="button"
+        data-test="delete-cancel"
+        @click="pendingDeleteAll = false"
+        class="btn btn-secondary"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        data-test="delete-confirm-button"
+        @click="deleteAllConfirmed()"
+        class="btn btn-danger"
+      >
         Delete all
       </button>
     </div>
@@ -214,35 +285,49 @@
   <div
     class="sticky top-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-slate-50/95 backdrop-blur border-y border-slate-200 mb-4 flex flex-col sm:flex-row gap-3 sm:items-center"
   >
+    <label for="method-filter" class="sr-only">Filter by method</label>
     <select
+      id="method-filter"
       data-test="method-filter"
       x-model="$store.main.methodFilter"
-      class="app-select rounded-md border border-slate-300 bg-white px-3 py-2 text-sm sm:w-40 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-500"
+      class="field app-select sm:w-40"
     >
       <option value="">Any method</option>
       <template x-for="m in METHODS" :key="m">
         <option :value="m" x-text="m"></option>
       </template>
     </select>
+    <label for="search-input" class="sr-only">
+      Search headers, query string and body
+    </label>
     <input
+      id="search-input"
       data-test="search-input"
       type="search"
       x-model.debounce="$store.main.search"
       placeholder="Search headers, query string, and body..."
-      class="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-500"
+      class="field flex-1"
     />
     <span
       data-test="search-results"
       class="text-sm text-slate-500 sm:text-right shrink-0"
       x-text="`${$store.main.visibleRequests.length} ${$store.main.visibleRequests.length === 1 ? 'result' : 'results'}`"
-    ></span>
+      >0 results</span
+    >
   </div>
 
   <!-- Requests list -->
-  <section data-test="requests" class="space-y-4">
-    <!-- Empty state -->
-    <template x-if="$store.main.visibleRequests.length === 0">
+  <section
+    data-test="requests"
+    class="space-y-4"
+    aria-label="Captured requests"
+  >
+    <!-- Waiting: genuinely nothing captured yet. The dashed border means
+         correctly empty and expecting content, so it is reserved for this state
+         and never used for a filtered or disconnected stream. -->
+    <template x-if="streamState === 'waiting'">
       <div
+        data-test="empty-waiting"
         class="rounded-lg border border-dashed border-slate-300 bg-white py-12 px-4 text-center text-slate-500"
       >
         <p class="text-base">
@@ -257,15 +342,36 @@
       </div>
     </template>
 
+    <!-- Filtered to zero: the stream is not empty, the view is. Solid border, so
+         it never reads as "nothing has arrived". -->
+    <template x-if="streamState === 'filtered'">
+      <div
+        data-test="empty-filtered"
+        class="panel py-12 px-4 text-center text-slate-500"
+      >
+        <p class="text-base text-slate-900">No requests match this filter.</p>
+        <p class="mt-2 text-sm">
+          <span x-text="$store.main.requests.length"></span> captured on this
+          endpoint.
+        </p>
+        <button
+          type="button"
+          data-test="clear-filters"
+          @click="$store.main.clearFilters()"
+          class="btn btn-secondary mt-4"
+        >
+          Clear filters
+        </button>
+      </div>
+    </template>
+
     <!-- Cards -->
-    <template
-      x-for="request in $store.main.visibleRequests"
-      :key="request.uuid"
-    >
+    <template x-for="request in renderedRequests" :key="request.uuid">
       <article
         :id="`request-${request.uuid}`"
         data-test="request"
-        class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden"
+        class="panel overflow-hidden scroll-mt-24"
+        :aria-label="`${request.method} ${request.path}`"
       >
         <header
           class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-slate-200"
@@ -275,27 +381,25 @@
               data-test="request-method"
               x-text="request.method"
               :class="methodBadge(request.method)"
-              class="inline-flex items-center justify-center rounded px-2 py-0.5 text-xs font-semibold uppercase tracking-wide shrink-0"
+              class="badge"
             ></span>
-            <a
-              data-test="request-uuid"
-              :href="`#request-${request.uuid}`"
-              x-text="request.uuid"
-              class="text-xs text-slate-500 font-mono truncate hover:text-indigo-600"
-            ></a>
+            <span
+              data-test="request-path"
+              x-text="request.path + (request.queryString ? '?' + request.queryString : '')"
+              class="text-xs text-slate-700 font-mono truncate"
+            ></span>
           </div>
-          <div class="flex items-center gap-3 shrink-0">
+          <div class="flex items-center gap-2 shrink-0">
             <button
               type="button"
               data-test="copy-request-har"
               @click="copyHar([request], request.uuid)"
-              aria-label="Copy this request as JSON"
               title="Copy the full request (method, URL, headers, query string, body) as HAR-shaped JSON"
-              class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-indigo-600"
+              class="btn-inline"
             >
               <svg
                 viewBox="0 0 24 24"
-                class="w-4 h-4"
+                class="icon"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="2"
@@ -308,7 +412,6 @@
               </svg>
               <span
                 data-test="copy-request-har-label"
-                class="hidden sm:inline"
                 x-text="copiedKey === request.uuid ? 'Copied!' : 'Copy request'"
               ></span>
             </button>
@@ -316,12 +419,11 @@
               type="button"
               data-test="delete-request"
               @click="$store.main.deleteRequest(request.uuid)"
-              class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-rose-600"
-              aria-label="Delete this request"
+              class="btn-inline btn-inline-danger"
             >
               <svg
                 viewBox="0 0 24 24"
-                class="w-4 h-4"
+                class="icon"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="2"
@@ -330,7 +432,7 @@
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
-              <span class="hidden sm:inline">Delete</span>
+              <span>Delete</span>
             </button>
           </div>
         </header>
@@ -338,42 +440,32 @@
         <div class="space-y-4 p-4 sm:p-5">
           <!-- Details -->
           <div data-test="request-details">
-            <div
-              class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2"
-            >
-              Details
-            </div>
-            <!-- Rows are flex, not a two-column grid: below the breakpoint the
-                 label stacks above its value instead of holding a fixed column
-                 that would leave the value almost no width on a phone. Each row
-                 is its own element so the divider spans the whole row rather
-                 than a single column. -->
+            <h3 class="region-label">Details</h3>
             <dl class="text-sm">
-              <div
-                class="flex flex-col sm:flex-row sm:gap-3 py-1.5 border-b border-slate-100 last:border-b-0"
-              >
-                <dt class="text-slate-500 sm:w-40 sm:shrink-0">Time</dt>
-                <dd
-                  class="min-w-0"
-                  :title="request.createdAt.toLocaleString()"
-                  x-text="formatTimeAgo(request.createdAt)"
-                ></dd>
+              <div class="kv-row">
+                <dt class="kv-key">Time</dt>
+                <!-- Absolute time is the value; the relative age is the aside.
+                     The relative string depends on `tick` so it refreshes rather
+                     than freezing at whatever it read when the card mounted. -->
+                <dd class="kv-value">
+                  <span x-text="formatClock(request.createdAt)"></span>
+                  <span
+                    class="text-slate-500"
+                    x-text="`(${tick, formatTimeAgo(request.createdAt)})`"
+                  ></span>
+                </dd>
               </div>
-              <div
-                class="flex flex-col sm:flex-row sm:gap-3 py-1.5 border-b border-slate-100 last:border-b-0"
-              >
-                <dt class="text-slate-500 sm:w-40 sm:shrink-0">Client IP</dt>
-                <dd
-                  class="font-mono text-xs min-w-0"
-                  x-text="request.ip || '—'"
-                ></dd>
+              <div class="kv-row">
+                <dt class="kv-key">Client IP</dt>
+                <dd class="kv-value font-mono text-xs">
+                  <span x-show="request.ip" x-text="request.ip"></span>
+                  <span x-show="!request.ip" class="empty-value">None</span>
+                </dd>
               </div>
-              <div
-                class="flex flex-col sm:flex-row sm:gap-3 py-1.5 border-b border-slate-100 last:border-b-0"
-              >
-                <dt class="text-slate-500 sm:w-40 sm:shrink-0">Path</dt>
+              <div class="kv-row">
+                <dt class="kv-key">Path</dt>
                 <dd
-                  class="font-mono text-xs break-all min-w-0"
+                  class="kv-value font-mono text-xs break-all"
                   x-text="request.path"
                 ></dd>
               </div>
@@ -383,40 +475,43 @@
           <!-- Headers -->
           <div data-test="request-headers">
             <div class="flex items-center justify-between mb-2">
-              <div
+              <h3
                 class="text-xs font-medium text-slate-500 uppercase tracking-wide"
               >
                 Headers
-              </div>
+                <span
+                  class="normal-case"
+                  x-text="`(${Object.keys(request.headers).length})`"
+                ></span>
+              </h3>
               <button
                 type="button"
                 data-test="copy-headers"
-                @click="copy(JSON.stringify(request.headers, null, 2))"
-                class="text-xs text-slate-500 hover:text-indigo-600"
+                @click="copy(JSON.stringify(request.headers, null, 2), request.uuid + ':headers')"
+                aria-label="Copy headers as JSON"
+                class="btn-inline"
+                x-text="copiedKey === request.uuid + ':headers' ? 'Copied!' : 'Copy'"
               >
                 Copy
               </button>
             </div>
-            <div class="overflow-auto max-h-64">
-              <!-- Same stacking rule as the details rows above. The divider is
-                   `border-b` with the last row cleared rather than `border-t`
-                   with the first cleared: x-for leaves its <template> as the
-                   first child, so a :first-child rule would never match a
-                   rendered row. -->
+            <!-- Scrollable regions need a name and a tab stop, or their content
+                 is unreachable by keyboard rather than merely awkward. -->
+            <div
+              class="overflow-auto max-h-64"
+              tabindex="0"
+              role="region"
+              aria-label="Request headers"
+            >
               <dl class="text-xs">
                 <template
                   x-for="[k, v] in Object.entries(request.headers)"
                   :key="k"
                 >
-                  <div
-                    class="flex flex-col sm:flex-row sm:gap-3 py-1 border-b border-slate-100 last:border-b-0"
-                  >
-                    <dt
-                      class="text-slate-500 font-mono break-all sm:w-40 sm:shrink-0"
-                      x-text="k"
-                    ></dt>
+                  <div class="kv-row kv-row-tight">
+                    <dt class="kv-key font-mono break-all" x-text="k"></dt>
                     <dd
-                      class="font-mono break-all min-w-0"
+                      class="kv-value font-mono break-all"
                       x-text="Array.isArray(v) ? v.join(', ') : v"
                     ></dd>
                   </div>
@@ -428,52 +523,90 @@
 
         <!-- Query string -->
         <div data-test="query-string" class="px-4 sm:px-5 pb-3">
-          <div
-            class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1"
-          >
-            Query string
+          <div class="flex items-center justify-between mb-1">
+            <h3
+              class="text-xs font-medium text-slate-500 uppercase tracking-wide"
+            >
+              Query string
+            </h3>
+            <button
+              type="button"
+              data-test="copy-query"
+              x-show="request.queryString"
+              @click="copy(request.queryString, request.uuid + ':query')"
+              aria-label="Copy query string"
+              class="btn-inline"
+              x-text="copiedKey === request.uuid + ':query' ? 'Copied!' : 'Copy'"
+            >
+              Copy
+            </button>
           </div>
           <template x-if="request.queryString">
-            <pre
-              class="text-xs font-mono bg-slate-50 border border-slate-200 rounded p-3 overflow-auto"
-              x-text="request.queryString"
-            ></pre>
+            <pre class="code-block" x-text="request.queryString"></pre>
           </template>
           <template x-if="!request.queryString">
-            <p class="text-xs text-slate-400 italic">None</p>
+            <p class="empty-value">None</p>
           </template>
         </div>
 
         <!-- Body -->
         <div data-test="request-body" class="px-4 sm:px-5 pb-4 sm:pb-5">
           <div class="flex items-center justify-between mb-1">
-            <div
+            <h3
               class="text-xs font-medium text-slate-500 uppercase tracking-wide"
             >
               Body
-            </div>
+              <span
+                class="normal-case"
+                x-show="request.body"
+                x-text="`(${formatBytes(request.body.length)})`"
+              ></span>
+            </h3>
             <button
               type="button"
               data-test="copy-body"
               x-show="request.body"
-              @click="copy(request.body)"
-              class="text-xs text-slate-500 hover:text-indigo-600"
+              @click="copy(request.body, request.uuid + ':body')"
+              aria-label="Copy body"
+              class="btn-inline"
+              x-text="copiedKey === request.uuid + ':body' ? 'Copied!' : 'Copy'"
             >
               Copy
             </button>
           </div>
           <template x-if="request.body">
             <pre
-              class="text-xs font-mono bg-slate-50 border border-slate-200 rounded p-3 overflow-auto max-h-96"
+              class="code-block max-h-96"
+              tabindex="0"
+              role="region"
+              aria-label="Request body"
               x-html="renderBody(request.body, request.headers)"
             ></pre>
           </template>
           <template x-if="!request.body">
-            <p class="text-xs text-slate-400 italic">None</p>
+            <p class="empty-value">None</p>
           </template>
         </div>
       </article>
     </template>
+
+    <!-- Rendering every captured request costs ~104 DOM nodes each, so a full
+         page of them is a five-figure node count and a visible stall on every
+         filter change. The rest stay in the store and arrive on request. -->
+    <div x-show="hiddenCount > 0" x-cloak class="text-center">
+      <button
+        type="button"
+        data-test="show-more"
+        @click="showMore()"
+        class="btn btn-secondary"
+      >
+        <span x-text="`Show ${Math.min(hiddenCount, pageSize)} more`"></span>
+      </button>
+      <p class="mt-2 text-xs text-slate-500">
+        <span x-text="renderedRequests.length"></span> of
+        <span x-text="$store.main.visibleRequests.length"></span> shown
+      </p>
+    </div>
   </section>
 </main>
 
