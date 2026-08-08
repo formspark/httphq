@@ -95,6 +95,35 @@ func resolvePlatform(name string) platformConfig {
 	return platforms["direct"]
 }
 
+// contentSecurityPolicy is the CSP sent on every response, assembled once at
+// startup because its only variable part is fixed for the process lifetime.
+//
+//   - script-src needs 'unsafe-eval' for Alpine (it compiles directive
+//     expressions via the Function constructor) and the Tailwind Play CDN
+//     (compiles utility classes at runtime). All page scripts are external so
+//     script-src does NOT need 'unsafe-inline'.
+//   - style-src needs 'unsafe-inline' because Tailwind Play CDN injects
+//     generated styles into <style> tags, and Alpine x-show toggles via
+//     inline display style.
+//   - The local design-tooling origin is allowed in development only: it serves
+//     an injected picker script and opens a socket back to itself. Production
+//     must never carry it, so it is gated on the environment rather than on a
+//     request-time condition a client could influence.
+var contentSecurityPolicy = buildContentSecurityPolicy()
+
+func buildContentSecurityPolicy() string {
+	designTooling := ""
+	if !isProduction {
+		designTooling = " http://localhost:8400"
+	}
+	return "default-src 'self'; " +
+		"script-src 'self' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net" + designTooling + "; " +
+		"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+		"img-src 'self' data:; " +
+		"connect-src 'self' ws: wss:" + designTooling + "; " +
+		"frame-ancestors 'none'"
+}
+
 // trustedProxyConfig lists the peers whose X-Forwarded-* headers Fiber may
 // honour once TrustProxy is enabled. httphq is only ever fronted by a reverse
 // proxy that reaches it from a private, loopback or link-local address; no
@@ -333,21 +362,7 @@ func main() {
 		c.Set("X-Content-Type-Options", "nosniff")
 		c.Set("Referrer-Policy", "no-referrer")
 		c.Set("X-Frame-Options", "DENY")
-		// CSP policy:
-		// - script-src needs 'unsafe-eval' for Alpine (it compiles directive
-		//   expressions via the Function constructor) and the Tailwind Play
-		//   CDN (compiles utility classes at runtime). All page scripts are
-		//   external so script-src does NOT need 'unsafe-inline'.
-		// - style-src needs 'unsafe-inline' because Tailwind Play CDN injects
-		//   generated styles into <style> tags, and Alpine x-show toggles via
-		//   inline display style.
-		c.Set("Content-Security-Policy",
-			"default-src 'self'; "+
-				"script-src 'self' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net; "+
-				"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "+
-				"img-src 'self' data:; "+
-				"connect-src 'self' ws: wss:; "+
-				"frame-ancestors 'none'")
+		c.Set("Content-Security-Policy", contentSecurityPolicy)
 		return c.Next()
 	})
 
