@@ -1,0 +1,36 @@
+/* Keyframes and the reduced-motion contract. Every animation in this product is
+   decorative, so honouring the preference is a clean substitution rather than a
+   loss of meaning. */
+
+@keyframes httphq-dots {
+  0% {
+    content: "";
+  }
+  25% {
+    content: ".";
+  }
+  50% {
+    content: "..";
+  }
+  75%,
+  100% {
+    content: "...";
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Resting state carries the same meaning as the cycle: still waiting. */
+  .loading-dots::after {
+    content: "...";
+    animation: none;
+  }
+}

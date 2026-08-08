@@ -4,6 +4,7 @@ Install dependencies:
 
 ```bash
 go mod download
+npm install
 cd e2e && npm install && npx playwright install chromium
 ```
 
@@ -12,6 +13,18 @@ Upkeep dependencies:
 ```bash
 go mod tidy
 ```
+
+Build the stylesheet:
+
+```bash
+npm run css
+```
+
+`public/app.css` is generated from `src/styles/app.css` and is committed, so the
+binary, the container, and `go run` never need Node. Rebuild it whenever a
+template or a script gains a class the sheet does not already carry, and commit
+the result; CI fails if the committed file differs from a fresh build. During
+design work, `npm run css:watch` regenerates on save.
 
 Run project:
 
