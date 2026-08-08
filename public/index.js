@@ -46,19 +46,48 @@ window.copyToClipboard = async function (text) {
   }
 };
 
-/* Header parsing for the send-custom-request panel */
+/* Absolute clock time. This is the primary timestamp on a capture: an arrivals
+   board shows when something landed, and a relative age alone goes stale the
+   moment it is rendered. */
+
+const clockFormatter = new Intl.DateTimeFormat(undefined, {
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+});
+
+window.formatClock = function (date) {
+  return clockFormatter.format(date);
+};
+
+/* Byte sizes for captured bodies. */
+
+window.formatBytes = function (bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+/* Header parsing for the send-custom-request panel.
+
+   Malformed lines are returned rather than dropped. Silently discarding a line
+   that is one typo away from an Authorization header, and then reporting
+   success, sends the user chasing an auth bug that does not exist. */
 
 window.parseHeaderLines = function (text) {
-  const out = {};
-  if (!text) return out;
-  for (const line of text.split(/\r?\n/)) {
+  const headers = {};
+  const invalid = [];
+  if (!text) return { headers, invalid };
+  text.split(/\r?\n/).forEach((line, i) => {
     const trimmed = line.trim();
-    if (!trimmed) continue;
+    if (!trimmed) return;
     const idx = trimmed.indexOf(":");
-    if (idx <= 0) continue;
-    const k = trimmed.slice(0, idx).trim();
-    const v = trimmed.slice(idx + 1).trim();
-    if (k) out[k] = v;
-  }
-  return out;
+    const key = idx > 0 ? trimmed.slice(0, idx).trim() : "";
+    if (!key) {
+      invalid.push({ line: i + 1, text: trimmed });
+      return;
+    }
+    headers[key] = trimmed.slice(idx + 1).trim();
+  });
+  return { headers, invalid };
 };

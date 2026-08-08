@@ -1,6 +1,14 @@
 /* Body rendering: best-effort content-type-aware display for a captured
    request body (JSON pretty-print, multipart/form-data part list, XML
-   highlighting, or escaped raw text). Loaded on every page. */
+   highlighting, or escaped raw text). Loaded on the endpoint page only. */
+
+/* Above this many characters the body is shown as plain escaped text.
+   Highlighting runs synchronously on the main thread and emits roughly one
+   element per token, so a large payload costs hundreds of milliseconds and tens
+   of thousands of nodes to colour text the reader has to scroll past anyway.
+   The body is still shown in full and still copyable; only the colour is
+   dropped. */
+const HIGHLIGHT_LIMIT = 40_000;
 
 function htmlEscape(s) {
   return String(s)
@@ -11,12 +19,16 @@ function htmlEscape(s) {
     .replaceAll("'", "&#39;");
 }
 
-function highlightPrettyJSON(value) {
-  const pretty = JSON.stringify(value, null, 2);
-  if (window.hljs && window.hljs.getLanguage("json")) {
-    return window.hljs.highlight(pretty, { language: "json" }).value;
+function highlight(text, language) {
+  if (text.length > HIGHLIGHT_LIMIT) return htmlEscape(text);
+  if (window.hljs && window.hljs.getLanguage(language)) {
+    return window.hljs.highlight(text, { language }).value;
   }
-  return htmlEscape(pretty);
+  return htmlEscape(text);
+}
+
+function highlightPrettyJSON(value) {
+  return highlight(JSON.stringify(value, null, 2), "json");
 }
 
 /* Case-insensitive lookup into a headers object whose values are either a
@@ -133,13 +145,8 @@ window.renderBody = function (body, headers) {
     // not JSON
   }
   // Heuristic: looks like XML/HTML if it starts with '<'
-  const trimmed = body.trimStart();
-  if (
-    trimmed.startsWith("<") &&
-    window.hljs &&
-    window.hljs.getLanguage("xml")
-  ) {
-    return window.hljs.highlight(body, { language: "xml" }).value;
+  if (body.trimStart().startsWith("<")) {
+    return highlight(body, "xml");
   }
   return htmlEscape(body);
 };

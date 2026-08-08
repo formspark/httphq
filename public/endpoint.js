@@ -14,6 +14,18 @@
     OPTIONS: "bg-sky-50 text-sky-700",
   };
 
+  // How many cards are in the DOM at once, and how many more each reveal adds.
+  const PAGE_SIZE = 25;
+
+  // Relative timestamps are re-evaluated on this interval. Anything longer and
+  // "a few seconds ago" is still on screen a minute later.
+  const TICK_MS = 30_000;
+
+  // Reconnect backoff bounds. The page is designed to sit open for hours, so a
+  // dropped socket is expected rather than exceptional.
+  const RECONNECT_MIN_MS = 1_000;
+  const RECONNECT_MAX_MS = 30_000;
+
   function transformRequest(r) {
     return { ...r, createdAt: new Date(r.createdAt) };
   }
@@ -45,6 +57,15 @@
       get visibleRequests() {
         if (!this.methodFilter) return this.requests;
         return this.requests.filter((r) => r.method === this.methodFilter);
+      },
+
+      get filtered() {
+        return !!this.methodFilter || !!this.search;
+      },
+
+      clearFilters() {
+        this.methodFilter = "";
+        this.search = "";
       },
 
       fetchRequests() {
@@ -91,12 +112,24 @@
   function endpointPageFactory() {
     return {
       METHODS,
-      sendForm: { method: "POST", body: "", headers: "" },
+      pageSize: PAGE_SIZE,
+      sendForm: { method: "POST", path: "", body: "", headers: "" },
       sendStatus: "",
-      copyLabel: "Copy",
+      sendFailed: false,
       copiedKey: null,
+      pendingDeleteAll: false,
+      announcement: "",
+      connection: "connecting",
+      renderLimit: PAGE_SIZE,
+      // Bumped on an interval purely so relative-time expressions that read it
+      // re-evaluate. Alpine has no other reason to know that wall-clock time
+      // passed, so without this every timestamp freezes at first render.
+      tick: 0,
       _baseTitle: document.title,
       _unread: 0,
+      _reconnectDelay: RECONNECT_MIN_MS,
+      _socket: null,
+      _closed: false,
 
       // Alpine calls this once when the component mounts. Endpoint id and
       // WebSocket URL come from data-* attributes on the root element so the
@@ -105,16 +138,59 @@
         const endpointId = this.$el.dataset.endpointId;
         if (!endpointId) return;
         const scheme = location.protocol === "https:" ? "wss:" : "ws:";
-        const wsUrl = `${scheme}//${location.host}/ws/${endpointId}`;
+        this._wsUrl = `${scheme}//${location.host}/ws/${endpointId}`;
         Alpine.store("main").setEndpoint(endpointId);
-        this._connectWebSocket(wsUrl);
+        this._connectWebSocket();
+        setInterval(() => this.tick++, TICK_MS);
         document.addEventListener("visibilitychange", () => {
           if (!document.hidden) this._clearUnread();
         });
+        window.addEventListener("beforeunload", () => {
+          this._closed = true;
+          if (this._socket) this._socket.close();
+        });
       },
 
-      _connectWebSocket(url) {
-        const socket = new WebSocket(url);
+      // Which of the three empty states applies. They are distinct on purpose:
+      // "nothing has arrived", "your filter hides everything" and "the
+      // connection is gone" are different facts and previously shared one panel
+      // that asserted the first regardless of which was true.
+      get streamState() {
+        if (Alpine.store("main").visibleRequests.length > 0) return "list";
+        if (Alpine.store("main").filtered) return "filtered";
+        return "waiting";
+      },
+
+      get renderedRequests() {
+        return Alpine.store("main").visibleRequests.slice(0, this.renderLimit);
+      },
+
+      get hiddenCount() {
+        return Math.max(
+          0,
+          Alpine.store("main").visibleRequests.length - this.renderLimit,
+        );
+      },
+
+      showMore() {
+        this.renderLimit += PAGE_SIZE;
+      },
+
+      _connectWebSocket() {
+        if (this._closed) return;
+        this.connection =
+          this.connection === "live" ? "connecting" : this.connection;
+        const socket = new WebSocket(this._wsUrl);
+        this._socket = socket;
+
+        socket.addEventListener("open", () => {
+          this.connection = "live";
+          this._reconnectDelay = RECONNECT_MIN_MS;
+          // Traffic that landed while the socket was down is not replayed, so
+          // refetch to close the gap rather than silently missing it.
+          Alpine.store("main").fetchRequests();
+        });
+
         socket.addEventListener("message", (payload) => {
           let request;
           try {
@@ -123,14 +199,28 @@
             return;
           }
           Alpine.store("main").addRequest(request);
+          this.announce(`${request.method} request received`);
           if (document.hidden) {
             this._unread += 1;
             this._renderUnread();
           }
         });
-        socket.addEventListener("open", () => console.debug("ws:open"));
-        socket.addEventListener("close", () => console.debug("ws:close"));
-        socket.addEventListener("error", () => console.debug("ws:error"));
+
+        socket.addEventListener("close", () => this._scheduleReconnect());
+        socket.addEventListener("error", () => socket.close());
+      },
+
+      // Exponential backoff to a 30s ceiling. A page left open overnight should
+      // keep trying without hammering the server once it is genuinely gone.
+      _scheduleReconnect() {
+        if (this._closed) return;
+        this.connection = "disconnected";
+        const delay = this._reconnectDelay;
+        this._reconnectDelay = Math.min(delay * 2, RECONNECT_MAX_MS);
+        setTimeout(() => {
+          this.connection = "connecting";
+          this._connectWebSocket();
+        }, delay);
       },
 
       _renderUnread() {
@@ -160,15 +250,27 @@
       },
 
       formatTimeAgo: window.formatTimeAgo,
+      formatClock: window.formatClock,
+      formatBytes: window.formatBytes,
       renderBody: window.renderBody,
 
-      async copy(text) {
+      // Screen readers get no navigation on this page, so every change that a
+      // sighted user sees has to be spoken here or it does not exist.
+      announce(message) {
+        this.announcement = message;
+      },
+
+      async copy(text, key) {
         try {
           await window.copyToClipboard(text);
-          this.copyLabel = "Copied!";
-          setTimeout(() => (this.copyLabel = "Copy"), 1500);
+          this.copiedKey = key;
+          this.announce("Copied to clipboard");
+          setTimeout(() => {
+            if (this.copiedKey === key) this.copiedKey = null;
+          }, 1500);
         } catch (err) {
           console.error(err);
+          this.announce("Copy failed");
         }
       },
 
@@ -179,29 +281,59 @@
         try {
           await window.copyToClipboard(window.buildHarExport(requests));
           this.copiedKey = key;
+          this.announce(`Copied ${requests.length} requests to clipboard`);
           setTimeout(() => {
             if (this.copiedKey === key) this.copiedKey = null;
           }, 1500);
         } catch (err) {
           console.error(err);
+          this.announce("Copy failed");
         }
+      },
+
+      confirmDeleteAll() {
+        this.pendingDeleteAll = true;
+      },
+
+      async deleteAllConfirmed() {
+        const count = Alpine.store("main").requests.length;
+        this.pendingDeleteAll = false;
+        await Alpine.store("main").deleteRequests();
+        this.announce(`Deleted ${count} requests`);
       },
 
       async sendCustom() {
         const store = Alpine.store("main");
         if (!store.endpointId) return;
-        const headers = window.parseHeaderLines(this.sendForm.headers);
+        const parsed = window.parseHeaderLines(this.sendForm.headers);
+        if (parsed.invalid.length) {
+          this.sendFailed = true;
+          this.sendStatus = `Line ${parsed.invalid[0].line} is not a header: "${parsed.invalid[0].text}". Use Key: Value.`;
+          this.announce(this.sendStatus);
+          return;
+        }
+        const path = this.sendForm.path.replace(/^\/+/, "");
+        const target = `/to/${store.endpointId}${path ? "/" + path : ""}`;
         try {
+          this.sendFailed = false;
           this.sendStatus = "Sending…";
-          const res = await fetch(`/to/${store.endpointId}`, {
+          const res = await fetch(target, {
             method: this.sendForm.method,
-            headers,
+            headers: parsed.headers,
             body: this.sendForm.body || undefined,
           });
-          this.sendStatus = res.ok ? "Sent" : `Error: HTTP ${res.status}`;
-          setTimeout(() => (this.sendStatus = ""), 2000);
+          this.sendFailed = !res.ok;
+          this.sendStatus = res.ok
+            ? `Sent ${this.sendForm.method}`
+            : `The server rejected it: HTTP ${res.status}.`;
+          this.announce(this.sendStatus);
+          if (res.ok) setTimeout(() => (this.sendStatus = ""), 2000);
         } catch (err) {
-          this.sendStatus = `Error: ${err.message}`;
+          // The browser refuses some combinations outright, e.g. a body on GET.
+          // Report its reason rather than swallowing it, and keep it on screen.
+          this.sendFailed = true;
+          this.sendStatus = `Could not send: ${err.message}`;
+          this.announce(this.sendStatus);
         }
       },
     };
