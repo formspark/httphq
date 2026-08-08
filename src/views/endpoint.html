@@ -143,7 +143,20 @@
     class="mb-4 flex items-center justify-between gap-4 text-sm text-slate-500"
   >
     <p class="inline-flex items-center gap-2">
-      <span aria-hidden="true">⚠️</span>
+      <svg
+        viewBox="0 0 24 24"
+        class="w-4 h-4 shrink-0"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        aria-hidden="true"
+      >
+        <path
+          d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+        />
+        <line x1="12" y1="9" x2="12" y2="13" />
+        <line x1="12" y1="17" x2="12" y2="17" />
+      </svg>
       <span>Requests are deleted after 4 hours</span>
     </p>
     <div class="flex items-center gap-2">
@@ -330,21 +343,40 @@
             >
               Details
             </div>
-            <dl
-              class="grid grid-cols-[10rem_1fr] gap-x-3 text-sm divide-y divide-slate-100 [&>dt]:py-1.5 [&>dd]:py-1.5"
-            >
-              <dt class="text-slate-500">Time</dt>
-              <dd
-                :title="request.createdAt.toLocaleString()"
-                x-text="formatTimeAgo(request.createdAt)"
-              ></dd>
-              <dt class="text-slate-500">Client IP</dt>
-              <dd class="font-mono text-xs" x-text="request.ip || '—'"></dd>
-              <dt class="text-slate-500">Path</dt>
-              <dd
-                class="font-mono text-xs break-all"
-                x-text="request.path"
-              ></dd>
+            <!-- Rows are flex, not a two-column grid: below the breakpoint the
+                 label stacks above its value instead of holding a fixed column
+                 that would leave the value almost no width on a phone. Each row
+                 is its own element so the divider spans the whole row rather
+                 than a single column. -->
+            <dl class="text-sm">
+              <div
+                class="flex flex-col sm:flex-row sm:gap-3 py-1.5 border-b border-slate-100 last:border-b-0"
+              >
+                <dt class="text-slate-500 sm:w-40 sm:shrink-0">Time</dt>
+                <dd
+                  class="min-w-0"
+                  :title="request.createdAt.toLocaleString()"
+                  x-text="formatTimeAgo(request.createdAt)"
+                ></dd>
+              </div>
+              <div
+                class="flex flex-col sm:flex-row sm:gap-3 py-1.5 border-b border-slate-100 last:border-b-0"
+              >
+                <dt class="text-slate-500 sm:w-40 sm:shrink-0">Client IP</dt>
+                <dd
+                  class="font-mono text-xs min-w-0"
+                  x-text="request.ip || '—'"
+                ></dd>
+              </div>
+              <div
+                class="flex flex-col sm:flex-row sm:gap-3 py-1.5 border-b border-slate-100 last:border-b-0"
+              >
+                <dt class="text-slate-500 sm:w-40 sm:shrink-0">Path</dt>
+                <dd
+                  class="font-mono text-xs break-all min-w-0"
+                  x-text="request.path"
+                ></dd>
+              </div>
             </dl>
           </div>
 
@@ -366,18 +398,25 @@
               </button>
             </div>
             <div class="overflow-auto max-h-64">
-              <dl class="grid grid-cols-[10rem_1fr] gap-x-3 text-xs">
+              <!-- Same stacking rule as the details rows above. The divider is
+                   `border-b` with the last row cleared rather than `border-t`
+                   with the first cleared: x-for leaves its <template> as the
+                   first child, so a :first-child rule would never match a
+                   rendered row. -->
+              <dl class="text-xs">
                 <template
                   x-for="[k, v] in Object.entries(request.headers)"
                   :key="k"
                 >
-                  <div class="contents">
+                  <div
+                    class="flex flex-col sm:flex-row sm:gap-3 py-1 border-b border-slate-100 last:border-b-0"
+                  >
                     <dt
-                      class="py-1 text-slate-500 font-mono break-all border-t border-slate-100 first:border-t-0"
+                      class="text-slate-500 font-mono break-all sm:w-40 sm:shrink-0"
                       x-text="k"
                     ></dt>
                     <dd
-                      class="py-1 font-mono break-all border-t border-slate-100 first:border-t-0"
+                      class="font-mono break-all min-w-0"
                       x-text="Array.isArray(v) ? v.join(', ') : v"
                     ></dd>
                   </div>
