@@ -117,6 +117,23 @@
           })
           .catch((err) => console.error(err));
       },
+
+      // Nothing tells the page that the server swept a capture out from under
+      // it, so a list left open long enough renders requests that no longer
+      // exist, next to the promise that they were deleted. Dropping them
+      // locally is only the immediate half: the list is windowed, so the
+      // refetch is what resyncs `total` and pulls any older-but-live capture
+      // into the window.
+      pruneExpired(retentionMs) {
+        if (!retentionMs) return;
+        const cutoff = Date.now() - retentionMs;
+        const live = this.requests.filter(
+          (r) => r.createdAt.getTime() > cutoff,
+        );
+        if (live.length === this.requests.length) return;
+        this.requests = live;
+        return this.fetchRequests();
+      },
     });
   });
 
@@ -154,9 +171,19 @@
         if (!endpointId) return;
         const scheme = location.protocol === "https:" ? "wss:" : "ws:";
         this._wsUrl = `${scheme}//${location.host}/ws/${endpointId}`;
+        // A page served without the window keeps every capture it was given
+        // rather than expiring them against a guess.
+        const retentionSeconds = Number(this.$el.dataset.retentionSeconds);
+        this._retentionMs =
+          Number.isFinite(retentionSeconds) && retentionSeconds > 0
+            ? retentionSeconds * 1000
+            : 0;
         Alpine.store("main").setEndpoint(endpointId);
         this._connectWebSocket();
-        setInterval(() => this.tick++, TICK_MS);
+        setInterval(() => {
+          this.tick++;
+          Alpine.store("main").pruneExpired(this._retentionMs);
+        }, TICK_MS);
         document.addEventListener("visibilitychange", () => {
           if (!document.hidden) this._clearUnread();
         });

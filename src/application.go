@@ -122,14 +122,23 @@ func newApplication(config applicationConfig) *fiber.App {
 	return application
 }
 
-// startRetentionSweep drops captures older than the retention window on a
-// schedule. It returns the stopped-on-exit scheduler so the caller owns its
-// lifetime.
+// sweepRetention drops every capture older than the retention window.
+func sweepRetention() {
+	database.DeleteOldRequests(context.Background(), time.Now().Add(-retentionWindow))
+}
+
+// startRetentionSweep sweeps once and then on a schedule. The returned
+// scheduler runs for the life of the process; there is no shutdown path that
+// stops it.
+//
+// The sweep at startup is what makes the window hold: cron's first tick is a
+// full interval away, so a process that restarts more often than the interval
+// would otherwise never sweep at all and captures would outlive the window for
+// as long as the database file does.
 func startRetentionSweep() *cron.Cron {
+	sweepRetention()
 	scheduler := cron.New()
-	if _, err := scheduler.AddFunc(retentionSweep, func() {
-		database.DeleteOldRequests(context.Background(), time.Now().Add(-retentionWindow))
-	}); err != nil {
+	if _, err := scheduler.AddFunc(retentionSweep, sweepRetention); err != nil {
 		slog.Error("cron job registration failed", "err", err)
 		os.Exit(1)
 	}
