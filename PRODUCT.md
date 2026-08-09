@@ -87,6 +87,10 @@ Confirmed functionality:
   body).
 - Content-type-aware body rendering: pretty-printed and highlighted JSON,
   multipart/form-data part list, XML highlighting, escaped raw text otherwise.
+- Poll the JSON listing with a cursor: echo the response's `cursor` back as
+  `?since=` and each capture is handed over exactly once. The endpoint page
+  carries a ready-made prompt that hands a coding agent this endpoint's URLs
+  and that loop.
 - Pages: home (`/`), endpoint (`/<id>`), contact (`/contact`). `/api/health`
   and `/api/debug` exist for operations, not for users.
 
@@ -97,7 +101,9 @@ Technical constraints:
 - Storage is SQLite on the container's writable layer. Capture history is lost
   on restart, by design. No durable store, no migration path.
 - Request body limit is 1 MiB.
-- The request list returns at most 128 requests, newest first.
+- The request list returns at most 128 requests: newest first when asked
+  without a cursor, oldest first when asked with one, so a poller drains a
+  burst in order.
 - Rate limit is 150 requests per minute per client IP in production, bucketed
   on the platform-resolved IP.
 - Client IP resolution is a trust decision driven by the `PLATFORM` env var;

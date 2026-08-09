@@ -32,9 +32,9 @@ function highlightPrettyJSON(value) {
 }
 
 /* Case-insensitive lookup into a headers object whose values are either a
-   scalar string or a string[] (see the flattening in application.go). Exposed
-   as window.headerValue because that scalar-or-array contract is shared by
-   every consumer of a captured request, not just body rendering. */
+   scalar string or a string[] (see flattenHeaders in capture.go). Exposed as
+   window.headerValue because that scalar-or-array contract is shared by every
+   consumer of a captured request, not just body rendering. */
 function headerValue(headers, name) {
   if (!headers) return undefined;
   const key = Object.keys(headers).find(
