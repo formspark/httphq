@@ -19,6 +19,11 @@ import (
 // not the browser's fingerprint around it.
 const spoofCurlHeader = "Httphq-Spoof-Curl"
 
+// captureUUIDHeader carries the stored capture's UUID back on the response. It
+// is how a caller finds its own request in a stream it shares with everything
+// else pointed at the endpoint.
+const captureUUIDHeader = "Httphq-Request-Uuid"
+
 // browserOnlyHeaders are the headers a browser adds that no command-line client
 // sends. Dropped together with the opt-in header itself when curl is spoofed.
 var browserOnlyHeaders = []string{
@@ -114,7 +119,7 @@ func captureRequest(registry *socketRegistry) fiber.Handler {
 			}
 		}
 
-		c.Set("Httphq-Request-Uuid", request.UUID)
+		c.Set(captureUUIDHeader, request.UUID)
 		return c.SendStatus(http.StatusOK)
 	}
 }

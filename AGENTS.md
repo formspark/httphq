@@ -8,9 +8,15 @@ Guidance for agents and contributors working in this repository.
 tests beside it: `application.go` (wiring and entry point), `platform.go`
 (client IP and header stripping), `endpoint.go` (endpoint IDs and URLs),
 `capture.go` (the capture handler), `api.go` (the JSON API), `pages.go` (page
-rendering), `assets.go` (content-hashed asset URLs), `security.go` (CSP and
-security headers), `sockets.go` (the live feed), `requestlog.go` (correlation
-IDs and the access log).
+rendering), `agent.go` (the prompt an endpoint page hands to a coding agent),
+`assets.go` (content-hashed asset URLs), `security.go` (CSP and security
+headers), `sockets.go` (the live feed), `requestlog.go` (correlation IDs and
+the access log).
+
+A test file covers one subject, is named after it, and names each suite after
+what it exercises, so a handler's tests are found beside the handler. The one
+exception is `harness_test.go`, which is not a subject: it holds `TestMain` and
+the fixtures shared by every test that drives a real request.
 
 `newApplication` builds the entire routing surface from arguments, so tests
 drive real requests through it without a listening socket. Anything that pulls

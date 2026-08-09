@@ -11,6 +11,11 @@ import (
 // whole site: an unfurled link is a link to httphq, whichever page it points at.
 const socialImagePath = "/social-card.png"
 
+// Every surface that states how long a capture lives renders RetentionPhrase
+// rather than typing a figure, so moving retentionWindow moves the promise
+// wherever the pages make it. Prose that quoted its own number would go on
+// quoting the old one, and a reader has no way to tell.
+
 // pageBaseURL is the scheme+host a rendered page is being served from, used to
 // build the absolute URLs that canonical and Open Graph tags require. It tracks
 // the request rather than a configured hostname so a self-hosted deployment
@@ -25,10 +30,11 @@ func pageBaseURL(c fiber.Ctx) string {
 func pageMeta(c fiber.Ctx, title, description, path string) fiber.Map {
 	base := pageBaseURL(c)
 	return fiber.Map{
-		"Title":       title,
-		"Description": description,
-		"Canonical":   base + path,
-		"SocialImage": base + socialImagePath,
+		"Title":           title,
+		"Description":     description,
+		"Canonical":       base + path,
+		"SocialImage":     base + socialImagePath,
+		"RetentionPhrase": retentionPhrase(retentionWindow),
 	}
 }
 
@@ -53,13 +59,15 @@ func renderEndpoint(c fiber.Ctx) error {
 	endpointID := c.Params("endpoint")
 	endpointURL, websocketURL, apiURL := endpointURLs(
 		c.Scheme(), string(c.Request().Host()), endpointID)
+	retention := retentionPhrase(retentionWindow)
 	return c.Render("endpoint", fiber.Map{
 		"Title":                endpointID + " | httphq",
-		"Description":          "Live capture stream for " + endpointID + ". Requests sent to this endpoint appear here in real time and are deleted after 4 hours.",
+		"Description":          "Live capture stream for " + endpointID + ". Requests sent to this endpoint appear here in real time and are deleted after " + retention + ".",
 		"AppScripts":           true,
 		"EndpointID":           endpointID,
 		"EndpointURL":          endpointURL,
 		"EndpointWebSocketURL": websocketURL,
+		"RetentionPhrase":      retention,
 		// The page drops captures from its own list once they age out, so it
 		// needs the window as a number rather than as the prose it renders.
 		"RetentionSeconds": int(retentionWindow.Seconds()),

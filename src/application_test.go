@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"testing"
 	"time"
 
@@ -31,6 +32,23 @@ func uuidsFor(ctx context.Context, endpointID string) []string {
 	return uuids
 }
 
+// newApplication builds the whole routing surface, so these cover what the
+// wiring itself decides rather than what any one handler does.
+func TestNewApplication(t *testing.T) {
+	t.Run("serves static files from the public directory", func(t *testing.T) {
+		response := get(t, "/robots.txt")
+
+		assert.Equal(t, http.StatusOK, response.StatusCode)
+		assert.Contains(t, bodyOf(t, response), "User-agent")
+	})
+
+	// The fallthrough runs after every route, including the prefix-matched
+	// capture surface, so a path that matches nothing must not be captured.
+	t.Run("an unmatched path is a 404", func(t *testing.T) {
+		assert.Equal(t, http.StatusNotFound, get(t, "/no/such/page").StatusCode)
+	})
+}
+
 func TestSweepRetention(t *testing.T) {
 	t.Run("drops captures older than the retention window", func(t *testing.T) {
 		endpointID := "sweep-old"
@@ -50,5 +68,21 @@ func TestSweepRetention(t *testing.T) {
 		sweepRetention()
 
 		assert.Equal(t, []string{"sweep-recent-live"}, uuidsFor(t.Context(), endpointID))
+	})
+}
+
+// Cron's first tick is a full interval away, so a process restarting more often
+// than the interval would never sweep and captures would outlive the window for
+// as long as the database file does.
+func TestStartRetentionSweep(t *testing.T) {
+	t.Run("sweeps at startup rather than waiting for the first tick", func(t *testing.T) {
+		endpointID := "sweep-boot"
+		storeCapture(t, endpointID, "sweep-boot-expired",
+			time.Now().Add(-retentionWindow).Add(-time.Minute))
+
+		scheduler := startRetentionSweep()
+		t.Cleanup(func() { scheduler.Stop() })
+
+		assert.Empty(t, uuidsFor(t.Context(), endpointID))
 	})
 }

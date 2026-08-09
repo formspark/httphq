@@ -4,8 +4,27 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 )
+
+// The headers are set by middleware rather than per route, so the assertion
+// that matters is that no surface can be reached without them: a page, an API
+// route, a probe and the fallthrough 404 all have to carry them.
+func TestSecurityHeaders(t *testing.T) {
+	t.Run("every response carries them", func(t *testing.T) {
+		for _, path := range []string{"/", "/contact", "/api/health", "/no/such/page"} {
+			t.Run(path, func(t *testing.T) {
+				response := get(t, path)
+
+				assert.Equal(t, "nosniff", response.Header.Get("X-Content-Type-Options"))
+				assert.Equal(t, "no-referrer", response.Header.Get("Referrer-Policy"))
+				assert.Equal(t, "DENY", response.Header.Get("X-Frame-Options"))
+				assert.Contains(t, response.Header.Get(fiber.HeaderContentSecurityPolicy), "frame-ancestors 'none'")
+			})
+		}
+	})
+}
 
 func TestContentSecurityPolicy(t *testing.T) {
 	// The design tooling opens a socket back to a local origin. Shipping that

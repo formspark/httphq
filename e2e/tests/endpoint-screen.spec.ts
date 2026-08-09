@@ -2,8 +2,10 @@ import { test, expect } from "@playwright/test";
 import {
   captureUrl,
   newEndpointId,
+  pruneExpiredCaptures,
   readClipboard,
   readClipboardJson,
+  requestsUrl,
   send,
   type HarDocument,
 } from "./support/harness";
@@ -180,6 +182,30 @@ test.describe("Endpoint screen", () => {
 
       await page.locator('[data-test="delete-requests"]').click();
       await page.locator('[data-test="delete-confirm-button"]').click();
+      await expect(page.locator('[data-test="requests"]')).toContainText(
+        "Waiting for requests",
+      );
+    });
+
+    // Nothing tells the page that the server swept a capture out from under it,
+    // so a list left open long enough would go on rendering requests that no
+    // longer exist, beside the promise that they were deleted. The page runs
+    // this on an interval; the test drives the same pass directly rather than
+    // holding the suite open for it.
+    test("a capture the server no longer holds stops being rendered", async ({
+      page,
+      request,
+    }) => {
+      const response = await send(request, endpointUrl, { data: "swept" });
+      const uuid = response.headers()["httphq-request-uuid"];
+      await expect(page.locator(`#request-${uuid}`)).toBeAttached();
+
+      // Deleted behind the page's back, which is what the retention sweep is
+      // from the page's point of view.
+      await request.delete(requestsUrl(endpointId));
+
+      await pruneExpiredCaptures(page);
+
       await expect(page.locator('[data-test="requests"]')).toContainText(
         "Waiting for requests",
       );
@@ -662,6 +688,15 @@ test.describe("Endpoint screen", () => {
       await expect(page.locator('[data-test="agent-prompt"]')).toBeVisible();
     });
 
+    // Both panels sit above the stream. Opening one to read a prompt must not
+    // push the other open on top of it.
+    test("opening it leaves the send panel closed", async ({ page }) => {
+      await page.locator('[data-test="agent-toggle"]').click();
+
+      await expect(page.locator('[data-test="agent-prompt"]')).toBeVisible();
+      await expect(page.locator('[data-test="send-submit"]')).toBeHidden();
+    });
+
     // The prompt is built from the request, so it has to name the host the
     // page was actually served from rather than a hardcoded one.
     test("the prompt carries this endpoint's own URLs", async ({ page }) => {
@@ -714,6 +749,14 @@ test.describe("Endpoint screen", () => {
   });
 
   test.describe("Sending a test request", () => {
+    test("the panel is collapsed until it is opened", async ({ page }) => {
+      await expect(page.locator('[data-test="send-submit"]')).toBeHidden();
+
+      await page.locator('[data-test="send-toggle"]').click();
+
+      await expect(page.locator('[data-test="send-submit"]')).toBeVisible();
+    });
+
     test("submitting the panel produces a captured request", async ({
       page,
     }) => {

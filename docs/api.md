@@ -21,9 +21,9 @@ characters. Anything else is a 404.
 
 ## Capturing
 
-Send anything at all to `/to/:endpoint`. Every method is accepted, the response
-is always `200`, and the capture's UUID comes back on the
-`Httphq-Request-Uuid` header.
+Send anything at all to `/to/:endpoint`. Every method is accepted, anything
+within the body limit below answers `200`, and the capture's UUID comes back on
+the `Httphq-Request-Uuid` header.
 
 ```bash
 curl -X POST -d '{"hello":"world"}' https://httphq.com/to/purple-frog-0691

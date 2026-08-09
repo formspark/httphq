@@ -15,6 +15,27 @@ export const newEndpointId = () =>
 export const captureUrl = (endpointId: string) =>
   `${BASE_URL}/to/${endpointId}`;
 
+/** The JSON listing for an endpoint, which is also its delete-all target. */
+export const requestsUrl = (endpointId: string) =>
+  `${BASE_URL}/api/endpoints/${endpointId}/requests`;
+
+/**
+ * The page drops captures that have aged past the retention window and resyncs
+ * with the server, on an interval measured in tens of seconds. This runs that
+ * pass on demand with a window short enough to expire everything, so a test can
+ * assert what the page does about a swept capture without waiting for a tick.
+ */
+export const pruneExpiredCaptures = (page: Page) =>
+  page.evaluate(() => window.Alpine.store("main").pruneExpired(1));
+
+declare global {
+  interface Window {
+    Alpine: {
+      store(name: "main"): { pruneExpired(retentionMs: number): unknown };
+    };
+  }
+}
+
 export type SendOptions = {
   method?: string;
   data?: string | object;
