@@ -238,20 +238,34 @@
             class="field field-mono"
           ></textarea>
         </label>
-        <div class="flex items-start justify-between gap-4">
+        <!-- Action first, outcome after it. Every panel on this page opens its
+             action on the left edge, and the status reads as a consequence of
+             the button rather than as a caption for the form. -->
+        <div class="flex items-center gap-4">
+          <button
+            type="submit"
+            data-test="send-submit"
+            class="btn btn-primary shrink-0"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              class="icon"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <path d="M22 2L11 13" />
+              <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+            </svg>
+            Send
+          </button>
           <p
             data-test="send-status"
             class="text-xs"
             :class="sendFailed ? 'text-danger-700' : 'text-neutral-500'"
             x-text="sendStatus"
           ></p>
-          <button
-            type="submit"
-            data-test="send-submit"
-            class="btn btn-primary shrink-0"
-          >
-            Send
-          </button>
         </div>
       </form>
     </details>
