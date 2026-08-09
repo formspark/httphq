@@ -92,7 +92,8 @@ Confirmed functionality:
 
 Technical constraints:
 
-- Retention is 4 hours; a cron sweep runs every 5 minutes.
+- Retention is 4 hours; a sweep runs at startup and every 5 minutes after. An
+  open page drops captures from its own list as they age out.
 - Storage is SQLite on the container's writable layer. Capture history is lost
   on restart, by design. No durable store, no migration path.
 - Request body limit is 1 MiB.

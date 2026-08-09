@@ -59,6 +59,9 @@ func renderEndpoint(c fiber.Ctx) error {
 		"EndpointID":           endpointID,
 		"EndpointURL":          endpointURL,
 		"EndpointWebSocketURL": websocketURL,
+		// The page drops captures from its own list once they age out, so it
+		// needs the window as a number rather than as the prose it renders.
+		"RetentionSeconds": int(retentionWindow.Seconds()),
 	})
 }
 

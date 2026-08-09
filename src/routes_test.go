@@ -178,6 +178,15 @@ func TestPageRoutes(t *testing.T) {
 		assert.Contains(t, body, "endpoint.js?v=")
 	})
 
+	// The page expires captures out of its own list, so it needs the window as
+	// a number. Rendering it from the same constant the sweep uses is what keeps
+	// the two from drifting.
+	t.Run("an endpoint page carries the retention window", func(t *testing.T) {
+		body := bodyOf(t, get(t, "/"+endpointID(t)))
+
+		assert.Contains(t, body, `data-retention-seconds="14400"`)
+	})
+
 	// robots.txt excludes endpoint pages, so a canonical URL pointing them at a
 	// shared address would be a claim nothing else in the site makes.
 	t.Run("an endpoint page carries no canonical URL", func(t *testing.T) {
