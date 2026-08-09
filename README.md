@@ -22,7 +22,7 @@
 
 ## Docs
 
-[Scripts](docs/scripts.md)
+[API](docs/api.md) · [Scripts](docs/scripts.md)
 
 ## Configuration
 

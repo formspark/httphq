@@ -72,22 +72,54 @@ func CountRequestsForEndpointID(ctx context.Context, endpointID string) int64 {
 	return count
 }
 
-func GetRequestsForEndpointID(ctx context.Context, endpointID string, search string, limit int) []Request {
+// GetRequestsForEndpointID returns a window of an endpoint's captures. A zero
+// `since` means no cursor.
+//
+// The ordering flips with the cursor, and that is a correctness rule rather
+// than a preference. A cursored caller reads a stream it intends to consume
+// whole, so it has to be handed the OLDEST unseen page: with DESC and a full
+// page, a burst larger than the limit returns the newest captures, the caller's
+// cursor advances past the rest, and nothing ever goes back for them. ASC hands
+// out the backlog in order and the next call resumes where this page ended.
+func GetRequestsForEndpointID(
+	ctx context.Context, endpointID string, search string, since time.Time, limit int,
+) []Request {
 	var items []Request
-	result := DB.
+	query := DB.
 		Where(&Request{EndpointID: endpointID}).
 		Where("(? = '' OR (headers LIKE ? OR query_string LIKE ? OR body LIKE ?))",
 			search, "%"+search+"%", "%"+search+"%", "%"+search+"%").
-		Limit(limit).
-		Order("created_at DESC").
-		Find(&items)
+		Limit(limit)
+
+	if since.IsZero() {
+		query = query.Order("created_at DESC")
+	} else {
+		// UTC to match how CreateRequest stores the column. A bound value keeps
+		// whatever zone it arrives in, and the comparison is textual.
+		query = query.Where("created_at > ?", since.UTC()).Order("created_at ASC")
+	}
+
+	result := query.Find(&items)
 	if result.Error != nil {
 		slog.ErrorContext(ctx, "get requests failed", "err", result.Error, "endpoint_id", endpointID)
 	}
 	return items
 }
 
+// CreateRequest stores a capture, stamping it if the caller did not.
+//
+// CreatedAt is forced to UTC because SQLite has no date type and this column is
+// compared and ordered as text. A row written with a +02:00 offset is ranked
+// against one written with +00:00 by their digits rather than their instants,
+// so a single row in the wrong zone breaks both `created_at > ?` and
+// `ORDER BY created_at` for every row around it. Normalising on the way in is
+// what lets the rest of this file treat those clauses as chronological.
 func CreateRequest(ctx context.Context, request *Request) {
+	if request.CreatedAt.IsZero() {
+		request.CreatedAt = time.Now()
+	}
+	request.CreatedAt = request.CreatedAt.UTC()
+
 	result := DB.Create(&request)
 	if result.Error != nil {
 		slog.ErrorContext(ctx, "create request failed", "err", result.Error)
@@ -109,7 +141,9 @@ func DeleteRequestForUUID(ctx context.Context, UUID string) {
 }
 
 func DeleteOldRequests(ctx context.Context, threshold time.Time) {
-	result := DB.Where("created_at < ?", threshold).Delete(&Request{})
+	// UTC for the same reason as the cursor in GetRequestsForEndpointID: the
+	// comparison is textual, so both sides have to agree on a zone.
+	result := DB.Where("created_at < ?", threshold.UTC()).Delete(&Request{})
 	if result.Error != nil {
 		slog.ErrorContext(ctx, "delete old requests failed", "err", result.Error)
 	}

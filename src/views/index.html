@@ -120,7 +120,7 @@
     >
       Common use cases
     </h2>
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <article class="panel p-5">
         <div class="flex items-center gap-3 mb-2">
           <span
@@ -198,6 +198,31 @@
         <p class="text-sm text-neutral-600 text-pretty">
           Anyone with the URL reads the same stream. Handy for "is the payload
           from your side malformed, or mine?" conversations.
+        </p>
+      </article>
+
+      <article class="panel p-5">
+        <div class="flex items-center gap-3 mb-2">
+          <span
+            class="flex items-center justify-center w-9 h-9 rounded-md bg-brand-50 text-brand-600 shrink-0"
+            aria-hidden="true"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polyline points="4 17 10 11 4 5" />
+              <line x1="12" y1="19" x2="20" y2="19" />
+            </svg>
+          </span>
+          <h3 class="font-medium text-neutral-900">Debug with an agent</h3>
+        </div>
+        <p class="text-sm text-neutral-600 text-pretty">
+          Point Claude Code or any coding agent at the JSON API and let it watch
+          requests arrive while it works on your handler.
         </p>
       </article>
     </div>

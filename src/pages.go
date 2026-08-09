@@ -51,7 +51,8 @@ func renderContact(c fiber.Ctx) error {
 // and pointing them at a shared URL would be a lie.
 func renderEndpoint(c fiber.Ctx) error {
 	endpointID := c.Params("endpoint")
-	endpointURL, websocketURL := endpointURLs(c.Scheme(), string(c.Request().Host()), endpointID)
+	endpointURL, websocketURL, apiURL := endpointURLs(
+		c.Scheme(), string(c.Request().Host()), endpointID)
 	return c.Render("endpoint", fiber.Map{
 		"Title":                endpointID + " | httphq",
 		"Description":          "Live capture stream for " + endpointID + ". Requests sent to this endpoint appear here in real time and are deleted after 4 hours.",
@@ -62,6 +63,10 @@ func renderEndpoint(c fiber.Ctx) error {
 		// The page drops captures from its own list once they age out, so it
 		// needs the window as a number rather than as the prose it renders.
 		"RetentionSeconds": int(retentionWindow.Seconds()),
+		// Rendered rather than written by hand so the prompt quotes this
+		// deployment's own URLs and the limits actually in force.
+		"AgentPrompt": agentPrompt(
+			endpointURL, apiURL, productionRequestsPerMinute, retentionWindow),
 	})
 }
 
