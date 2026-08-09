@@ -60,86 +60,6 @@
     </div>
   </section>
 
-  <!-- Connect an agent panel. The prompt is on the page rather than written
-       straight to the clipboard: it is about to be pasted into something with
-       tool access, so the person pasting it gets to read it first. -->
-  <section class="mb-6" aria-labelledby="agent-heading">
-    <details class="group panel">
-      <summary
-        data-test="agent-toggle"
-        class="list-none px-4 sm:px-5 py-3 flex items-center gap-2 font-medium text-neutral-700 hover:bg-neutral-100 focus-ring focus-visible:ring-inset rounded-lg group-open:rounded-b-none"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          class="icon"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          aria-hidden="true"
-        >
-          <polyline points="4 17 10 11 4 5" />
-          <line x1="12" y1="19" x2="20" y2="19" />
-        </svg>
-        <h2 id="agent-heading" class="text-sm font-medium">Connect an agent</h2>
-        <svg
-          viewBox="0 0 24 24"
-          class="icon text-neutral-400 transition group-open:rotate-180"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          aria-hidden="true"
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </summary>
-
-      <div class="border-t border-neutral-200 p-4 sm:p-5 space-y-3">
-        <p class="text-sm text-neutral-600 text-pretty">
-          Paste this into Claude Code or any coding agent. It carries this
-          endpoint's URLs and tells the agent how to poll for new requests
-          without re-reading the ones it already has.
-        </p>
-        <!-- A pre preserves whitespace and this block is copied verbatim, so
-             everything between the tags travels to the clipboard. The single
-             newline after the start tag is dropped by the HTML parser and is
-             safe; a blank line or indentation in front of the interpolation
-             would not be. -->
-        <pre
-          class="code-block max-h-96"
-          tabindex="0"
-          role="region"
-          aria-label="Agent prompt"
-          x-ref="agentPrompt"
-          data-test="agent-prompt"
-        >
-{{.AgentPrompt}}</pre>
-        <button
-          type="button"
-          data-test="copy-agent-prompt"
-          @click="copy($refs.agentPrompt.textContent, 'agent')"
-          class="btn btn-primary"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            class="icon"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            aria-hidden="true"
-          >
-            <rect x="9" y="9" width="13" height="13" rx="2" />
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-          </svg>
-          <span
-            data-test="copy-agent-prompt-label"
-            x-text="copiedKey === 'agent' ? 'Copied!' : 'Copy prompt'"
-            >Copy prompt</span
-          >
-        </button>
-      </div>
-    </details>
-  </section>
-
   <!-- Send custom request panel -->
   <section class="mb-6" aria-labelledby="send-heading">
     <details class="group panel">
@@ -238,22 +158,116 @@
             class="field field-mono"
           ></textarea>
         </label>
-        <div class="flex items-start justify-between gap-4">
+        <!-- Action first, outcome after it. Every panel on this page opens its
+             action on the left edge, and the status reads as a consequence of
+             the button rather than as a caption for the form. -->
+        <div class="flex items-center gap-4">
+          <button
+            type="submit"
+            data-test="send-submit"
+            class="btn btn-primary shrink-0"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              class="icon"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <path d="M22 2L11 13" />
+              <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+            </svg>
+            Send
+          </button>
           <p
             data-test="send-status"
             class="text-xs"
             :class="sendFailed ? 'text-danger-700' : 'text-neutral-500'"
             x-text="sendStatus"
           ></p>
-          <button
-            type="submit"
-            data-test="send-submit"
-            class="btn btn-primary shrink-0"
-          >
-            Send
-          </button>
         </div>
       </form>
+    </details>
+  </section>
+
+  <!-- Connect an agent panel. The prompt is on the page rather than written
+       straight to the clipboard: it is about to be pasted into something with
+       tool access, so the person pasting it gets to read it first. -->
+  <section class="mb-6" aria-labelledby="agent-heading">
+    <details class="group panel">
+      <summary
+        data-test="agent-toggle"
+        class="list-none px-4 sm:px-5 py-3 flex items-center gap-2 font-medium text-neutral-700 hover:bg-neutral-100 focus-ring focus-visible:ring-inset rounded-lg group-open:rounded-b-none"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          class="icon"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          aria-hidden="true"
+        >
+          <polyline points="4 17 10 11 4 5" />
+          <line x1="12" y1="19" x2="20" y2="19" />
+        </svg>
+        <h2 id="agent-heading" class="text-sm font-medium">Connect an agent</h2>
+        <svg
+          viewBox="0 0 24 24"
+          class="icon text-neutral-400 transition group-open:rotate-180"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          aria-hidden="true"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </summary>
+
+      <div class="border-t border-neutral-200 p-4 sm:p-5">
+        <p class="mb-2 text-sm text-neutral-600 text-pretty">
+          Paste this into Claude Code or any coding agent. It carries this
+          endpoint's URLs and tells the agent how to poll for new requests
+          without re-reading the ones it already has.
+        </p>
+        <!-- A pre preserves whitespace and this block is copied verbatim, so
+             everything between the tags travels to the clipboard. The single
+             newline after the start tag is dropped by the HTML parser and is
+             safe; a blank line or indentation in front of the interpolation
+             would not be. -->
+        <pre
+          class="code-block max-h-96"
+          tabindex="0"
+          role="region"
+          aria-label="Agent prompt"
+          x-ref="agentPrompt"
+          data-test="agent-prompt"
+        >
+{{.AgentPrompt}}</pre>
+        <button
+          type="button"
+          data-test="copy-agent-prompt"
+          @click="copy($refs.agentPrompt.textContent, 'agent')"
+          class="btn btn-primary mt-3"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            class="icon"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            aria-hidden="true"
+          >
+            <rect x="9" y="9" width="13" height="13" rx="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
+          <span
+            data-test="copy-agent-prompt-label"
+            x-text="copiedKey === 'agent' ? 'Copied!' : 'Copy prompt'"
+            >Copy prompt</span
+          >
+        </button>
+      </div>
     </details>
   </section>
 

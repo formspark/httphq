@@ -598,7 +598,7 @@ body never flashes, animates, or auto-scrolls to claim attention.
 ### Don't:
 
 - **Don't** spend a method hue on anything but a method badge. The seven wash-and-ink pairs are the traffic classification and nothing else.
-- **Don't** add a second brand-filled button to a view. One primary action per screen; everything else is an outlined, bare, or destructive control.
+- **Don't** add a second brand-filled button to one view. Everything beside the primary action is an outlined, bare, or destructive control. A disclosure panel counts as its own view: it is collapsed by default, and once opened it is the thing the reader is working in, so it carries its own primary action rather than deferring to the page's. Two panels on a page may therefore each hold one, which is why the Buttons entry scopes `.btn-primary` to a panel.
 - **Don't** introduce a saturated fill with white text beyond the two that exist: the brand primary and the destructive button. Coloured chips are a 97% wash carrying a 50% ink of the same hue, never a fill.
 - **Don't** use danger for validation errors or generic failure text: it means removal, plus the unread favicon dot.
 - **Don't** add a shadow. There are none in this system, and a border under a shadow is two mechanisms declaring one edge.
