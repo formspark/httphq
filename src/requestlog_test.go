@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"strings"
 	"testing"
 
@@ -38,6 +39,41 @@ func TestRequestIDPattern(t *testing.T) {
 		for _, id := range rejected {
 			assert.Falsef(t, requestIDPattern.MatchString(id), "%q should be replaced with a minted ID", id)
 		}
+	})
+}
+
+// The ID a caller reads back is the one stamped on every line logged while its
+// request was handled, so the echo is what makes a log line findable from
+// outside the process.
+func TestRequestLogger(t *testing.T) {
+	t.Run("a valid inbound request ID is echoed back", func(t *testing.T) {
+		response := do(t, testRequest{
+			method:  http.MethodGet,
+			path:    "/api/health",
+			headers: map[string]string{"X-Request-Id": "abcd-1234-efgh"},
+		})
+
+		assert.Equal(t, "abcd-1234-efgh", response.Header.Get("X-Request-Id"))
+	})
+
+	t.Run("a request with no ID is given one", func(t *testing.T) {
+		assert.NotEmpty(t, get(t, "/api/health").Header.Get("X-Request-Id"))
+	})
+
+	// A caller's ID reaches every log line it produces, so one shaped like a log
+	// record of its own is replaced rather than reused.
+	t.Run("a malformed inbound request ID is replaced rather than echoed", func(t *testing.T) {
+		forged := `{"level":"error"}`
+
+		response := do(t, testRequest{
+			method:  http.MethodGet,
+			path:    "/api/health",
+			headers: map[string]string{"X-Request-Id": forged},
+		})
+
+		echoed := response.Header.Get("X-Request-Id")
+		assert.NotEmpty(t, echoed)
+		assert.NotEqual(t, forged, echoed)
 	})
 }
 

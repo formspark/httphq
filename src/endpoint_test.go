@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"strings"
 	"testing"
 
@@ -79,4 +80,25 @@ func TestValidEndpointID(t *testing.T) {
 			assert.Falsef(t, validEndpointID(id), "%q should be rejected", id)
 		}
 	})
+}
+
+// The guard runs before the handler, so no route can reach the database, a
+// template or a log line with an unvalidated ID. Every route carrying an
+// :endpoint parameter has to be behind it.
+func TestRequireValidEndpoint(t *testing.T) {
+	malformed := "Not_A_Valid_ID"
+
+	routes := []testRequest{
+		{method: http.MethodGet, path: "/" + malformed},
+		{method: http.MethodGet, path: "/api/endpoints/" + malformed + "/requests"},
+		{method: http.MethodDelete, path: "/api/endpoints/" + malformed + "/requests"},
+		{method: http.MethodDelete, path: "/api/endpoints/" + malformed + "/requests/some-uuid"},
+		{method: http.MethodPost, path: "/to/" + malformed},
+	}
+
+	for _, route := range routes {
+		t.Run(route.method+" "+route.path, func(t *testing.T) {
+			assert.Equal(t, http.StatusNotFound, do(t, route).StatusCode)
+		})
+	}
 }

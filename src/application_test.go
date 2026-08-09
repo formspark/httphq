@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"testing"
 	"time"
 
@@ -29,6 +30,23 @@ func uuidsFor(ctx context.Context, endpointID string) []string {
 		uuids = append(uuids, request.UUID)
 	}
 	return uuids
+}
+
+// newApplication builds the whole routing surface, so these cover what the
+// wiring itself decides rather than what any one handler does.
+func TestNewApplication(t *testing.T) {
+	t.Run("serves static files from the public directory", func(t *testing.T) {
+		response := get(t, "/robots.txt")
+
+		assert.Equal(t, http.StatusOK, response.StatusCode)
+		assert.Contains(t, bodyOf(t, response), "User-agent")
+	})
+
+	// The fallthrough runs after every route, including the prefix-matched
+	// capture surface, so a path that matches nothing must not be captured.
+	t.Run("an unmatched path is a 404", func(t *testing.T) {
+		assert.Equal(t, http.StatusNotFound, get(t, "/no/such/page").StatusCode)
+	})
 }
 
 func TestSweepRetention(t *testing.T) {
