@@ -93,8 +93,8 @@
         </svg>
       </summary>
 
-      <div class="border-t border-neutral-200 p-4 sm:p-5 space-y-3">
-        <p class="text-sm text-neutral-600 text-pretty">
+      <div class="border-t border-neutral-200 p-4 sm:p-5">
+        <p class="mb-2 text-sm text-neutral-600 text-pretty">
           Paste this into Claude Code or any coding agent. It carries this
           endpoint's URLs and tells the agent how to poll for new requests
           without re-reading the ones it already has.
@@ -117,7 +117,7 @@
           type="button"
           data-test="copy-agent-prompt"
           @click="copy($refs.agentPrompt.textContent, 'agent')"
-          class="btn btn-primary"
+          class="btn btn-secondary mt-3"
         >
           <svg
             viewBox="0 0 24 24"
