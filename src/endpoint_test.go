@@ -9,17 +9,29 @@ import (
 
 func TestEndpointURLs(t *testing.T) {
 	t.Run("an https page advertises a wss socket", func(t *testing.T) {
-		endpointURL, websocketURL := endpointURLs("https", "httphq.com", "purple-frog-0691")
+		endpointURL, websocketURL, apiURL := endpointURLs("https", "httphq.com", "purple-frog-0691")
 
 		assert.Equal(t, "https://httphq.com/to/purple-frog-0691", endpointURL)
 		assert.Equal(t, "wss://httphq.com/ws/purple-frog-0691", websocketURL)
+		assert.Equal(t, "https://httphq.com/api/endpoints/purple-frog-0691/requests", apiURL)
 	})
 
 	t.Run("an http page advertises a ws socket", func(t *testing.T) {
-		endpointURL, websocketURL := endpointURLs("http", "httphq.com", "purple-frog-0691")
+		endpointURL, websocketURL, apiURL := endpointURLs("http", "httphq.com", "purple-frog-0691")
 
 		assert.Equal(t, "http://httphq.com/to/purple-frog-0691", endpointURL)
 		assert.Equal(t, "ws://httphq.com/ws/purple-frog-0691", websocketURL)
+		assert.Equal(t, "http://httphq.com/api/endpoints/purple-frog-0691/requests", apiURL)
+	})
+
+	// The URLs track the request rather than a configured hostname, so a
+	// self-hosted deployment advertises itself instead of httphq.com.
+	t.Run("a self-hosted deployment advertises its own host", func(t *testing.T) {
+		endpointURL, websocketURL, apiURL := endpointURLs("http", "localhost:8080", "purple-frog-0691")
+
+		assert.Equal(t, "http://localhost:8080/to/purple-frog-0691", endpointURL)
+		assert.Equal(t, "ws://localhost:8080/ws/purple-frog-0691", websocketURL)
+		assert.Equal(t, "http://localhost:8080/api/endpoints/purple-frog-0691/requests", apiURL)
 	})
 }
 

@@ -31,8 +31,10 @@ const (
 
 	// Development runs effectively unlimited so a page under test is never
 	// throttled; production bounds one client's share of a shared instance.
+	// The production figure is quoted to pollers in the agent prompt, so it is
+	// read from here rather than restated: see agentPrompt.
 	developmentRequestsPerMinute = 9999
-	productionRequestsPerMinute  = 125
+	productionRequestsPerMinute  = 150
 )
 
 // applicationConfig locates the files the app serves and the socket registry it

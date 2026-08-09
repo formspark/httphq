@@ -27,15 +27,21 @@ func requireValidEndpoint(c fiber.Ctx) error {
 	return c.Next()
 }
 
-// endpointURLs builds the public capture and live-feed URLs shown on an
-// endpoint page. The WebSocket scheme tracks the request scheme so an HTTPS
-// page always advertises wss:// — a ws:// socket on an HTTPS page is blocked
-// by browsers as mixed content.
-func endpointURLs(scheme, host, endpointID string) (endpointURL, websocketURL string) {
+// endpointURLs builds the three public URLs for an endpoint: where captures are
+// sent, where the live feed is read, and where the JSON listing is polled. They
+// are built together so a caller cannot advertise one host for the capture URL
+// and another for the API.
+//
+// Every one of them tracks the request's scheme and host rather than a
+// configured name, so a self-hosted deployment advertises itself. The WebSocket
+// scheme tracks it too: a ws:// socket on an HTTPS page is blocked by browsers
+// as mixed content.
+func endpointURLs(scheme, host, endpointID string) (endpointURL, websocketURL, apiURL string) {
 	websocketScheme := "ws"
 	if scheme == "https" {
 		websocketScheme = "wss"
 	}
 	return scheme + "://" + host + "/to/" + endpointID,
-		websocketScheme + "://" + host + "/ws/" + endpointID
+		websocketScheme + "://" + host + "/ws/" + endpointID,
+		scheme + "://" + host + "/api/endpoints/" + endpointID + "/requests"
 }

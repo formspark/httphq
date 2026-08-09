@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
@@ -103,14 +105,17 @@ func bodyOf(t *testing.T, response *http.Response) string {
 type requestListing struct {
 	Requests []database.Request `json:"requests"`
 	Total    int64              `json:"total"`
+	Cursor   string             `json:"cursor"`
+	HasMore  bool               `json:"hasMore"`
 }
 
 // listRequests reads back what an endpoint has captured, through the same API
-// the page uses.
-func listRequests(t *testing.T, id, search string) requestListing {
+// the page uses. An empty `since` is the browser's call, with no cursor.
+func listRequests(t *testing.T, id, search, since string) requestListing {
 	t.Helper()
 
-	response := get(t, "/api/endpoints/"+id+"/requests?search="+search)
+	response := get(t, "/api/endpoints/"+id+"/requests?search="+search+
+		"&since="+url.QueryEscape(since))
 	require.Equal(t, http.StatusOK, response.StatusCode)
 
 	var payload requestListing
@@ -120,12 +125,12 @@ func listRequests(t *testing.T, id, search string) requestListing {
 
 func capturedRequests(t *testing.T, id, search string) []database.Request {
 	t.Helper()
-	return listRequests(t, id, search).Requests
+	return listRequests(t, id, search, "").Requests
 }
 
 func listedTotal(t *testing.T, id, search string) int64 {
 	t.Helper()
-	return listRequests(t, id, search).Total
+	return listRequests(t, id, search, "").Total
 }
 
 func TestHealthRoute(t *testing.T) {
@@ -185,6 +190,17 @@ func TestPageRoutes(t *testing.T) {
 		body := bodyOf(t, get(t, "/"+endpointID(t)))
 
 		assert.Contains(t, body, `data-retention-seconds="14400"`)
+	})
+
+	// The prompt is built from the request, so a self-hosted deployment hands
+	// out its own URLs rather than httphq.com's.
+	t.Run("an endpoint page carries an agent prompt for this host", func(t *testing.T) {
+		id := endpointID(t)
+		body := bodyOf(t, get(t, "/"+id))
+
+		assert.Contains(t, body, "http://example.com/api/endpoints/"+id+"/requests")
+		assert.Contains(t, body, "150 requests per minute")
+		assert.NotContains(t, body, "httphq.com")
 	})
 
 	// robots.txt excludes endpoint pages, so a canonical URL pointing them at a
@@ -399,6 +415,86 @@ func TestRequestsAPI(t *testing.T) {
 		assert.Equal(t, http.StatusOK, response.StatusCode)
 		assert.Empty(t, capturedRequests(t, id, ""))
 		assert.Len(t, capturedRequests(t, other, ""), 1)
+	})
+}
+
+// The cursor is what makes the listing pollable. Its promise is that echoing it
+// back returns every capture exactly once, so these cover the round trip rather
+// than the field's presence.
+func TestRequestsAPICursor(t *testing.T) {
+	t.Run("an endpoint with no traffic still carries a cursor", func(t *testing.T) {
+		listing := listRequests(t, endpointID(t), "", "")
+
+		assert.NotEmpty(t, listing.Cursor)
+		assert.False(t, listing.HasMore)
+	})
+
+	// Without this the caller has nothing to advance from and would re-ask for
+	// the same empty window forever.
+	t.Run("the cursor from an empty endpoint is usable", func(t *testing.T) {
+		id := endpointID(t)
+		cursor := listRequests(t, id, "", "").Cursor
+
+		do(t, testRequest{method: http.MethodPost, path: "/to/" + id, body: "after"})
+
+		captured := listRequests(t, id, "", cursor).Requests
+		require.Len(t, captured, 1)
+		assert.Equal(t, "after", captured[0].Body)
+	})
+
+	t.Run("round-tripping the cursor returns only what is new", func(t *testing.T) {
+		id := endpointID(t)
+		do(t, testRequest{method: http.MethodPost, path: "/to/" + id, body: "first"})
+
+		first := listRequests(t, id, "", "")
+		require.Len(t, first.Requests, 1)
+
+		do(t, testRequest{method: http.MethodPost, path: "/to/" + id, body: "second"})
+
+		second := listRequests(t, id, "", first.Cursor)
+		require.Len(t, second.Requests, 1)
+		assert.Equal(t, "second", second.Requests[0].Body)
+	})
+
+	t.Run("a cursor with nothing behind it returns nothing but still advances", func(t *testing.T) {
+		id := endpointID(t)
+		do(t, testRequest{method: http.MethodPost, path: "/to/" + id, body: "only"})
+
+		first := listRequests(t, id, "", "")
+		second := listRequests(t, id, "", first.Cursor)
+
+		assert.Empty(t, second.Requests)
+		assert.NotEmpty(t, second.Cursor)
+	})
+
+	// total is what a delete-all will affect, so it stays endpoint-wide however
+	// the listing is narrowed.
+	t.Run("the total ignores the cursor", func(t *testing.T) {
+		id := endpointID(t)
+		do(t, testRequest{method: http.MethodPost, path: "/to/" + id, body: "first"})
+
+		first := listRequests(t, id, "", "")
+
+		assert.Equal(t, int64(1), listRequests(t, id, "", first.Cursor).Total)
+	})
+
+	// Ignoring an unparseable cursor would hand back the whole window, which a
+	// caller cannot tell from a legitimate reply and would reprocess in full.
+	t.Run("a malformed since is rejected rather than ignored", func(t *testing.T) {
+		response := get(t, "/api/endpoints/"+endpointID(t)+"/requests?since=not-a-timestamp")
+
+		assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+		assert.Contains(t, bodyOf(t, response), "RFC 3339")
+	})
+
+	t.Run("a plain RFC 3339 second-precision cursor is accepted", func(t *testing.T) {
+		id := endpointID(t)
+		do(t, testRequest{method: http.MethodPost, path: "/to/" + id, body: "only"})
+
+		listing := listRequests(t, id, "", time.Now().UTC().Add(-time.Hour).Format(time.RFC3339))
+
+		require.Len(t, listing.Requests, 1)
+		assert.Equal(t, "only", listing.Requests[0].Body)
 	})
 }
 

@@ -25,7 +25,7 @@ func storeCapture(t *testing.T, endpointID, uuid string, createdAt time.Time) {
 
 func uuidsFor(ctx context.Context, endpointID string) []string {
 	var uuids []string
-	for _, request := range database.GetRequestsForEndpointID(ctx, endpointID, "", 10) {
+	for _, request := range database.GetRequestsForEndpointID(ctx, endpointID, "", time.Time{}, 10) {
 		uuids = append(uuids, request.UUID)
 	}
 	return uuids

@@ -98,7 +98,7 @@ Technical constraints:
   on restart, by design. No durable store, no migration path.
 - Request body limit is 1 MiB.
 - The request list returns at most 128 requests, newest first.
-- Rate limit is 125 requests per minute per client IP in production, bucketed
+- Rate limit is 150 requests per minute per client IP in production, bucketed
   on the platform-resolved IP.
 - Client IP resolution is a trust decision driven by the `PLATFORM` env var;
   setting it trusts that platform's header unconditionally.

@@ -653,6 +653,66 @@ test.describe("Endpoint screen", () => {
     });
   });
 
+  test.describe("Connecting an agent", () => {
+    test("the panel is collapsed until it is opened", async ({ page }) => {
+      await expect(page.locator('[data-test="agent-prompt"]')).toBeHidden();
+
+      await page.locator('[data-test="agent-toggle"]').click();
+
+      await expect(page.locator('[data-test="agent-prompt"]')).toBeVisible();
+    });
+
+    // The prompt is built from the request, so it has to name the host the
+    // page was actually served from rather than a hardcoded one.
+    test("the prompt carries this endpoint's own URLs", async ({ page }) => {
+      await page.locator('[data-test="agent-toggle"]').click();
+
+      const prompt = page.locator('[data-test="agent-prompt"]');
+      await expect(prompt).toContainText(endpointUrl);
+      await expect(prompt).toContainText(
+        `/api/endpoints/${endpointId}/requests`,
+      );
+    });
+
+    test("the prompt states the cursor loop and the poll interval", async ({
+      page,
+    }) => {
+      await page.locator('[data-test="agent-toggle"]').click();
+
+      const prompt = page.locator('[data-test="agent-prompt"]');
+      await expect(prompt).toContainText("?since=");
+      await expect(prompt).toContainText("hasMore");
+      await expect(prompt).toContainText("2 seconds");
+    });
+
+    // Copied verbatim into another tool, so stray edge whitespace from the
+    // template would travel with it.
+    test("the copy button writes the prompt with no stray whitespace", async ({
+      page,
+    }) => {
+      await page.locator('[data-test="agent-toggle"]').click();
+      const shown = await page
+        .locator('[data-test="agent-prompt"]')
+        .textContent();
+
+      await page.locator('[data-test="copy-agent-prompt"]').click();
+
+      const copied = await readClipboard(page);
+      expect(copied).toBe(shown);
+      expect(copied).toBe(copied.trim());
+      expect(copied).toContain(endpointUrl);
+    });
+
+    test("the copy button label flips to Copied!", async ({ page }) => {
+      await page.locator('[data-test="agent-toggle"]').click();
+      await page.locator('[data-test="copy-agent-prompt"]').click();
+
+      await expect(
+        page.locator('[data-test="copy-agent-prompt-label"]'),
+      ).toContainText("Copied!");
+    });
+  });
+
   test.describe("Sending a test request", () => {
     test("submitting the panel produces a captured request", async ({
       page,

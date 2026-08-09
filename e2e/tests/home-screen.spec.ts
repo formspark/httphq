@@ -60,6 +60,7 @@ test.describe("Home screen", () => {
       await expect(section).toBeVisible();
       await expect(section).toContainText("Test webhooks");
       await expect(section).toContainText("Inspect payloads");
+      await expect(section).toContainText("Debug with an agent");
     });
 
     test("the example capture shows a rendered request", async ({ page }) => {
