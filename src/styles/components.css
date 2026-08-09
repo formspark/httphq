@@ -109,6 +109,24 @@
     @apply rounded-lg border border-neutral-200 bg-white;
   }
 
+  /* Disclosure panel: a `details` wearing `.panel`, whose `summary` is the row
+     that opens it and whose body appears below a seam. The two halves are one
+     component, so they are spelled once here rather than at each call site.
+
+     `list-none` removes the native marker, which the panel draws its own
+     chevron in place of. The open state squares off the bottom corners so the
+     seam below meets the panel edge rather than crossing a radius. */
+  .panel-summary {
+    @apply list-none flex items-center gap-2 px-4 sm:px-5 py-3;
+    @apply font-medium text-neutral-700 hover:bg-neutral-100;
+    @apply rounded-lg group-open:rounded-b-none;
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset;
+  }
+
+  .panel-body {
+    @apply border-t border-neutral-200 p-4 sm:p-5;
+  }
+
   /* Key/value row. Stacks below the breakpoint so a value is never squeezed
      into what is left of a fixed label column on a phone. */
   .kv-row {

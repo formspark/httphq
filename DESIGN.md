@@ -456,8 +456,9 @@ must never be borrowed for a disabled, errored, or drop-target surface.
 
 The system is implemented, not only described. `src/styles/components.css`
 carries the classes these entries specify (`.btn` and its variants, `.field`,
-`.field-label`, `.region-label`, `.panel`, `.kv-row`, `.icon`, `.badge`,
-`.code-block`, `.empty-value`, `.btn-lg`), and templates compose them rather
+`.field-label`, `.region-label`, `.panel`, `.panel-summary`, `.panel-body`,
+`.kv-row`, `.icon`, `.badge`, `.code-block`, `.empty-value`, `.btn-lg`), and
+templates compose them rather
 than repeating utility strings. Every page uses them: a template that re-spells
 a component as a utility string is the bug, not a shortcut. Utilities stay the default for one-off composition; anything whose
 tokens must not drift between call sites belongs in that file. Before adding a
@@ -469,6 +470,14 @@ There is one surface class, `.panel`: a white fill, a 1px neutral-200 seam and
 no shadow. A second, quieter panel would be the One Edge Rule broken by another
 name, so a surface that needs to read as nested takes its distinction from
 spacing or tone rather than from a class of its own.
+
+A disclosure panel is that surface with two more parts: `.panel-summary` is the
+row that opens it, and `.panel-body` is what appears below the seam. They are
+one component in two spellings, so a panel that opens is composed from them
+rather than from a utility string repeated at each panel. The summary drops the
+native marker and squares its bottom corners when open, so the seam meets the
+panel edge instead of crossing a radius; the chevron that replaces the marker is
+a partial, and it reports state rather than competing with the label.
 
 `.field-label` and `.region-label` carry one type token between them. The field
 label owns the spacing above its input; the region label takes spacing from the

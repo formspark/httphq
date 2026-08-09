@@ -106,3 +106,11 @@ func bodyOf(t *testing.T, response *http.Response) string {
 	require.NoError(t, err)
 	return string(body)
 }
+
+// prose collapses the whitespace a template's own line breaks introduce, so an
+// assertion about a rendered sentence does not depend on where the formatter
+// happened to wrap it. Use it for copy; markup is matched on bodyOf.
+func prose(t *testing.T, response *http.Response) string {
+	t.Helper()
+	return strings.Join(strings.Fields(bodyOf(t, response)), " ")
+}

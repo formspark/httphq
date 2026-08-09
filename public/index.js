@@ -60,6 +60,14 @@ window.formatClock = function (date) {
   return clockFormatter.format(date);
 };
 
+/* A count with its noun, pluralised by adding an s. Several surfaces state a
+   count in prose, and one that says "1 requests" reads as a defect in the thing
+   being counted rather than in the sentence. */
+
+window.pluralize = function (count, noun) {
+  return `${count} ${count === 1 ? noun : `${noun}s`}`;
+};
+
 /* Byte sizes for captured bodies. */
 
 window.formatBytes = function (bytes) {

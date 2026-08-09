@@ -77,11 +77,17 @@
         this.search = "";
       },
 
+      // Every call is scoped to the endpoint the page is open on, so the route
+      // is spelled once rather than at each call site.
+      requestsUrl(suffix = "") {
+        return `/api/endpoints/${this.endpointId}/requests${suffix}`;
+      },
+
       fetchRequests() {
         if (!this.endpointId) return;
-        const url =
-          `/api/endpoints/${this.endpointId}/requests?search=` +
-          encodeURIComponent(this.search);
+        const url = this.requestsUrl(
+          `?search=${encodeURIComponent(this.search)}`,
+        );
         return fetch(url)
           .then((r) => r.json())
           .then((d) => {
@@ -97,9 +103,7 @@
       },
 
       deleteRequests() {
-        return fetch(`/api/endpoints/${this.endpointId}/requests`, {
-          method: "DELETE",
-        })
+        return fetch(this.requestsUrl(), { method: "DELETE" })
           .then(() => {
             this.requests = [];
             this.total = 0;
@@ -108,9 +112,7 @@
       },
 
       deleteRequest(uuid) {
-        return fetch(`/api/endpoints/${this.endpointId}/requests/${uuid}`, {
-          method: "DELETE",
-        })
+        return fetch(this.requestsUrl(`/${uuid}`), { method: "DELETE" })
           .then(() => {
             this.requests = this.requests.filter((r) => r.uuid !== uuid);
             this.total = Math.max(0, this.total - 1);
@@ -294,6 +296,7 @@
       formatTimeAgo: window.formatTimeAgo,
       formatClock: window.formatClock,
       formatBytes: window.formatBytes,
+      pluralize: window.pluralize,
       renderBody: window.renderBody,
 
       // Screen readers get no navigation on this page, so every change that a
@@ -325,11 +328,10 @@
 
       // Copies requests as a HAR-shaped document.
       copyHar(requests, key) {
-        const count = requests.length;
         return this._copyAndFlash(
           window.buildHarExport(requests),
           key,
-          `Copied ${count} ${count === 1 ? "request" : "requests"} to clipboard`,
+          `Copied ${window.pluralize(requests.length, "request")} to clipboard`,
         );
       },
 
@@ -341,9 +343,7 @@
         const count = Alpine.store("main").requests.length;
         this.pendingDeleteAll = false;
         await Alpine.store("main").deleteRequests();
-        this.announce(
-          `Deleted ${count} ${count === 1 ? "request" : "requests"}`,
-        );
+        this.announce(`Deleted ${window.pluralize(count, "request")}`);
       },
 
       async sendCustom() {

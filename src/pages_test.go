@@ -24,7 +24,7 @@ func TestRenderIndex(t *testing.T) {
 	// traffic at a public URL, so it is rendered from the constant the sweep
 	// uses rather than typed into the copy.
 	t.Run("states the retention window", func(t *testing.T) {
-		assert.Contains(t, bodyOf(t, get(t, "/")), "deleted after 4 hours")
+		assert.Contains(t, prose(t, get(t, "/")), "deleted after 4 hours")
 	})
 }
 
@@ -53,10 +53,10 @@ func TestRenderEndpoint(t *testing.T) {
 	// a number. Rendering it from the same constant the sweep uses is what keeps
 	// the two from drifting.
 	t.Run("carries the retention window as a number and as prose", func(t *testing.T) {
-		body := bodyOf(t, get(t, "/"+endpointID(t)))
+		id := endpointID(t)
 
-		assert.Contains(t, body, `data-retention-seconds="14400"`)
-		assert.Contains(t, body, "deleted after 4 hours")
+		assert.Contains(t, bodyOf(t, get(t, "/"+id)), `data-retention-seconds="14400"`)
+		assert.Contains(t, prose(t, get(t, "/"+id)), "deleted after 4 hours")
 	})
 
 	// The prompt is built from the request, so a self-hosted deployment hands

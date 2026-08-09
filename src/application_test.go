@@ -70,3 +70,19 @@ func TestSweepRetention(t *testing.T) {
 		assert.Equal(t, []string{"sweep-recent-live"}, uuidsFor(t.Context(), endpointID))
 	})
 }
+
+// Cron's first tick is a full interval away, so a process restarting more often
+// than the interval would never sweep and captures would outlive the window for
+// as long as the database file does.
+func TestStartRetentionSweep(t *testing.T) {
+	t.Run("sweeps at startup rather than waiting for the first tick", func(t *testing.T) {
+		endpointID := "sweep-boot"
+		storeCapture(t, endpointID, "sweep-boot-expired",
+			time.Now().Add(-retentionWindow).Add(-time.Minute))
+
+		scheduler := startRetentionSweep()
+		t.Cleanup(func() { scheduler.Stop() })
+
+		assert.Empty(t, uuidsFor(t.Context(), endpointID))
+	})
+}
