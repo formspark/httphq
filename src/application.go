@@ -51,7 +51,11 @@ type applicationConfig struct {
 // exercised without a listening socket.
 func newApplication(config applicationConfig) *fiber.App {
 	engine := html.New(config.viewsDir, ".html")
-	engine.AddFunc("asset", newAssetIndex(config.publicDir, !isProduction).url)
+	// Held rather than passed straight to the engine: the page handlers build
+	// the absolute social image URL in Go, so they need the same index the
+	// templates resolve their own asset references through.
+	assets := newAssetIndex(config.publicDir, !isProduction)
+	engine.AddFunc("asset", assets.url)
 	if !isProduction {
 		engine.Reload(true)
 		engine.Debug(true)
@@ -108,8 +112,8 @@ func newApplication(config applicationConfig) *fiber.App {
 	application.Delete("/api/endpoints/:endpoint/requests", requireValidEndpoint, handleDeleteRequests)
 	application.Delete("/api/endpoints/:endpoint/requests/:request", requireValidEndpoint, handleDeleteRequest)
 
-	application.Get("/", renderIndex)
-	application.Get("/contact", renderContact)
+	application.Get("/", renderIndex(assets))
+	application.Get("/contact", renderContact(assets))
 	application.Get("/:endpoint", requireValidEndpoint, renderEndpoint)
 	application.Post("/endpoint", createEndpoint(haikunator.New()))
 

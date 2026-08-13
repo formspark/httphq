@@ -17,7 +17,9 @@ func TestRenderIndex(t *testing.T) {
 		assert.Equal(t, http.StatusOK, response.StatusCode)
 		assert.Contains(t, body, "<title>httphq: inspect HTTP requests in real time</title>")
 		assert.Contains(t, body, `<link rel="canonical" href="http://example.com/" />`)
-		assert.Contains(t, body, `<meta property="og:image" content="http://example.com/social-card.png" />`)
+		// Matched by prefix rather than in full: the card carries a content
+		// hash, so pinning the whole URL would pin the bytes of the image.
+		assert.Contains(t, body, `<meta property="og:image" content="http://example.com/social-card.png?v=`)
 	})
 
 	// The window is a promise the landing page makes before a visitor points

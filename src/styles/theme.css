@@ -1,11 +1,11 @@
 /* The palette. Authored in OKLCH rather than taken from Tailwind's defaults, so
    the greys, the accent and the method spectrum belong to one family.
 
-   The neutral ramp sits on the mark's hue at very low chroma, which is why the
+   The neutral ramp sits on the brand hue at very low chroma, which is why the
    greys read as related to the brand instead of as a generic blue-grey. The
-   brand ramp carries the mark's hue and its chroma; the mark itself is too
-   light to hold white text (3.6:1), so the fill is the same colour darkened
-   until it passes, and #707ee7 stays exactly as it is in the logo.
+   mark and the accent are one colour: brand-600 fills the primary control and
+   is also the fill in logo.svg and the favicon set, so the logo cannot drift
+   from the interface around it. Moving it means regenerating those assets.
 
    The method spectrum keeps conventional meanings, GET blue and POST green and
    DELETE red, but every ink is built at one lightness and every wash at
@@ -35,7 +35,8 @@
   --color-neutral-900: oklch(20.6% 0.03 274);
   --color-neutral-950: oklch(12.8% 0.026 274);
 
-  /* Brand, anchored on the mark */
+  /* Brand. brand-600 is both the interface accent and the mark, so --color-mark
+     is an alias rather than a second value that could fall out of step. */
   --color-brand-50: oklch(96.5% 0.022 275.25);
   --color-brand-100: oklch(93.2% 0.042 275.25);
   --color-brand-200: oklch(87.5% 0.075 275.25);
@@ -46,7 +47,7 @@
   --color-brand-700: oklch(46% 0.15 275.25);
   --color-brand-800: oklch(39% 0.13 275.25);
   --color-brand-900: oklch(33% 0.105 275.25);
-  --color-mark: #707ee7;
+  --color-mark: var(--color-brand-600);
 
   /* Method spectrum */
   --color-get-ink: oklch(50% 0.155 255);

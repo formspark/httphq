@@ -7,8 +7,8 @@
       "mark": {
         "role": "primary",
         "displayName": "The Mark",
-        "canonical": "#707ee7",
-        "note": "The periwinkle diamond in the logo and favicon set. Origin of the brand ramp; too light to hold white text, so it is never a fill."
+        "canonical": "oklch(52% 0.157 275.25)",
+        "note": "The indigo diamond in the logo and favicon set. An alias of brand-600 rather than a colour of its own, so the logo and the interface accent cannot drift apart."
       },
       "brand-600": {
         "role": "primary",
@@ -24,7 +24,7 @@
           "oklch(87.5% 0.075 275.25)",
           "oklch(96.5% 0.022 275.25)"
         ],
-        "note": "The mark's hue and chroma, darkened until white text clears the contrast floor."
+        "note": "The one accent: the fill of the primary control per view, and the mark itself. 5.74:1 against white, so it holds a white label."
       },
       "neutral-50": {
         "role": "neutral",

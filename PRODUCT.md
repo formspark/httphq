@@ -123,7 +123,7 @@ cap, or the 1 MiB body limit should ever be surfaced as configurable to users.
 ## Brand Commitments
 
 - Name is lowercase `httphq`, always. Canonical host is `httphq.com`.
-- Existing marks: `public/logo.svg` (a periwinkle-indigo diamond, `#707ee7`),
+- Existing marks: `public/logo.svg` (an indigo diamond in the brand accent),
   `public/logo.png`, and a full favicon set (`favicon.ico`, 16/32 PNG,
   `apple-touch-icon.png`, Android Chrome 192/512).
 - The footer credits Formspark as sponsor and links the GitHub repository

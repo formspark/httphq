@@ -21,8 +21,8 @@
      browser defaults that belong to no design system. Bind them to the palette
      so the parts the product does not draw still read as the product. */
   ::selection {
-    background-color: var(--color-indigo-100);
-    color: var(--color-indigo-900);
+    background-color: var(--color-brand-100);
+    color: var(--color-brand-900);
   }
 
   :root {
