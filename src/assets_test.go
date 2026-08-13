@@ -146,7 +146,7 @@ func TestAssetIndex(t *testing.T) {
 	t.Run("a path the index never hashed is left alone", func(t *testing.T) {
 		index := newAssetIndex(assetDir(t), false)
 
-		assert.Equal(t, "/logo.svg", index.url("/logo.svg"))
+		assert.Equal(t, "/logo.png", index.url("/logo.png"))
 	})
 
 	t.Run("reload picks up an edited asset without a restart", func(t *testing.T) {

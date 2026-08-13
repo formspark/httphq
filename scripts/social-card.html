@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>httphq social card</title>
+
+    <!--
+      The built stylesheet is linked for its custom properties only. The card
+      deliberately uses no utility classes: app.css is built with source(none)
+      and scans only the templates and the page scripts, so a class used here
+      would either not exist or would have to be mined into the shipped sheet.
+      Reading the tokens instead means the card takes its colours from the same
+      palette as the product without adding a rule to it.
+    -->
+    <link rel="stylesheet" href="../public/app.css" />
+
+    <style>
+      /* The card is a fixed 1200x630 surface, the size every unfurler crops to.
+         Sizes are absolute rather than responsive: there is exactly one viewport
+         and it is the screenshot. */
+      :root {
+        --card-sans:
+          ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+          "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        --card-mono:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      .card {
+        width: 1200px;
+        height: 630px;
+        box-sizing: border-box;
+        padding: 0 96px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        background-color: var(--color-neutral-50);
+        font-family: var(--card-sans);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .lockup {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+      }
+
+      .lockup img {
+        width: 68px;
+        height: 68px;
+      }
+
+      .wordmark {
+        font-size: 68px;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+        color: var(--color-neutral-900);
+      }
+
+      .headline {
+        margin: 48px 0 0;
+        font-size: 46px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--color-neutral-900);
+      }
+
+      .description {
+        margin: 20px 0 0;
+        font-size: 27px;
+        color: var(--color-neutral-600);
+      }
+
+      /* Mirrors the .panel component: white fill, one 1px seam, no shadow. */
+      .panel {
+        margin-top: 38px;
+        border: 1px solid var(--color-neutral-200);
+        border-radius: 12px;
+        background-color: var(--color-white);
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 16px 28px;
+      }
+
+      /* Mirrors .badge carrying the POST pair from the method spectrum. */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 4px;
+        padding: 4px 10px;
+        font-size: 17px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        background-color: var(--color-post-wash);
+        color: var(--color-post-ink);
+      }
+
+      .path {
+        font-family: var(--card-mono);
+        font-size: 21px;
+        color: var(--color-neutral-500);
+      }
+
+      .headers {
+        border-top: 1px solid var(--color-neutral-200);
+        padding: 12px 28px 16px;
+      }
+
+      .kv {
+        display: flex;
+        gap: 12px;
+        padding: 4px 0;
+        font-family: var(--card-mono);
+        font-size: 18px;
+      }
+
+      .kv dt {
+        width: 232px;
+        flex-shrink: 0;
+        color: var(--color-neutral-500);
+      }
+
+      .kv dd {
+        margin: 0;
+        color: var(--color-neutral-800);
+      }
+
+      .footer {
+        margin: 26px 0 0;
+        font-size: 23px;
+        color: var(--color-neutral-600);
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="card">
+      <div class="lockup">
+        <img src="../public/logo.svg" alt="" />
+        <span class="wordmark">httphq</span>
+      </div>
+
+      <h1 class="headline">Inspect HTTP requests in real time</h1>
+      <p class="description">
+        Spin up a unique URL, point any client at it, and watch every request
+        arrive.
+      </p>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span class="badge">POST</span>
+          <span class="path">/to/quiet-sunset-4821</span>
+        </div>
+        <dl class="headers">
+          <div class="kv">
+            <dt>content-type</dt>
+            <dd>application/json</dd>
+          </div>
+          <div class="kv">
+            <dt>user-agent</dt>
+            <dd>Stripe/1.0</dd>
+          </div>
+          <div class="kv">
+            <dt>stripe-signature</dt>
+            <dd>t=1755600000,v1=5f2c8a1b9d4e</dd>
+          </div>
+        </dl>
+      </div>
+
+      <p class="footer">No account, free forever · Open source, MIT licensed</p>
+    </div>
+  </body>
+</html>

@@ -11,14 +11,21 @@ import (
 )
 
 // versionedAssets are the first-party files referenced from the templates whose
-// contents change between deploys. Images are excluded: they are replaced rarely
-// and never in a way that breaks a page that fetched the previous copy.
+// contents change between deploys. The brand images belong here alongside the
+// stylesheet and the scripts: they move only when the palette moves, and a cache
+// holding a previous mark beside the current interface is the same class of
+// mismatch as a cache holding a previous stylesheet. Every path listed must
+// exist under the public directory, or it is served unversioned.
 var versionedAssets = []string{
 	"/app.css",
 	"/index.js",
 	"/render-body.js",
 	"/har.js",
 	"/endpoint.js",
+	"/logo.svg",
+	"/favicon.ico",
+	"/apple-touch-icon.png",
+	"/social-card.png",
 }
 
 // assetIndex maps a served static path to a short hash of its contents. The

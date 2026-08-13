@@ -160,6 +160,10 @@
       // passed, so without this every timestamp freezes at first render.
       tick: 0,
       _baseTitle: document.title,
+      // Captured rather than hardcoded so the restore returns to whatever URL
+      // the markup asked for, including the version the asset index stamped on.
+      _baseFavicon:
+        document.querySelector("link[rel='icon']")?.href || "/favicon.ico",
       _unread: 0,
       _reconnectDelay: RECONNECT_MIN_MS,
       _socket: null,
@@ -276,7 +280,7 @@
         if (this._unread === 0) return;
         this._unread = 0;
         document.title = this._baseTitle;
-        this._setFavicon("/favicon.ico");
+        this._setFavicon(this._baseFavicon);
       },
 
       _setFavicon(href) {
@@ -383,26 +387,36 @@
     };
   }
 
-  // Generate a 32x32 favicon-with-red-dot data URL.
+  // Generate a 32x32 data URL of the mark carrying an alert badge, for the tab
+  // icon while captures are waiting unread. The fills are literal hexes because
+  // a canvas cannot read a CSS custom property; they are brand-600 and
+  // danger-600 and must be kept in step with them.
   function faviconWithDot() {
     const c = document.createElement("canvas");
     c.width = 32;
     c.height = 32;
     const ctx = c.getContext("2d");
-    // Soft background so the dot is visible against any browser tab style.
-    ctx.fillStyle = "#1e293b"; // neutral-800
+    // The logo's own geometry, a diamond inset from a 600-unit square, scaled
+    // to the canvas: the unread tab shows the same mark as the real favicon
+    // rather than a second, unrelated one.
+    const scale = 32 / 600;
+    ctx.fillStyle = "#525cc1"; // brand-600
     ctx.beginPath();
-    ctx.arc(16, 16, 14, 0, 2 * Math.PI);
+    ctx.moveTo(300 * scale, 25 * scale);
+    ctx.lineTo(575 * scale, 300 * scale);
+    ctx.lineTo(300 * scale, 575 * scale);
+    ctx.lineTo(25 * scale, 300 * scale);
+    ctx.closePath();
     ctx.fill();
+    // Badge in the upper right, ringed so its edge survives both the mark
+    // behind it and whatever the browser paints behind the tab.
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 18px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("h", 16, 17);
-    // Red badge in upper right
-    ctx.fillStyle = "#e11d48"; // danger-600
     ctx.beginPath();
-    ctx.arc(24, 8, 7, 0, 2 * Math.PI);
+    ctx.arc(24, 8, 7.5, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.fillStyle = "#c63144"; // danger-600
+    ctx.beginPath();
+    ctx.arc(24, 8, 6, 0, 2 * Math.PI);
     ctx.fill();
     return c.toDataURL("image/png");
   }

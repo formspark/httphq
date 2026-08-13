@@ -6,7 +6,8 @@
     "css": "tailwindcss --input ./src/styles/app.css --output ./public/app.css --minify",
     "css:watch": "tailwindcss --input ./src/styles/app.css --output ./public/app.css --watch",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "social-card": "node ./scripts/social-card.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

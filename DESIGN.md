@@ -1,10 +1,10 @@
 ---
 name: httphq
-description: "A live arrivals board for HTTP requests. Neutral chassis, one accent drawn from the mark, colour reserved for classifying traffic."
+description: "A live arrivals board for HTTP requests. Neutral chassis, one accent that is also the mark, colour reserved for classifying traffic."
 colors:
   white: "#ffffff"
   black: "#000000"
-  mark: "#707ee7"
+  mark: "oklch(52% 0.157 275.25)"
   brand-50: "oklch(96.5% 0.022 275.25)"
   brand-100: "oklch(93.2% 0.042 275.25)"
   brand-200: "oklch(87.5% 0.075 275.25)"
@@ -220,15 +220,15 @@ evidence handling: never as costume.
 ## Colors
 
 Authored in OKLCH, not taken from a framework's defaults. Three families, built
-so they read as one system: a neutral chassis, one accent drawn from the mark,
+so they read as one system: a neutral chassis, one accent that is also the mark,
 and a seven-hue spectrum spent only on classifying traffic.
 
 ### Primary
 
-- **The Mark** (`#707ee7`): the periwinkle diamond in `public/logo.svg` and the favicon set. It is the origin of the whole accent family and appears unchanged wherever the logo appears.
-- **Brand 600** (`oklch(52% 0.157 275.25)`): the accent that fills the one primary control per view. It is the mark's own hue and chroma, darkened until white text clears the contrast floor: the mark itself measures 3.6:1 against white and cannot hold a label. Brand 500 is the hover step and the focus ring; brand 700 sets the endpoint URL; brand 50 tints the icon tiles; brand 400 is the quieter ring on form fields.
+- **Brand 600** (`oklch(52% 0.157 275.25)`): the accent that fills the one primary control per view, and the indigo diamond in `public/logo.svg` and the favicon set. The mark and the accent are one colour under one token, so the logo cannot drift from the interface it sits in; it measures 5.74:1 against white and holds a white label. Moving it means regenerating the image assets, which is what `npm run social-card` and the icon set exist for.
+- **The steps around it**: brand 500 is the hover step and the focus ring; brand 700 sets the endpoint URL; brand 50 tints the icon tiles; brand 400 is the quieter ring on form fields; brand 100 and brand 900 are the selection wash and its ink.
 
-**The Chroma Rule.** The accent carries the mark's chroma of 0.157, not more. A
+**The Chroma Rule.** The accent carries a chroma of 0.157, not more. A
 higher-chroma violet reads as a generic framework purple and fights the neutral
 chassis; the softness is the identity, and lightness is the only axis that moves
 when contrast demands it.
@@ -511,11 +511,11 @@ call site, because a heading inside a flex row must not carry a bottom margin.
 - **Style:** white fill, 1px neutral-300 stroke, control radius, 0.5rem/0.75rem padding, 0.875rem type. Textareas and header/body fields use the mono stack with `spellcheck="false"`; ordinary text fields use sans.
 - **Focus:** `outline: none` paired with a 1px **brand-400** ring and a **brand-500** border. That is a tighter, quieter treatment than the 2px ring on buttons, because a focused field is already unambiguous. Note the three-way split: fields ring in brand-400, buttons ring in brand-500, and only fills use brand-600. Every control uses `:focus-visible`, so a mouse click never paints a ring on a button.
 - **Labels:** one label component everywhere, uppercase at 0.75rem, 0.5rem above its field, with 1rem between field groups. The label belongs to its field, so it sits closer to it than the group does to the next one. There is no second label style for public forms: a contact field and a header field are the same control doing the same job, and two spellings of one control is drift, not intent.
-- **Select:** native `appearance: none` with a slate chevron inlined as a data-URI background, 1.1em, positioned 0.5rem from the right with 2rem of padding reserved. Note this chevron is the single literal hex in the system (`#64748b`), because a data URI cannot read a CSS variable; it approximates neutral-500 and must be kept in step with it.
+- **Select:** native `appearance: none` with a neutral chevron inlined as a data-URI background, 1.1em, positioned 0.5rem from the right with 2rem of padding reserved. Note this chevron is the single literal hex in the stylesheet (`#6b7189`), because a data URI cannot read a CSS variable; it approximates neutral-500 and must be kept in step with it.
 
 ### Navigation
 
-There is none, and that is deliberate: the header is the periwinkle mark beside
+There is none, and that is deliberate: the header is the indigo mark beside
 a centred wordmark linking home, at 1.875rem bold with tight tracking in control
 ink. The link wraps only the mark and wordmark, never the full header band.
 Every other route is reachable from the footer: feedback, the GitHub repository
@@ -557,7 +557,7 @@ text and is never trusted as markup.
 ### Browser Surfaces
 
 The parts the product does not draw still carry its palette, set once in the
-base layer: text selection is indigo wash behind indigo ink rather than the
+base layer: text selection is brand wash behind brand ink rather than the
 browser's blue, and `accent-color` is brand-600 so native checkboxes and the
 search field's clear affordance match the one accent. `color-scheme` is declared
 light, so form controls and scrollbars render in the world the system actually

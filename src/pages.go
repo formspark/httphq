@@ -26,30 +26,36 @@ func pageBaseURL(c fiber.Ctx) string {
 
 // pageMeta builds the head fields layouts/main renders for a public page.
 // Absolute URLs are derived from the request, so every deployment advertises
-// its own host.
-func pageMeta(c fiber.Ctx, title, description, path string) fiber.Map {
+// its own host. The social image carries its content hash for the same reason
+// the stylesheet does, so a card cached against one deploy is not served beside
+// the next one's markup.
+func pageMeta(c fiber.Ctx, assets *assetIndex, title, description, path string) fiber.Map {
 	base := pageBaseURL(c)
 	return fiber.Map{
 		"Title":           title,
 		"Description":     description,
 		"Canonical":       base + path,
-		"SocialImage":     base + socialImagePath,
+		"SocialImage":     base + assets.url(socialImagePath),
 		"RetentionPhrase": retentionPhrase(retentionWindow),
 	}
 }
 
-func renderIndex(c fiber.Ctx) error {
-	return c.Render("index", pageMeta(c,
-		"httphq: inspect HTTP requests in real time",
-		"Generate a unique URL, point any client at it, and watch every request arrive: method, headers, body, query string, client IP. No account, free forever.",
-		"/"))
+func renderIndex(assets *assetIndex) fiber.Handler {
+	return func(c fiber.Ctx) error {
+		return c.Render("index", pageMeta(c, assets,
+			"httphq: inspect HTTP requests in real time",
+			"Generate a unique URL, point any client at it, and watch every request arrive: method, headers, body, query string, client IP. No account, free forever.",
+			"/"))
+	}
 }
 
-func renderContact(c fiber.Ctx) error {
-	return c.Render("contact", pageMeta(c,
-		"Contact | httphq",
-		"Found a bug, have an idea, or want to say hi? Get in touch with the people who build httphq.",
-		"/contact"))
+func renderContact(assets *assetIndex) fiber.Handler {
+	return func(c fiber.Ctx) error {
+		return c.Render("contact", pageMeta(c, assets,
+			"Contact | httphq",
+			"Found a bug, have an idea, or want to say hi? Get in touch with the people who build httphq.",
+			"/contact"))
+	}
 }
 
 // renderEndpoint renders the live capture stream for one endpoint. It carries no
