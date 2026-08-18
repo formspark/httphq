@@ -36,7 +36,9 @@
   }
 
   document.addEventListener("alpine:init", () => {
-    // Only initialise when the endpoint page is rendered.
+    // The page scripts are loaded as a set, and only the endpoint page asks
+    // for them. Registering the store and the component regardless would put
+    // both on any page that later loads the set for one of the other helpers.
     const isEndpointPage = !!document.querySelector(
       'main[x-data^="endpointPage"]',
     );
@@ -169,6 +171,12 @@
       _socket: null,
       _closed: false,
 
+      // The page has exactly one store, and every reader below reaches for it.
+      // Naming it once keeps the lookup out of the expressions that use it.
+      get store() {
+        return Alpine.store("main");
+      },
+
       // Alpine calls this once when the component mounts. Endpoint id and
       // WebSocket URL come from data-* attributes on the root element so the
       // method can match Alpine's expected `init()` signature.
@@ -184,11 +192,11 @@
           Number.isFinite(retentionSeconds) && retentionSeconds > 0
             ? retentionSeconds * 1000
             : 0;
-        Alpine.store("main").setEndpoint(endpointId);
+        this.store.setEndpoint(endpointId);
         this._connectWebSocket();
         setInterval(() => {
           this.tick++;
-          Alpine.store("main").pruneExpired(this._retentionMs);
+          this.store.pruneExpired(this._retentionMs);
         }, TICK_MS);
         document.addEventListener("visibilitychange", () => {
           if (!document.hidden) this._clearUnread();
@@ -204,19 +212,19 @@
       // panel that asserts the first while the second is true tells the user
       // their traffic never landed.
       get streamState() {
-        if (Alpine.store("main").visibleRequests.length > 0) return "list";
-        if (Alpine.store("main").filtered) return "filtered";
+        if (this.store.visibleRequests.length > 0) return "list";
+        if (this.store.filtered) return "filtered";
         return "waiting";
       },
 
       get renderedRequests() {
-        return Alpine.store("main").visibleRequests.slice(0, this.renderLimit);
+        return this.store.visibleRequests.slice(0, this.renderLimit);
       },
 
       get hiddenCount() {
         return Math.max(
           0,
-          Alpine.store("main").visibleRequests.length - this.renderLimit,
+          this.store.visibleRequests.length - this.renderLimit,
         );
       },
 
@@ -236,7 +244,7 @@
           this._reconnectDelay = RECONNECT_MIN_MS;
           // Traffic that landed while the socket was down is not replayed, so
           // refetch to close the gap rather than silently missing it.
-          Alpine.store("main").fetchRequests();
+          this.store.fetchRequests();
         });
 
         socket.addEventListener("message", (payload) => {
@@ -246,7 +254,7 @@
           } catch {
             return;
           }
-          Alpine.store("main").addRequest(request);
+          this.store.addRequest(request);
           this.announce(`${request.method} request received`);
           if (document.hidden) {
             this._unread += 1;
@@ -330,7 +338,6 @@
         return this._copyAndFlash(text, key, "Copied to clipboard");
       },
 
-      // Copies requests as a HAR-shaped document.
       copyHar(requests, key) {
         return this._copyAndFlash(
           window.buildHarExport(requests),
@@ -344,15 +351,14 @@
       },
 
       async deleteAllConfirmed() {
-        const count = Alpine.store("main").requests.length;
+        const count = this.store.requests.length;
         this.pendingDeleteAll = false;
-        await Alpine.store("main").deleteRequests();
+        await this.store.deleteRequests();
         this.announce(`Deleted ${window.pluralize(count, "request")}`);
       },
 
       async sendCustom() {
-        const store = Alpine.store("main");
-        if (!store.endpointId) return;
+        if (!this.store.endpointId) return;
         const parsed = window.parseHeaderLines(this.sendForm.headers);
         if (parsed.invalid.length) {
           this.sendFailed = true;
@@ -361,7 +367,7 @@
           return;
         }
         const path = this.sendForm.path.replace(/^\/+/, "");
-        const target = `/to/${store.endpointId}${path ? "/" + path : ""}`;
+        const target = `/to/${this.store.endpointId}${path ? "/" + path : ""}`;
         try {
           this.sendFailed = false;
           this.sendStatus = "Sending…";

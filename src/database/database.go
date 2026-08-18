@@ -25,37 +25,41 @@ type Request struct {
 
 var DB *gorm.DB
 
+// logQueryError records a failed query and nothing else. Every operation in
+// this package answers with a zero value rather than an error: the caller is a
+// request handler that still has to respond, and a capture surface that comes
+// back empty is more use than one that refuses to render. The failure has to
+// reach the logs, because nothing above here will report it.
+func logQueryError(ctx context.Context, result *gorm.DB, message string, attrs ...any) {
+	if result.Error == nil {
+		return
+	}
+	slog.ErrorContext(ctx, message, append([]any{"err", result.Error}, attrs...)...)
+}
+
+// Connect opens the store and brings the schema up to date, publishing it as DB
+// only once both have succeeded. Either failure ends the process: there is
+// nothing to serve without somewhere to write captures.
 func Connect(dsn string) *gorm.DB {
-	slog.Info("connecting to database")
-
-	var err error
-
-	DB, err = gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	if err != nil {
 		slog.Error("database connection failed", "err", err)
 		os.Exit(1)
 	}
-
-	slog.Info("database connected")
-
-	slog.Info("migrating database")
-
-	if err := DB.AutoMigrate(&Request{}); err != nil {
+	if err := db.AutoMigrate(&Request{}); err != nil {
 		slog.Error("database migration failed", "err", err)
 		os.Exit(1)
 	}
 
-	slog.Info("database migrated")
+	DB = db
+	slog.Info("database connected and migrated")
 	return DB
 }
 
 func CountRequests(ctx context.Context) int64 {
 	var count int64
 	result := DB.Model(&Request{}).Count(&count)
-	if result.Error != nil {
-		slog.ErrorContext(ctx, "count requests failed", "err", result.Error)
-	}
+	logQueryError(ctx, result, "count requests failed")
 	return count
 }
 
@@ -66,9 +70,7 @@ func CountRequests(ctx context.Context) int64 {
 func CountRequestsForEndpointID(ctx context.Context, endpointID string) int64 {
 	var count int64
 	result := DB.Model(&Request{}).Where(&Request{EndpointID: endpointID}).Count(&count)
-	if result.Error != nil {
-		slog.ErrorContext(ctx, "count requests for endpoint failed", "err", result.Error, "endpoint_id", endpointID)
-	}
+	logQueryError(ctx, result, "count requests for endpoint failed", "endpoint_id", endpointID)
 	return count
 }
 
@@ -100,9 +102,7 @@ func GetRequestsForEndpointID(
 	}
 
 	result := query.Find(&items)
-	if result.Error != nil {
-		slog.ErrorContext(ctx, "get requests failed", "err", result.Error, "endpoint_id", endpointID)
-	}
+	logQueryError(ctx, result, "get requests failed", "endpoint_id", endpointID)
 	return items
 }
 
@@ -120,32 +120,22 @@ func CreateRequest(ctx context.Context, request *Request) {
 	}
 	request.CreatedAt = request.CreatedAt.UTC()
 
-	result := DB.Create(&request)
-	if result.Error != nil {
-		slog.ErrorContext(ctx, "create request failed", "err", result.Error)
-	}
+	logQueryError(ctx, DB.Create(&request), "create request failed")
 }
 
 func DeleteRequestsForEndpointID(ctx context.Context, endpointID string) {
-	result := DB.Where(&Request{EndpointID: endpointID}).Delete(&Request{})
-	if result.Error != nil {
-		slog.ErrorContext(ctx, "delete requests failed", "err", result.Error, "endpoint_id", endpointID)
-	}
+	logQueryError(ctx, DB.Where(&Request{EndpointID: endpointID}).Delete(&Request{}),
+		"delete requests failed", "endpoint_id", endpointID)
 }
 
 func DeleteRequestForUUID(ctx context.Context, UUID string) {
-	result := DB.Where(&Request{UUID: UUID}).Delete(&Request{})
-	if result.Error != nil {
-		slog.ErrorContext(ctx, "delete request failed", "err", result.Error)
-	}
+	logQueryError(ctx, DB.Where(&Request{UUID: UUID}).Delete(&Request{}), "delete request failed")
 }
 
 func DeleteOldRequests(ctx context.Context, threshold time.Time) {
 	// UTC for the same reason as the cursor in GetRequestsForEndpointID: the
 	// comparison is textual, so both sides have to agree on a zone.
 	result := DB.Where("created_at < ?", threshold.UTC()).Delete(&Request{})
-	if result.Error != nil {
-		slog.ErrorContext(ctx, "delete old requests failed", "err", result.Error)
-	}
+	logQueryError(ctx, result, "delete old requests failed")
 	slog.InfoContext(ctx, "deleted old requests", "count", result.RowsAffected)
 }
