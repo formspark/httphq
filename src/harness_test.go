@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -65,11 +67,26 @@ func endpointID(t *testing.T) string {
 	return "test-" + strconv.FormatUint(endpointCounter.Add(1), 10)
 }
 
+// withPlatform points the process-wide platform config at name for the duration
+// of one test. Client-IP resolution and header stripping both read that global,
+// so a test that changes it has to put it back.
+func withPlatform(t *testing.T, name string) {
+	t.Helper()
+	previous := currentPlatform
+	currentPlatform = resolvePlatform(name)
+	t.Cleanup(func() { currentPlatform = previous })
+}
+
 type testRequest struct {
 	method  string
 	path    string
 	body    string
 	headers map[string]string
+	// repeated carries headers sent more than once, which the single-valued
+	// map above cannot express. RFC 7230 allows a header to repeat and the
+	// capture handler stores those values as a list, so the two shapes are
+	// spelled apart rather than collapsed.
+	repeated map[string][]string
 }
 
 func do(t *testing.T, spec testRequest) *http.Response {
@@ -82,6 +99,11 @@ func do(t *testing.T, spec testRequest) *http.Response {
 	req := httptest.NewRequest(spec.method, spec.path, body)
 	for name, value := range spec.headers {
 		req.Header.Set(name, value)
+	}
+	for name, values := range spec.repeated {
+		for _, value := range values {
+			req.Header.Add(name, value)
+		}
 	}
 
 	response, err := application(t).Test(req)
@@ -113,4 +135,38 @@ func bodyOf(t *testing.T, response *http.Response) string {
 func prose(t *testing.T, response *http.Response) string {
 	t.Helper()
 	return strings.Join(strings.Fields(bodyOf(t, response)), " ")
+}
+
+// requestListing is the listing response, decoded. Tests read what an endpoint
+// captured back through the same API the page polls, so a capture is only
+// proven stored once it is also readable.
+type requestListing struct {
+	Requests []database.Request `json:"requests"`
+	Total    int64              `json:"total"`
+	Cursor   string             `json:"cursor"`
+	HasMore  bool               `json:"hasMore"`
+}
+
+// listRequests reads back what an endpoint has captured. An empty `since` is
+// the browser's call, with no cursor.
+func listRequests(t *testing.T, id, search, since string) requestListing {
+	t.Helper()
+
+	response := get(t, "/api/endpoints/"+id+"/requests?search="+search+
+		"&since="+url.QueryEscape(since))
+	require.Equal(t, http.StatusOK, response.StatusCode)
+
+	var payload requestListing
+	require.NoError(t, json.Unmarshal([]byte(bodyOf(t, response)), &payload))
+	return payload
+}
+
+func capturedRequests(t *testing.T, id, search string) []database.Request {
+	t.Helper()
+	return listRequests(t, id, search, "").Requests
+}
+
+func listedTotal(t *testing.T, id, search string) int64 {
+	t.Helper()
+	return listRequests(t, id, search, "").Total
 }

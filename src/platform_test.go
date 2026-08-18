@@ -9,16 +9,6 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-// withPlatform points the process-wide platform config at name for the duration
-// of one test. Client-IP resolution and header stripping both read that global,
-// so a test that changes it has to put it back.
-func withPlatform(t *testing.T, name string) {
-	t.Helper()
-	previous := currentPlatform
-	currentPlatform = resolvePlatform(name)
-	t.Cleanup(func() { currentPlatform = previous })
-}
-
 // contextWith builds a request context from peerIP carrying the given headers,
 // so a test can exercise the header-reading helpers without a live server.
 func contextWith(t *testing.T, app *fiber.App, peerIP string, headers map[string]string) fiber.Ctx {
