@@ -119,7 +119,7 @@ function parseMultipart(body, boundary) {
       filename: filenameMatch[1],
       contentType,
       // Byte length of the captured body, which httphq stores as a Go
-      // string — encoding/json replaces invalid UTF-8 with U+FFFD on
+      // string, and encoding/json replaces invalid UTF-8 with U+FFFD on
       // marshal, so for genuinely binary uploads this can differ from the
       // true original file size. See database.Request.Body.
       size: new TextEncoder().encode(content).length,
@@ -135,16 +135,17 @@ window.renderBody = function (body, headers) {
   if (boundary) {
     const parts = parseMultipart(body, boundary);
     if (parts !== null) return highlightPrettyJSON(parts);
-    // Malformed multipart body — fall through to the generic paths below.
+    // Malformed multipart body: fall through to the generic paths below.
   }
 
-  // Best-effort JSON pretty + highlight.
+  // Each strategy claims less about the payload than the one before it, and
+  // falls through rather than reporting a failure: a body that answers to none
+  // of them is still a body the reader needs in front of them.
   try {
     return highlightPrettyJSON(JSON.parse(body));
   } catch {
     // not JSON
   }
-  // Heuristic: looks like XML/HTML if it starts with '<'
   if (body.trimStart().startsWith("<")) {
     return highlight(body, "xml");
   }

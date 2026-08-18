@@ -72,7 +72,7 @@
         queryString: entryQueryString(request.queryString),
         ...(postData ? { postData } : {}),
         // Byte length of the captured body, which httphq stores as a Go
-        // string — encoding/json replaces invalid UTF-8 with U+FFFD on
+        // string, and encoding/json replaces invalid UTF-8 with U+FFFD on
         // marshal, so for genuinely binary uploads this can differ from the
         // true original size. See database.Request.Body.
         bodySize: new TextEncoder().encode(body).length,

@@ -32,7 +32,7 @@ var omittedHeaders = [...]string{
 
 // platformConfig describes how a hosting platform exposes request metadata:
 // which header carries the real client IP, and which vendor headers it adds
-// that should be hidden from captured requests — users inspect their own
+// that should be hidden from captured requests. Users inspect their own
 // traffic and shouldn't have to care which provider sits in front of httphq.
 type platformConfig struct {
 	ipHeader    string   // header with the real client IP; "" = TCP peer
@@ -106,9 +106,9 @@ func resolveClientIP(c fiber.Ctx) string {
 	return ""
 }
 
-// omitHeader reports whether a captured-request header is infrastructure noise
-// — a generic forwarding header or a vendor header added by the configured
-// PLATFORM — and so should be hidden from the user.
+// omitHeader reports whether a captured-request header is infrastructure
+// noise, meaning a generic forwarding header or a vendor header added by the
+// configured PLATFORM, and so should be hidden from the user.
 func omitHeader(name string) bool {
 	for _, h := range omittedHeaders {
 		if strings.EqualFold(name, h) {

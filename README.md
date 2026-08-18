@@ -28,11 +28,11 @@
 
 httphq is configured entirely through environment variables.
 
-| Variable          | Default       | Description                                                                                                 |
-| ----------------- | ------------- | ----------------------------------------------------------------------------------------------------------- |
-| `APPLICATION_ENV` | `development` | Set to `production` to bind all interfaces, raise the rate limit, and default logging to `info`.            |
-| `LOG_LEVEL`       | env-dependent | Overrides the log level: `debug`, `info`, `warn`, or `error`.                                               |
-| `PLATFORM`        | `direct`      | The hosting platform in front of httphq — selects which header the real client IP is read from (see below). |
+| Variable          | Default       | Description                                                                                                |
+| ----------------- | ------------- | ---------------------------------------------------------------------------------------------------------- |
+| `APPLICATION_ENV` | `development` | Set to `production` to bind all interfaces, raise the rate limit, and default logging to `info`.           |
+| `LOG_LEVEL`       | env-dependent | Overrides the log level: `debug`, `info`, `warn`, or `error`.                                              |
+| `PLATFORM`        | `direct`      | The hosting platform in front of httphq. Selects which header the real client IP is read from (see below). |
 
 ### `PLATFORM`
 
@@ -40,14 +40,14 @@ httphq derives the client IP (used for rate limiting and shown on captured
 requests) from the header your hosting platform sets. Declare your platform
 and httphq picks the right strategy:
 
-| `PLATFORM`       | Client IP source                                                        |
-| ---------------- | ----------------------------------------------------------------------- |
-| unset / `direct` | The TCP connection peer (no proxy).                                     |
-| `cloudflare`     | `CF-Connecting-IP` header.                                              |
-| `fly`            | `Fly-Client-IP` header.                                                 |
-| `heroku`         | `X-Forwarded-For` (leftmost).                                           |
-| `render`         | `X-Forwarded-For` (leftmost).                                           |
-| `proxy`          | `X-Forwarded-For` (leftmost) — generic nginx / Traefik / load balancer. |
+| `PLATFORM`       | Client IP source                                                             |
+| ---------------- | ---------------------------------------------------------------------------- |
+| unset / `direct` | The TCP connection peer (no proxy).                                          |
+| `cloudflare`     | `CF-Connecting-IP` header.                                                   |
+| `fly`            | `Fly-Client-IP` header.                                                      |
+| `heroku`         | `X-Forwarded-For` (leftmost).                                                |
+| `render`         | `X-Forwarded-For` (leftmost).                                                |
+| `proxy`          | `X-Forwarded-For` (leftmost), for a generic nginx / Traefik / load balancer. |
 
 An unrecognised value falls back to `direct`.
 
@@ -56,7 +56,7 @@ Cloudflare's `Cf-*`) from captured requests, so users inspect their own traffic
 without the noise of whatever provider sits in front of httphq.
 
 > **Security note.** Setting `PLATFORM` trusts that platform's client-IP
-> header unconditionally — httphq cannot tell a real platform header from one
+> header unconditionally: httphq cannot tell a real platform header from one
 > a client forged. You must ensure inbound traffic cannot reach httphq
 > bypassing the platform (e.g. lock your origin to the platform's IP ranges),
 > or a client can spoof its IP and evade rate limiting. Conversely, if you run

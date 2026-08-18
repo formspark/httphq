@@ -86,7 +86,8 @@ before the first request has something to advance from.
 ## Limits
 
 - **128 captures** per listing response.
-- **1 MiB** request body. Larger captures are rejected.
+- **1 MiB** request body. Anything larger is answered `413` and stored
+  nowhere, so an oversized payload leaves no capture behind.
 - **150 requests per minute per client IP** in production, across everything:
   page loads, captures and API calls share one budget. The recommended
   2 second poll is 30 a minute, which leaves room for the traffic under test.

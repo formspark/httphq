@@ -59,6 +59,14 @@ CGO_ENABLED=0 go build -o ./bin/httphq ./src
 cd e2e && npx playwright test
 ```
 
+The suite drives a real browser against a real binary, so it needs the port that
+binary listens on. `port` in `src/application.go` is a constant; to run beside
+something already holding 8080, change it and point the suite at the same place:
+
+```bash
+HTTPHQ_BASE_URL=http://localhost:8099 npx playwright test
+```
+
 View test coverage:
 
 ```bash

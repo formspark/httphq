@@ -9,8 +9,8 @@ import (
 
 // endpointIDPattern bounds an endpoint ID to the shape haikunator emits
 // (lowercase words and digits joined by hyphens). Rejecting anything else
-// keeps attacker-controlled characters — quotes, angle brackets, parens —
-// out of the rendered pages, the database, and the logs.
+// keeps attacker-controlled characters (quotes, angle brackets, parens) out of
+// the rendered pages, the database, and the logs.
 var endpointIDPattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 
 func validEndpointID(id string) bool {
