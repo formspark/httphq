@@ -9,29 +9,62 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Every page's head fields come from pageMeta, so what it emits is what the
+// whole site advertises. These cover the fields that have to hold across all of
+// them; a page's own copy is asserted beside its handler below.
+func TestPageMeta(t *testing.T) {
+	pages := map[string]string{
+		"index":    "/",
+		"contact":  "/contact",
+		"endpoint": "/" + endpointID(t),
+	}
+
+	// The card carries a content hash, so it is matched by prefix rather than
+	// in full: pinning the whole URL would pin the bytes of the image.
+	t.Run("every page advertises the social card", func(t *testing.T) {
+		for name, path := range pages {
+			t.Run(name, func(t *testing.T) {
+				assert.Contains(t, bodyOf(t, get(t, path)),
+					`<meta property="og:image" content="http://example.com/social-card.png?v=`)
+			})
+		}
+	})
+
+	// The URLs track the request rather than a configured hostname, so a
+	// self-hosted deployment advertises itself instead of httphq.com.
+	t.Run("absolute URLs name the host that served the page", func(t *testing.T) {
+		for name, path := range pages {
+			t.Run(name, func(t *testing.T) {
+				assert.NotContains(t, bodyOf(t, get(t, path)), "httphq.com")
+			})
+		}
+	})
+
+	// The window is a promise, so it is rendered from the constant the sweep
+	// uses rather than typed into the copy of each page that states it.
+	// The contact page is not in this list because it never states the window.
+	t.Run("the pages that state the retention window render it from one constant", func(t *testing.T) {
+		for _, name := range []string{"index", "endpoint"} {
+			t.Run(name, func(t *testing.T) {
+				assert.Contains(t, prose(t, get(t, pages[name])), "deleted after 4 hours")
+			})
+		}
+	})
+}
+
 func TestRenderIndex(t *testing.T) {
-	t.Run("renders with its canonical and social tags", func(t *testing.T) {
+	t.Run("renders with its title and canonical tag", func(t *testing.T) {
 		response := get(t, "/")
 		body := bodyOf(t, response)
 
 		assert.Equal(t, http.StatusOK, response.StatusCode)
 		assert.Contains(t, body, "<title>httphq: inspect HTTP requests in real time</title>")
 		assert.Contains(t, body, `<link rel="canonical" href="http://example.com/" />`)
-		// Matched by prefix rather than in full: the card carries a content
-		// hash, so pinning the whole URL would pin the bytes of the image.
-		assert.Contains(t, body, `<meta property="og:image" content="http://example.com/social-card.png?v=`)
-	})
-
-	// The window is a promise the landing page makes before a visitor points
-	// traffic at a public URL, so it is rendered from the constant the sweep
-	// uses rather than typed into the copy.
-	t.Run("states the retention window", func(t *testing.T) {
-		assert.Contains(t, prose(t, get(t, "/")), "deleted after 4 hours")
 	})
 }
 
 func TestRenderContact(t *testing.T) {
-	t.Run("renders with its canonical tag", func(t *testing.T) {
+	t.Run("renders with its title and canonical tag", func(t *testing.T) {
 		response := get(t, "/contact")
 		body := bodyOf(t, response)
 
@@ -52,24 +85,19 @@ func TestRenderEndpoint(t *testing.T) {
 	})
 
 	// The page expires captures out of its own list, so it needs the window as
-	// a number. Rendering it from the same constant the sweep uses is what keeps
-	// the two from drifting.
-	t.Run("carries the retention window as a number and as prose", func(t *testing.T) {
-		id := endpointID(t)
-
-		assert.Contains(t, bodyOf(t, get(t, "/"+id)), `data-retention-seconds="14400"`)
-		assert.Contains(t, prose(t, get(t, "/"+id)), "deleted after 4 hours")
+	// a number as well as the prose every page states.
+	t.Run("carries the retention window as a number", func(t *testing.T) {
+		assert.Contains(t, bodyOf(t, get(t, "/"+endpointID(t))), `data-retention-seconds="14400"`)
 	})
 
 	// The prompt is built from the request, so a self-hosted deployment hands
-	// out its own URLs rather than httphq.com's.
+	// out its own URLs and the limits actually in force.
 	t.Run("carries an agent prompt for this host", func(t *testing.T) {
 		id := endpointID(t)
 		body := bodyOf(t, get(t, "/"+id))
 
 		assert.Contains(t, body, "http://example.com/api/endpoints/"+id+"/requests")
 		assert.Contains(t, body, "150 requests per minute")
-		assert.NotContains(t, body, "httphq.com")
 	})
 
 	// robots.txt excludes endpoint pages, so a canonical URL pointing them at a
@@ -78,6 +106,7 @@ func TestRenderEndpoint(t *testing.T) {
 		body := bodyOf(t, get(t, "/"+endpointID(t)))
 
 		assert.NotContains(t, body, `rel="canonical"`)
+		assert.NotContains(t, body, `property="og:url"`)
 	})
 }
 
