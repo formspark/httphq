@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -75,6 +76,54 @@ func TestCaptureRequest(t *testing.T) {
 		assert.NotContains(t, headers, "Via")
 	})
 
+	// flattenHeaders decides the stored shape, and every consumer downstream
+	// reads it: the request panel, the search index and the HAR export all
+	// expect a scalar or a list. This drives a real request through the wire so
+	// the shape is proven where it is actually produced.
+	t.Run("a repeated header is stored as a list, a single one as a scalar", func(t *testing.T) {
+		id := endpointID(t)
+
+		do(t, testRequest{
+			method:   http.MethodPost,
+			path:     "/to/" + id,
+			body:     "x",
+			headers:  map[string]string{"X-Single": "one"},
+			repeated: map[string][]string{"X-Multi": {"first", "second"}},
+		})
+
+		captured := capturedRequests(t, id, "")
+		require.Len(t, captured, 1)
+		var headers map[string]any
+		require.NoError(t, json.Unmarshal(captured[0].Headers, &headers))
+		assert.Equal(t, "one", headers["X-Single"])
+		assert.Equal(t, []any{"first", "second"}, headers["X-Multi"])
+	})
+
+	// The opt-in is read off the wire rather than from a map a test built, so
+	// this covers the header name and value the browser actually sends.
+	t.Run("spoofing curl is honoured on a request off the wire", func(t *testing.T) {
+		id := endpointID(t)
+
+		do(t, testRequest{
+			method: http.MethodPost,
+			path:   "/to/" + id,
+			body:   "hello=world",
+			headers: map[string]string{
+				spoofCurlHeader: "true",
+				"User-Agent":    "Mozilla/5.0",
+				"Origin":        "https://example.com",
+			},
+		})
+
+		captured := capturedRequests(t, id, "")
+		require.Len(t, captured, 1)
+		headers := string(captured[0].Headers)
+		assert.Contains(t, headers, "curl/7.79.1")
+		assert.NotContains(t, headers, "Mozilla")
+		assert.NotContains(t, headers, "Origin")
+		assert.NotContains(t, headers, spoofCurlHeader)
+	})
+
 	t.Run("an empty body is captured as an empty body", func(t *testing.T) {
 		id := endpointID(t)
 
@@ -97,18 +146,24 @@ func TestCaptureRequest(t *testing.T) {
 	})
 
 	// The limit is what keeps one caller from filling the disk a whole shared
-	// instance writes to. It is enforced by the server rather than the handler,
-	// so the transport refuses the payload and the caller never gets an answer
-	// that would read as a successful capture. The status a real client sees is
-	// covered end to end, where there is a socket to see it on.
+	// instance writes to. The transport refuses the payload, so the caller never
+	// gets an answer that would read as a successful capture.
+	//
+	// The in-memory transport will not send a body shorter than the length it
+	// declares, so the handler's own guard against an oversized declaration
+	// cannot be reached from here. It is covered end to end, where there is a
+	// socket to see both the status and what the endpoint was left holding.
 	t.Run("a body over the limit is refused by the transport", func(t *testing.T) {
-		request := httptest.NewRequest(http.MethodPost, "/to/"+endpointID(t),
+		id := endpointID(t)
+		request := httptest.NewRequest(http.MethodPost, "/to/"+id,
 			strings.NewReader(strings.Repeat("a", bodyLimit+1)))
 
 		_, err := application(t).Test(request)
 
 		require.Error(t, err)
+		assert.Empty(t, capturedRequests(t, id, ""))
 	})
+
 }
 
 func TestCaptureHeaders(t *testing.T) {
