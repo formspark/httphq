@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"log/slog"
+	"net/http"
 	"regexp"
 	"time"
 
@@ -25,8 +27,25 @@ var probePaths = map[string]struct{}{
 	"/api/health": {},
 }
 
-// requestLogger assigns each request a correlation ID — reusing a valid
-// inbound X-Request-Id, otherwise minting one — exposes it on the context and
+// responseStatus is the status the caller will be answered with.
+//
+// A handler that refuses a request returns an error rather than writing a
+// status, and Fiber's error handler turns that into a response only after this
+// middleware has unwound. Reading the response directly at that point yields
+// the untouched default, so every refusal would be logged as a success.
+func responseStatus(c fiber.Ctx, err error) int {
+	if err == nil {
+		return c.Response().StatusCode()
+	}
+	var fiberError *fiber.Error
+	if errors.As(err, &fiberError) {
+		return fiberError.Code
+	}
+	return http.StatusInternalServerError
+}
+
+// requestLogger assigns each request a correlation ID, reusing a valid inbound
+// X-Request-Id and otherwise minting one. It exposes that ID on the context and
 // the X-Request-Id response header, and emits one structured access-log line.
 // Request headers and bodies are never logged, and the path is logged without
 // its query string.
@@ -52,7 +71,7 @@ func requestLogger(c fiber.Ctx) error {
 	attrs := []slog.Attr{
 		slog.String("http.request.method", c.Method()),
 		slog.String("url.path", c.Path()),
-		slog.Int("http.response.status_code", c.Response().StatusCode()),
+		slog.Int("http.response.status_code", responseStatus(c, err)),
 		slog.Float64("http.server.request.duration", time.Since(start).Seconds()),
 	}
 	if err != nil {

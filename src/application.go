@@ -82,7 +82,7 @@ func newApplication(config applicationConfig) *fiber.App {
 		ProxyHeader:      fiber.HeaderXForwardedFor,
 	})
 
-	// Runs first so every request — including rate-limited ones — gets a
+	// Runs first so every request, including the rate-limited ones, gets a
 	// correlation ID and a structured access-log line.
 	application.Use(requestLogger)
 
@@ -114,7 +114,7 @@ func newApplication(config applicationConfig) *fiber.App {
 
 	application.Get("/", renderIndex(assets))
 	application.Get("/contact", renderContact(assets))
-	application.Get("/:endpoint", requireValidEndpoint, renderEndpoint)
+	application.Get("/:endpoint", requireValidEndpoint, renderEndpoint(assets))
 	application.Post("/endpoint", createEndpoint(haikunator.New()))
 
 	// Prefix-matched so everything after the endpoint ID is captured as the

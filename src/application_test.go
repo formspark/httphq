@@ -24,7 +24,10 @@ func storeCapture(t *testing.T, endpointID, uuid string, createdAt time.Time) {
 	})
 }
 
-func uuidsFor(ctx context.Context, endpointID string) []string {
+// storedUUIDs is what the database still holds for an endpoint. Named for the
+// store rather than the endpoint so it does not read as the socket registry's
+// uuidsFor, which answers a different question about the same ID.
+func storedUUIDs(ctx context.Context, endpointID string) []string {
 	var uuids []string
 	for _, request := range database.GetRequestsForEndpointID(ctx, endpointID, "", time.Time{}, 10) {
 		uuids = append(uuids, request.UUID)
@@ -57,7 +60,7 @@ func TestSweepRetention(t *testing.T) {
 
 		sweepRetention()
 
-		assert.Empty(t, uuidsFor(t.Context(), endpointID))
+		assert.Empty(t, storedUUIDs(t.Context(), endpointID))
 	})
 
 	t.Run("keeps captures inside the retention window", func(t *testing.T) {
@@ -67,7 +70,7 @@ func TestSweepRetention(t *testing.T) {
 
 		sweepRetention()
 
-		assert.Equal(t, []string{"sweep-recent-live"}, uuidsFor(t.Context(), endpointID))
+		assert.Equal(t, []string{"sweep-recent-live"}, storedUUIDs(t.Context(), endpointID))
 	})
 }
 
@@ -83,6 +86,6 @@ func TestStartRetentionSweep(t *testing.T) {
 		scheduler := startRetentionSweep()
 		t.Cleanup(func() { scheduler.Stop() })
 
-		assert.Empty(t, uuidsFor(t.Context(), endpointID))
+		assert.Empty(t, storedUUIDs(t.Context(), endpointID))
 	})
 }

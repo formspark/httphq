@@ -45,7 +45,9 @@ try {
 
   const unset = await page.evaluate((tokens) => {
     const styles = getComputedStyle(document.documentElement);
-    return tokens.filter((token) => styles.getPropertyValue(token).trim() === "");
+    return tokens.filter(
+      (token) => styles.getPropertyValue(token).trim() === "",
+    );
   }, REQUIRED_TOKENS);
   if (unset.length > 0) {
     throw new Error(

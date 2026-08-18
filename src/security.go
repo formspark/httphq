@@ -35,9 +35,9 @@ func contentSecurityPolicy(allowDesignTooling bool) string {
 // securityHeaders stamps the fixed security headers onto every response.
 //
 // They are set on the way out, after the rest of the chain has run. A handler
-// is free to reset the response it is building — the static middleware does
-// exactly that when a path resolves to a directory rather than a file — and a
-// header set on the way in would go with it. These have to hold for every
+// is free to reset the response it is building, as the static middleware does
+// when a path resolves to a directory rather than a file, and a header set on
+// the way in would go with it. These have to hold for every
 // response the app emits, so they are written where nothing downstream can
 // discard them.
 func securityHeaders(policy string) fiber.Handler {

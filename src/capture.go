@@ -84,10 +84,20 @@ func flattenHeaders(headers map[string][]string) map[string]any {
 }
 
 // captureRequest stores an inbound request against its endpoint and pushes it to
-// every socket watching that endpoint. It answers 200 whatever the payload:
-// there is nothing a caller can send that httphq will not record.
+// every socket watching that endpoint. It answers 200 for anything within the
+// body limit: there is nothing else a caller can send that httphq will not
+// record.
 func captureRequest(registry *socketRegistry) fiber.Handler {
 	return func(c fiber.Ctx) error {
+		// The body limit is enforced around the handler rather than in front of
+		// it. A request declaring more than the limit still arrives here, with
+		// its body dropped, and is answered 413 on the way out. Storing it
+		// would leave a bodyless capture in the stream, which reads as a sender
+		// that sent nothing rather than as a payload that was refused.
+		if c.Request().Header.ContentLength() > bodyLimit {
+			return c.SendStatus(http.StatusRequestEntityTooLarge)
+		}
+
 		endpointID := c.Params("endpoint")
 
 		headers := captureHeaders(c.GetReqHeaders())

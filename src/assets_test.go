@@ -23,7 +23,7 @@ var assetHelperCall = regexp.MustCompile("\\{\\{asset `(/[a-zA-Z0-9._-]+\\.(?:cs
 
 // versionedURL matches the shape the helper emits: the path, then the short
 // content hash it appends.
-var versionedURL = regexp.MustCompile(`^(/[a-zA-Z0-9._-]+)\?v=[0-9a-f]{10}$`)
+var versionedURL = regexp.MustCompile(`^/[a-zA-Z0-9._-]+\?v=[0-9a-f]{10}$`)
 
 func templateFiles(t *testing.T) []string {
 	t.Helper()
@@ -52,6 +52,17 @@ func assetDir(t *testing.T) string {
 		require.NoError(t, os.WriteFile(filepath.Join(dir, path), []byte("/* "+path+" */"), 0o600))
 	}
 	return dir
+}
+
+// rewriteAsset replaces an asset's contents and moves its modification time,
+// which is what the reload check keys on. Filesystem timestamp resolution is
+// coarse enough that a same-instant rewrite would otherwise look unchanged.
+func rewriteAsset(t *testing.T, dir, path, contents string) {
+	t.Helper()
+	full := filepath.Join(dir, path)
+	require.NoError(t, os.WriteFile(full, []byte(contents), 0o600))
+	later := time.Now().Add(time.Second)
+	require.NoError(t, os.Chtimes(full, later, later))
 }
 
 // A stylesheet or script served from a fixed path lets a cache pair one deploy's
@@ -149,6 +160,19 @@ func TestAssetIndex(t *testing.T) {
 		assert.Equal(t, "/logo.png", index.url("/logo.png"))
 	})
 
+	// Reload hashes whatever it is asked for, so a path missing from
+	// versionedAssets is versioned in development and unversioned in
+	// production. That divergence is why the template check above exists: a new
+	// script referenced through the helper looks correct locally right up until
+	// it ships.
+	t.Run("reload versions a path the startup pass never hashed", func(t *testing.T) {
+		dir := assetDir(t)
+		rewriteAsset(t, dir, "/unlisted.js", "/* unlisted */")
+
+		assert.Equal(t, "/unlisted.js", newAssetIndex(dir, false).url("/unlisted.js"))
+		assert.Regexp(t, versionedURL, newAssetIndex(dir, true).url("/unlisted.js"))
+	})
+
 	t.Run("reload picks up an edited asset without a restart", func(t *testing.T) {
 		dir := assetDir(t)
 		index := newAssetIndex(dir, true)
@@ -176,15 +200,4 @@ func TestAssetIndex(t *testing.T) {
 
 		assert.Equal(t, index.url("/app.css"), index.url("/app.css"))
 	})
-}
-
-// rewriteAsset replaces an asset's contents and moves its modification time,
-// which is what the reload check keys on. Filesystem timestamp resolution is
-// coarse enough that a same-instant rewrite would otherwise look unchanged.
-func rewriteAsset(t *testing.T, dir, path, contents string) {
-	t.Helper()
-	full := filepath.Join(dir, path)
-	require.NoError(t, os.WriteFile(full, []byte(contents), 0o600))
-	later := time.Now().Add(time.Second)
-	require.NoError(t, os.Chtimes(full, later, later))
 }

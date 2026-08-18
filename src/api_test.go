@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"net/http"
-	"net/url"
 	"strconv"
 	"testing"
 	"time"
@@ -13,37 +12,6 @@ import (
 
 	"httphq/src/database"
 )
-
-type requestListing struct {
-	Requests []database.Request `json:"requests"`
-	Total    int64              `json:"total"`
-	Cursor   string             `json:"cursor"`
-	HasMore  bool               `json:"hasMore"`
-}
-
-// listRequests reads back what an endpoint has captured, through the same API
-// the page uses. An empty `since` is the browser's call, with no cursor.
-func listRequests(t *testing.T, id, search, since string) requestListing {
-	t.Helper()
-
-	response := get(t, "/api/endpoints/"+id+"/requests?search="+search+
-		"&since="+url.QueryEscape(since))
-	require.Equal(t, http.StatusOK, response.StatusCode)
-
-	var payload requestListing
-	require.NoError(t, json.Unmarshal([]byte(bodyOf(t, response)), &payload))
-	return payload
-}
-
-func capturedRequests(t *testing.T, id, search string) []database.Request {
-	t.Helper()
-	return listRequests(t, id, search, "").Requests
-}
-
-func listedTotal(t *testing.T, id, search string) int64 {
-	t.Helper()
-	return listRequests(t, id, search, "").Total
-}
 
 func TestHandleHealth(t *testing.T) {
 	t.Run("answers 200 so a platform probe can reach it", func(t *testing.T) {
@@ -248,6 +216,23 @@ func TestHandleListRequestsCursor(t *testing.T) {
 	})
 }
 
+func TestHandleDeleteRequests(t *testing.T) {
+	t.Run("deleting an endpoint's captures clears only that endpoint", func(t *testing.T) {
+		id, other := endpointID(t), endpointID(t)+"-other"
+		post(t, "/to/"+id, "x")
+		post(t, "/to/"+other, "y")
+
+		response := do(t, testRequest{
+			method: http.MethodDelete,
+			path:   "/api/endpoints/" + id + "/requests",
+		})
+
+		assert.Equal(t, http.StatusOK, response.StatusCode)
+		assert.Empty(t, capturedRequests(t, id, ""))
+		assert.Len(t, capturedRequests(t, other, ""), 1)
+	})
+}
+
 func TestHandleDeleteRequest(t *testing.T) {
 	t.Run("deleting one capture leaves the rest", func(t *testing.T) {
 		id := endpointID(t)
@@ -264,22 +249,5 @@ func TestHandleDeleteRequest(t *testing.T) {
 		captured := capturedRequests(t, id, "")
 		require.Len(t, captured, 1)
 		assert.Equal(t, "keep", captured[0].Body)
-	})
-}
-
-func TestHandleDeleteRequests(t *testing.T) {
-	t.Run("deleting an endpoint's captures clears only that endpoint", func(t *testing.T) {
-		id, other := endpointID(t), endpointID(t)+"-other"
-		post(t, "/to/"+id, "x")
-		post(t, "/to/"+other, "y")
-
-		response := do(t, testRequest{
-			method: http.MethodDelete,
-			path:   "/api/endpoints/" + id + "/requests",
-		})
-
-		assert.Equal(t, http.StatusOK, response.StatusCode)
-		assert.Empty(t, capturedRequests(t, id, ""))
-		assert.Len(t, capturedRequests(t, other, ""), 1)
 	})
 }

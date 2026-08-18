@@ -25,13 +25,15 @@ window.formatTimeAgo = function (date) {
   return "";
 };
 
-/* Clipboard helper */
+/* Copying to the clipboard. The async API is unavailable outside a secure
+   context, which a self-hosted deployment reached over plain HTTP is, so the
+   older selection-based path stays as the fallback rather than leaving those
+   deployments with dead copy buttons. */
 
 window.copyToClipboard = async function (text) {
   if (navigator.clipboard && window.isSecureContext) {
     return navigator.clipboard.writeText(text);
   }
-  // Fallback: temporary textarea
   const ta = document.createElement("textarea");
   ta.value = text;
   ta.setAttribute("readonly", "");

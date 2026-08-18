@@ -33,7 +33,7 @@ them so they still make sense in a year.
   fixes the flicker when..."). Once fixed, that history is noise.
 - No hyper-specific framing: don't tie comments to one-time scenarios; describe
   the generic, reusable purpose instead.
-- Explain intent and non-obvious behavior: why this branch exists, what
+- Explain intent and non-obvious behaviour: why this branch exists, what
   invariant it protects.
 - Flag regression risks the next dev must respect (e.g. "excluded by default so
   new surfaces are safe").
@@ -43,8 +43,8 @@ them so they still make sense in a year.
 ## Client IP is a trust decision
 
 `PLATFORM` selects which header the real client IP is read from, and setting it
-trusts that header unconditionally — httphq cannot tell a platform's header
-from one a client forged. Inbound traffic must not be able to reach the process
+trusts that header unconditionally: httphq cannot tell a platform's header from
+one a client forged. Inbound traffic must not be able to reach the process
 bypassing that platform, or a client can spoof its IP and evade rate limiting.
 Leaving it unset behind a proxy is the opposite failure: every request looks
 like it came from the proxy and rate limiting becomes global.
@@ -52,7 +52,7 @@ like it came from the proxy and rate limiting becomes global.
 ## Captured data is ephemeral
 
 SQLite writes to the container's writable layer. Capture history is lost on
-restart, by design — nothing here is a durable store, and no migration path
+restart, by design. Nothing here is a durable store, and no migration path
 exists for it.
 
 ## Logging
