@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -62,5 +63,26 @@ func TestSocketRegistry(t *testing.T) {
 		registry.remove("uuid-never-seen")
 
 		assert.Equal(t, 1, registry.count())
+	})
+}
+
+// The socket is the only route that answers something other than an HTTP
+// response, so the guard in front of it decides what an ordinary caller gets.
+func TestRegisterWebSockets(t *testing.T) {
+	t.Run("a plain request is refused rather than served", func(t *testing.T) {
+		response := get(t, "/ws/purple-frog-0691")
+
+		assert.Equal(t, http.StatusUpgradeRequired, response.StatusCode)
+	})
+
+	// The guard is mounted on the prefix, so it answers before the route can
+	// reject the ID. A malformed ID is refused for the wrong-looking reason,
+	// which is fine: neither answer reveals whether the endpoint exists.
+	t.Run("the guard covers the whole socket prefix", func(t *testing.T) {
+		for _, path := range []string{"/ws", "/ws/", "/ws/Not_A_Valid_ID"} {
+			t.Run(path, func(t *testing.T) {
+				assert.Equal(t, http.StatusUpgradeRequired, get(t, path).StatusCode)
+			})
+		}
 	})
 }

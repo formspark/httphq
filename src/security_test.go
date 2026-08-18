@@ -9,11 +9,24 @@ import (
 )
 
 // The headers are set by middleware rather than per route, so the assertion
-// that matters is that no surface can be reached without them: a page, an API
-// route, a probe and the fallthrough 404 all have to carry them.
+// that matters is that no surface can be reached without them. The paths below
+// are one of each response shape the app produces: a rendered page, a file from
+// the static directory, an API route, the fallthrough 404, and a request a
+// handler refuses by returning an error rather than writing a status. The
+// static and refused responses are the ones that matter most, because both are
+// built by something that discards a response set on the way in.
 func TestSecurityHeaders(t *testing.T) {
 	t.Run("every response carries them", func(t *testing.T) {
-		for _, path := range []string{"/", "/contact", "/api/health", "/no/such/page"} {
+		responseShapes := []string{
+			"/",
+			"/contact",
+			"/robots.txt",
+			"/api/health",
+			"/no/such/page",
+			"/ws/purple-frog-0691",
+		}
+
+		for _, path := range responseShapes {
 			t.Run(path, func(t *testing.T) {
 				response := get(t, path)
 
