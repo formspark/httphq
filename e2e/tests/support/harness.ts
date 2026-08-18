@@ -1,12 +1,20 @@
 import type { APIRequestContext, Page } from "@playwright/test";
 
-/** Where the server under test is reachable, matching the Playwright baseURL. */
-export const BASE_URL = "http://localhost:8080";
+/**
+ * Where the server under test is reachable. Spelled once: the Playwright config
+ * reads it as both its baseURL and its readiness probe, so the suite and the
+ * server it starts cannot disagree about where to look.
+ *
+ * `port` in src/application.go is a constant, so the override is for the one
+ * case that constant anticipates: running beside something that already holds
+ * 8080, with the constant changed to match.
+ */
+export const BASE_URL = process.env.HTTPHQ_BASE_URL ?? "http://localhost:8080";
 
 /**
- * A fresh endpoint ID for one test. Endpoints are implicit — a page exists for
- * any well-formed ID — so a unique ID per test is all the isolation needed to
- * keep one test's captures out of another's stream.
+ * A fresh endpoint ID for one test. Endpoints are implicit, in that a page
+ * exists for any well-formed ID, so a unique ID per test is all the isolation
+ * needed to keep one test's captures out of another's stream.
  */
 export const newEndpointId = () =>
   `e2e-${Math.random().toString(36).slice(2, 8)}`;
@@ -53,13 +61,50 @@ export const send = (
   { method = "POST", ...init }: SendOptions = {},
 ) => request.fetch(url, { method, ...init });
 
+/**
+ * One capture, as the JSON API hands it over. Headers are scalar-or-array
+ * because a header may repeat; see flattenHeaders in src/capture.go.
+ */
+export type CapturedRequest = {
+  uuid: string;
+  endpointId: string;
+  ip: string;
+  method: string;
+  path: string;
+  queryString: string;
+  body: string;
+  createdAt: string;
+  headers: Record<string, string | string[]>;
+};
+
+/** The listing response, as the page and any poller read it. */
+export type RequestListing = {
+  requests: CapturedRequest[];
+  total: number;
+  cursor: string;
+  hasMore: boolean;
+};
+
+/**
+ * Reads back what an endpoint has captured. `APIResponse.json` cannot know the
+ * shape it returns, so this is the one place the listing's is declared rather
+ * than proven, confined here so no test has to declare its own.
+ */
+export const listRequests = async (
+  request: APIRequestContext,
+  endpointId: string,
+): Promise<RequestListing> => {
+  const response = await request.get(requestsUrl(endpointId));
+  return (await response.json()) as RequestListing;
+};
+
 export const readClipboard = (page: Page) =>
   page.evaluate(() => navigator.clipboard.readText());
 
 /**
- * Reads the clipboard as JSON of an expected shape. The assertion is the one
- * place a shape is declared rather than proven — `JSON.parse` cannot know it —
- * and it is deliberately confined here so no test has to make its own.
+ * Reads the clipboard as JSON of an expected shape. Confined here for the same
+ * reason as listRequests: `JSON.parse` cannot know the shape it returns, so the
+ * one declaration of it lives in the harness rather than in each test.
  */
 export const readClipboardJson = async <T>(page: Page): Promise<T> =>
   JSON.parse(await readClipboard(page)) as T;

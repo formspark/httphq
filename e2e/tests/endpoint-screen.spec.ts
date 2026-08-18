@@ -10,6 +10,13 @@ import {
   type HarDocument,
 } from "./support/harness";
 
+/**
+ * How long the page is given to hydrate. Alpine is loaded from a CDN, so first
+ * paint of anything interactive waits on a third party rather than on the
+ * server under test.
+ */
+const HYDRATION_TIMEOUT_MS = 15_000;
+
 test.describe("Endpoint screen", () => {
   let endpointId: string;
   let endpointPath: string;
@@ -20,9 +27,18 @@ test.describe("Endpoint screen", () => {
     endpointPath = `/to/${endpointId}`;
     endpointUrl = captureUrl(endpointId);
     await page.goto(`/${endpointId}`);
-    // Wait for Alpine to mount and the empty state to render so subsequent
-    // assertions don't race with initialization.
-    await expect(page.locator('[data-test="endpoint-url"]')).toBeVisible();
+    // Gate on something only Alpine can have rendered. The endpoint URL and
+    // every other server-rendered element is on screen before the page has
+    // hydrated, so waiting on one lets each test start racing a boot that has
+    // a third-party script in front of it. The waiting panel is the first
+    // thing the mounted component draws on an endpoint with no traffic.
+    //
+    // Given longer than an ordinary assertion because it is waiting on that
+    // script to arrive from a CDN, which is slower and less predictable than
+    // anything the app itself does.
+    await expect(page.locator('[data-test="empty-waiting"]')).toBeVisible({
+      timeout: HYDRATION_TIMEOUT_MS,
+    });
   });
 
   test.describe("Page", () => {
@@ -150,6 +166,18 @@ test.describe("Endpoint screen", () => {
       await expect(headers).toContainText("X-One");
       await expect(headers).toContainText("X-Two");
       await expect(headers).toContainText(/Headers\s*\(\d+\)/);
+    });
+
+    // The size is the reason to open a card before copying it, and it is stated
+    // in units rather than raw bytes so a large payload reads at a glance.
+    test("the body panel states the payload size", async ({
+      page,
+      request,
+    }) => {
+      await send(request, endpointUrl, { data: "a".repeat(2048) });
+      const body = page.locator('[data-test="request-body"]').first();
+
+      await expect(body).toContainText("2.0 KB");
     });
 
     test("delete-request removes a single card", async ({ page, request }) => {
@@ -410,6 +438,23 @@ test.describe("Endpoint screen", () => {
 
       await page.locator('[data-test="search-input"]').fill("charge.succeeded");
       await expect(results).toContainText("1 result");
+    });
+
+    // A counter that says "1 results" reads as a defect in the thing being
+    // counted rather than in the sentence.
+    test("the result count agrees in number with what is on screen", async ({
+      page,
+      request,
+    }) => {
+      await send(request, endpointUrl, { data: "only" });
+      await expect(page.locator('[data-test="search-results"]')).toHaveText(
+        "1 result",
+      );
+
+      await send(request, endpointUrl, { data: "second" });
+      await expect(page.locator('[data-test="search-results"]')).toHaveText(
+        "2 results",
+      );
     });
 
     test("the method filter narrows the list to matching methods", async ({

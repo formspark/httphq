@@ -1,14 +1,19 @@
 import { defineConfig, devices } from "@playwright/test";
+import { BASE_URL } from "./tests/support/harness";
 
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Bounded rather than left to the core count. Every page load pulls Alpine
+  // and the syntax highlighter from public CDNs, with no cache shared between
+  // contexts, so the ceiling that matters is how many simultaneous third-party
+  // fetches stay reliable rather than how many browsers the machine can run.
+  workers: process.env.CI ? 1 : 4,
   reporter: process.env.CI ? "github" : "list",
   use: {
-    baseURL: "http://localhost:8080",
+    baseURL: BASE_URL,
     trace: "on-first-retry",
     permissions: ["clipboard-read", "clipboard-write"],
   },
@@ -21,7 +26,7 @@ export default defineConfig({
   webServer: {
     command: "./bin/httphq",
     cwd: "..",
-    url: "http://localhost:8080/api/health",
+    url: `${BASE_URL}/api/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
   },
