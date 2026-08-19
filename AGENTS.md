@@ -4,7 +4,7 @@ Guidance for agents and contributors working in this repository.
 
 ## Code layout
 
-`src` is one `main` package split by concern, one file per subject with its
+`src` is a `main` package split by concern, one file per subject with its
 tests beside it: `application.go` (wiring and entry point), `platform.go`
 (client IP and header stripping), `endpoint.go` (endpoint IDs and URLs),
 `capture.go` (the capture handler), `api.go` (the JSON API), `pages.go` (page
@@ -12,6 +12,10 @@ rendering), `agent.go` (the prompt an endpoint page hands to a coding agent),
 `assets.go` (content-hashed asset URLs), `security.go` (CSP and security
 headers), `sockets.go` (the live feed), `requestlog.go` (correlation IDs and
 the access log).
+
+Two subpackages sit beneath it: `database` (the SQLite connection) and
+`logging` (the slog handler and its sensitive-key redaction). `styles` and
+`views` hold CSS and HTML templates rather than Go.
 
 A test file covers one subject, is named after it, and names each suite after
 what it exercises, so a handler's tests are found beside the handler. The one
@@ -39,6 +43,13 @@ them so they still make sense in a year.
   new surfaces are safe").
 - Keep comments generic and reusable, especially in shared helpers and test
   fixtures.
+
+## User-facing copy names the format, not the consumer
+
+Button labels, tooltips and empty-state copy name the format or the action
+(`Copy request`, `Copy all (N)`), never a consumer such as agents or LLMs. The
+constraint is on product copy only; commit messages and docs may mention agents
+freely.
 
 ## Client IP is a trust decision
 
