@@ -151,19 +151,38 @@ components:
     typography: "{typography.body}"
     rounded: "{rounded.md}"
     padding: "0.25rem 0.25rem"
+  btn-inline-hover:
+    textColor: "{colors.brand-600}"
+  btn-inline-danger-hover:
+    textColor: "{colors.danger-600}"
   field:
     backgroundColor: "{colors.white}"
     textColor: "{colors.neutral-800}"
     typography: "{typography.body}"
     rounded: "{rounded.md}"
     padding: "0.5rem 0.75rem"
+  field-mono:
+    typography: "{typography.mono}"
+  app-select:
+    padding: "0.5rem 2rem 0.5rem 0.75rem"
   field-label:
+    textColor: "{colors.neutral-500}"
+    typography: "{typography.label}"
+  region-label:
     textColor: "{colors.neutral-500}"
     typography: "{typography.label}"
   panel:
     backgroundColor: "{colors.white}"
     rounded: "{rounded.lg}"
+  panel-summary:
+    textColor: "{colors.neutral-700}"
+    rounded: "{rounded.lg}"
+    padding: "0.75rem 1.25rem"
+  panel-body:
     padding: "1.25rem"
+  kv-key:
+    textColor: "{colors.neutral-500}"
+    width: "10rem"
   code-block:
     backgroundColor: "{colors.neutral-50}"
     textColor: "{colors.neutral-800}"
@@ -176,7 +195,10 @@ components:
     padding: "0.125rem 0.5rem"
   empty-value:
     textColor: "{colors.neutral-500}"
-    typography: "{typography.mono}"
+  waiting-state:
+    backgroundColor: "{colors.white}"
+    textColor: "{colors.neutral-500}"
+    rounded: "{rounded.lg}"
     padding: "3rem 1rem"
 ---
 
@@ -314,10 +336,19 @@ which ships plain sRGB hex outside the system above:
 **Character:** There is no webfont, and that is a decision, not an omission: a
 tool promising a working URL in seconds cannot spend its first paint on a font
 request. The same commitment governs the stylesheet: it is built ahead of time
-from `src/styles/app.css` into a first-party `/app.css`, so no page waits on a
-third party to have a layout. The pairing is the operating system's own voice
-against its own terminal voice, which is exactly the contrast the product needs:
-httphq speaks in sans, the captured traffic speaks in mono.
+from `src/styles/app.css` into a first-party `/app.css`. The pairing is the
+operating system's own voice against its own terminal voice, which is exactly
+the contrast the product needs: httphq speaks in sans, the captured traffic
+speaks in mono.
+
+That first-party commitment holds completely on the home and contact pages, and
+the home page ships no JavaScript at all. The endpoint page is the one
+exception, and it is worth stating plainly rather than leaving as a footnote: it
+also pulls the pinned highlight.js theme from a CDN, and a stylesheet is
+render-blocking wherever it comes from. So the page a user lands on first waits
+on nobody, and the page they watch waits on one third party for its first paint.
+Anything that would extend that list, or move it onto the landing path, is a
+decision to make deliberately and not a dependency to add quietly.
 
 ### Hierarchy
 
@@ -348,8 +379,10 @@ pushed to the bottom, so short pages still plant the footer at the viewport
 edge rather than floating it mid-screen.
 
 Measure is capped per content type rather than globally: the hero block at
-42rem, its lede paragraph at 36rem, the use-case grid at 56rem, and the contact
-form at 36rem. Nothing runs the full 64rem except the request stream, which
+42rem, its lede paragraph at 36rem, the retention note beneath the hero button
+at 28rem, the use-case grid at 56rem, and the contact form at 36rem. The note is
+the tightest because it is the one block on the page nobody came to read: a
+short measure is what makes a caution scannable instead of skippable. Nothing runs the full 64rem except the request stream, which
 needs the width for header tables and body payloads.
 
 **One breakpoint.** The entire system responds at `sm` (40rem) and nowhere
@@ -436,11 +469,14 @@ and 1.25rem inside icon tiles. Icons inherit their colour from the control and
 are always `aria-hidden`, because every icon in this system sits beside a text
 label rather than replacing one.
 
-The family has no exceptions: there is no emoji anywhere in the product. The
-retention notice carries a stroked alert triangle from the same set, inheriting
-neutral-500 like every other icon. Keep it that way: an emoji brings its own
-colour and its own per-platform rendering, and one is enough to break the
-uniformity that makes this icon set read as a system.
+There is no emoji anywhere in the product, and there is exactly one exception to
+the stroke rule: the GitHub glyph in the footer is a filled path in
+`currentColor`, because a brand mark is drawn the way its owner draws it and a
+stroked approximation of a wordmark reads as a copy. That exception does not
+generalise. Every icon that is not somebody else's logo is stroked, and an emoji
+is never either one: it brings its own colour and its own per-platform
+rendering, and one is enough to break the uniformity that makes this set read as
+a system.
 
 ### Named Rules
 
@@ -455,11 +491,22 @@ must never be borrowed for a disabled, errored, or drop-target surface.
 ## Components
 
 The system is implemented, not only described. `src/styles/components.css`
-carries the classes these entries specify (`.btn` and its variants, `.field`,
-`.field-label`, `.region-label`, `.panel`, `.panel-summary`, `.panel-body`,
-`.kv-row`, `.icon`, `.badge`, `.code-block`, `.empty-value`, `.btn-lg`), and
-templates compose them rather
-than repeating utility strings. Every page uses them: a template that re-spells
+carries every class these entries specify, and templates compose them rather
+than repeating utility strings. The full inventory, which is the whole of that
+file:
+
+- **Buttons:** `.btn` (the shared geometry), `.btn-primary`, `.btn-secondary`, `.btn-danger`, `.btn-lg`, `.btn-inline`, `.btn-inline-danger`.
+- **Fields:** `.field`, `.field-mono` (family only, for captured-data entry), `.app-select`, `.field-label`, `.region-label`.
+- **Surfaces:** `.panel`, `.panel-summary`, `.panel-body`.
+- **Rows:** `.kv-row`, `.kv-row-tight`, `.kv-key`, `.kv-value`.
+- **Data and marks:** `.badge`, `.code-block`, `.empty-value`, `.icon`.
+- **Behaviour:** `.focus-ring`, `.loading-dots`.
+
+`.focus-ring` is the one to reach for on anything that is neither a button nor
+a field: the header wordmark and the three footer links wear it. The button and
+field classes spell the same two declarations out again rather than applying it,
+so each reads as a complete control on its own, but a template that spells the
+ring as a utility string is drift, not a shortcut. Every page uses them: a template that re-spells
 a component as a utility string is the bug, not a shortcut. Utilities stay the default for one-off composition; anything whose
 tokens must not drift between call sites belongs in that file. Before adding a
 variant, check whether an existing class should absorb it. Several spellings of
@@ -489,11 +536,11 @@ call site, because a heading inside a flex row must not carry a bottom margin.
 - **Shape:** control radius (0.375rem) on every variant.
 - **Primary:** brand-600 fill, white label, medium weight, no border and no shadow.
 - **Three sizes, each with a job:** `.btn` at 0.375rem/0.75rem carries in-panel secondary and destructive controls; `.btn-primary` at 0.5rem/1rem carries the primary action inside a panel; `.btn-lg` at 0.75rem/1.5rem with 1rem type is reserved for the landing page's single call to action, where the button is the reason the page exists.
-- **Secondary:** white fill, neutral-300 stroke, control-ink label at 0.875rem medium, 0.5rem/0.75rem padding. Hovers to the neutral-50 field.
+- **Secondary:** white fill, neutral-300 stroke, control-ink label at 0.875rem medium, on `.btn`'s 0.375rem/0.75rem geometry. Hover darkens the fill one step to neutral-100 and the seam to neutral-400, never to the neutral-50 field it sits on: see The Never-Hover-To-The-Field Rule.
 - **Destructive:** one variant only, a solid danger-600 fill with a white label, hovering to danger-700. A tinted destructive button shares its fill with the danger surfaces it sits on, so it stops reading as a button exactly where the stakes are highest. It marks the action that actually destroys, never the one that asks: a control that opens a confirmation is an ordinary secondary button, because colouring it red spends the alarm before anything is at stake and leaves nothing louder for the step that matters. The per-request Delete is not this button either: it is a bare text action, because a solid red fill repeated once per card would shout over the stream it sits in.
 - **Text-only:** no fill, no border, neutral-500 at 0.875rem, resolving to brand-600 on hover, or to danger-600 when the action deletes. Used for _Copy_, _Copy request_, and per-request _Delete_. It carries its own padding so the hit area clears the 24px target minimum, and the same authored focus ring as every other control: inside a card that repeats N times, falling back to the browser default multiplies the inconsistency by N.
-- **Hover / Focus:** fills shift one step lighter on primary, one step darker on destructive. Focus is never suppressed: `outline: none` is always paired with a 2px `focus-visible` ring in **brand-500** (the lighter step, not the fill colour), with a 2px white offset ring on filled buttons, so the ring reads against the brand fill it sits on. Destructive controls ring in danger-500 instead.
-- **Disabled:** 50% opacity and `not-allowed` cursor; used on _Copy all_ when the stream is empty.
+- **Hover / Focus:** fills shift one step lighter on primary, one step darker on destructive. Focus is never suppressed: `outline: none` is always paired with a 2px `focus-visible` ring in **brand-500** (the lighter step, not the fill colour). Destructive controls ring in danger-500 instead. Both filled variants also carry a 2px white offset ring, so a saturated fill never sits directly against its own ring: without it the danger-500 ring lands on danger-600 and the two hues read as one smudge.
+- **Disabled:** 50% opacity and `not-allowed` cursor; used on _Copy shown (N)_ when the filtered stream is empty.
 
 ### Cards / Containers
 
@@ -504,14 +551,35 @@ call site, because a heading inside a flex row must not carry a bottom margin.
 - **Internal Padding:** 1rem below 40rem, 1.25rem above.
 - **Composition:** a request article is a header rule-separated from its body, with the method badge and the requested path on the left and the copy/delete actions on the right. The path carries the query string inline, because to the person reading it they are one thing: the URL the client addressed; the body is a stack of labelled regions rather than a nested set of boxes. Its key/value rows follow the flex behaviour described in Layout: 10rem label column above the breakpoint, label stacked above value below it.
 
+### Disclosure Panels
+
+Two of them exist, both on the endpoint page, both stacked above the stream and
+both collapsed on arrival. They are the reason `.panel-summary` and
+`.panel-body` are components rather than a utility string, and they are the
+system's answer to a page that must stay one click deep for the first-timer
+while still carrying the returning user's tools.
+
+- **Send a test request** holds a method select, a path-and-query field, a headers textarea and a body textarea, then its own primary button. Every input is `.field`; the three that take captured-shaped text add `.field-mono` and `spellcheck="false"`, and the method select adds `.app-select`. The method options are spelled out literally in the template rather than rendered from a list, because a browser resets a select to its first option when the options arrive after the model binds, which would silently send a different method than the one on screen.
+- **Connect an agent** holds one read-only `pre` carrying the endpoint's own capture and read URLs, and a copy button. The prompt is server-rendered with every figure substituted from the same constants the API enforces, so it cannot quote a retention window or a rate limit that has since moved.
+
+Each panel carries its own primary action, which is the sanctioned reading of
+The One Accent Rule: a collapsed panel is not a view, and an opened one is the
+thing the reader is working in. Opening one does not close the other; they are
+independent, and the page is legible with both open.
+
+There is no third. The request card is an `article`, not a `details`, and it is
+always open: a board you have to unfold is not a board. Two is the cap, and a
+new tool earns a place inside one of the existing panels before it earns a
+third summary row above the stream.
+
 ### Inputs / Fields
 
 - **Label spacing:** 0.5rem from label to field, 1rem between field groups. Four pixels is a collision, not a relationship.
 
-- **Style:** white fill, 1px neutral-300 stroke, control radius, 0.5rem/0.75rem padding, 0.875rem type. Textareas and header/body fields use the mono stack with `spellcheck="false"`; ordinary text fields use sans.
+- **Style:** white fill, 1px neutral-300 stroke, control radius, 0.5rem/0.75rem padding, 0.875rem type. That is `.field`, and it is the whole control: textareas, selects and text inputs are the same class. Fields that take captured-shaped text add `.field-mono` with `spellcheck="false"`; ordinary text fields use sans. `.field-mono` swaps the family and nothing else, so a mono field keeps the 0.875rem control size rather than dropping to the 0.75rem evidence size: it is a control being typed into, not a captured value being read.
 - **Focus:** `outline: none` paired with a 1px **brand-400** ring and a **brand-500** border. That is a tighter, quieter treatment than the 2px ring on buttons, because a focused field is already unambiguous. Note the three-way split: fields ring in brand-400, buttons ring in brand-500, and only fills use brand-600. Every control uses `:focus-visible`, so a mouse click never paints a ring on a button.
-- **Labels:** one label component everywhere, uppercase at 0.75rem, 0.5rem above its field, with 1rem between field groups. The label belongs to its field, so it sits closer to it than the group does to the next one. There is no second label style for public forms: a contact field and a header field are the same control doing the same job, and two spellings of one control is drift, not intent.
-- **Select:** native `appearance: none` with a neutral chevron inlined as a data-URI background, 1.1em, positioned 0.5rem from the right with 2rem of padding reserved. Note this chevron is the single literal hex in the stylesheet (`#6b7189`), because a data URI cannot read a CSS variable; it approximates neutral-500 and must be kept in step with it.
+- **Labels:** one label component everywhere, uppercase at 0.75rem, 0.5rem above its field, with 1rem between field groups. A label may carry a parenthetical qualifier set back to normal case and normal weight inside it (_(optional)_, _(one per line, `Key: Value`)_): the uppercase names the field, the parenthetical is an aside to the reader, and uppercasing an aside makes it compete with the name it qualifies. The label belongs to its field, so it sits closer to it than the group does to the next one. There is no second label style for public forms: a contact field and a header field are the same control doing the same job, and two spellings of one control is drift, not intent.
+- **Select:** `.field app-select`. Native `appearance: none` with a neutral chevron inlined as a data-URI background, 1.1em, positioned 0.5rem from the right with 2rem of padding reserved. The chevron is the single literal hex in the stylesheet (`#6b7189`), because a data URI cannot read a CSS variable; it approximates neutral-500 and must be kept in step with it. It is not the only such mirror in the codebase: see Liveness Indicator for the two in `endpoint.js`.
 
 ### Navigation
 
@@ -586,10 +654,19 @@ in the product.
 ### Liveness Indicator
 
 When a request arrives while the tab is hidden, the count is prefixed to the
-document title and the favicon is repainted on a canvas: a neutral-800 disc, a
-white lowercase _h_, and a danger-600 dot at the upper right. Restoring
-visibility clears both. This is where the board announces itself: the page
-body never flashes, animates, or auto-scrolls to claim attention.
+document title and the favicon is repainted on a canvas: the brand-600 diamond
+drawn from `logo.svg`'s own geometry, carrying a danger-600 dot at the upper
+right on a white ring. The unread tab shows the same mark as the resting one, so
+the tab strip never has to be re-read to find the page; only the dot is new, and
+the white ring is what keeps its edge legible against both the mark behind it
+and whatever the browser paints behind the tab. Restoring visibility clears
+title and icon together. This is where the board announces itself: the page body
+never flashes, animates, or auto-scrolls to claim attention.
+
+The canvas cannot read a CSS custom property, so this function carries
+`#525cc1` and `#c63144` as literal hexes. With the select chevron's `#6b7189`
+that makes three literal mirrors of a token in the codebase, and all three move
+by hand when their token moves.
 
 ## Do's and Don'ts
 
@@ -598,7 +675,7 @@ body never flashes, animates, or auto-scrolls to claim attention.
 - **Do** put every new surface on the neutral-50 field with a white fill and a 1px neutral-200 seam. That pair is the system's default surface, and it carries no shadow.
 - **Do** set anything the client sent in monospace at 0.75rem, and anything httphq says in sans.
 - **Do** give a new region an uppercase 0.75rem/500/+0.025em neutral-500 heading, and separate its rows with neutral-100 rules instead of nesting another bordered box.
-- **Do** pair `outline: none` with a visible `focus-visible` ring every single time: 2px brand-500 plus a white offset ring on buttons, 1px brand-400 plus a border shift on fields.
+- **Do** pair `outline: none` with a visible `focus-visible` ring every single time: 2px brand-500 on controls, plus a white offset ring on the two filled buttons, and 1px brand-400 plus a border shift on fields. On anything that is neither a button nor a field, reach for `.focus-ring` rather than respelling those two declarations at the call site.
 - **Do** take the radius from the category: 0.25rem for data, 0.375rem for controls, 0.5rem for panels.
 - **Do** design to the 40rem breakpoint alone, stacking below it and going horizontal above it.
 - **Do** keep icons at 24×24 viewBox, `stroke-width="2"`, `fill="none"`, `aria-hidden`, beside a text label.

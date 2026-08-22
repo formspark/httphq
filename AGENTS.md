@@ -47,7 +47,7 @@ them so they still make sense in a year.
 ## User-facing copy names the format, not the consumer
 
 Button labels, tooltips and empty-state copy name the format or the action
-(`Copy request`, `Copy all (N)`), never a consumer such as agents or LLMs. The
+(`Copy request`, `Copy shown (N)`), never a consumer such as agents or LLMs. The
 constraint is on product copy only; commit messages and docs may mention agents
 freely.
 
