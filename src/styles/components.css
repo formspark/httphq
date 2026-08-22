@@ -32,8 +32,11 @@
     animation: httphq-dots 1.2s steps(4, end) infinite;
   }
 
-  /* Focus ring, applied by the component classes below. Exposed separately for
-     the handful of elements that are not buttons or fields. */
+  /* Focus ring for the elements that are not buttons or fields: the header
+     wordmark and the footer links. The component classes below spell the same
+     two declarations out again rather than applying this class, so that each
+     one reads as a complete control on its own. Templates use this class; a
+     template that respells the ring as a utility string is the drift. */
   .focus-ring {
     @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500;
   }
@@ -55,7 +58,7 @@
      where the stakes are highest. */
   .btn-danger {
     @apply border border-transparent bg-danger-600 text-white hover:bg-danger-700;
-    @apply focus-visible:ring-danger-500;
+    @apply focus-visible:ring-danger-500 focus-visible:ring-offset-2;
   }
 
   .btn-primary {
