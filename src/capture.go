@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
+	"maps"
 	"net/http"
 
 	"github.com/gofiber/contrib/v3/socketio"
@@ -48,17 +50,22 @@ var spoofedCurlHeaders = map[string][]string{
 	"User-Agent":   {"curl/7.79.1"},
 }
 
+// curlSpoofRequested reports whether the sender asked for its request to be
+// captured as a command-line client's rather than the browser's.
+func curlSpoofRequested(headers map[string][]string) bool {
+	spoof := headers[spoofCurlHeader]
+	return len(spoof) > 0 && spoof[0] == "true"
+}
+
 // captureHeaders reduces the request's headers to what the user should see: the
 // browser's own additions removed when curl is spoofed, then every
 // infrastructure header stripped.
 func captureHeaders(headers map[string][]string) map[string][]string {
-	if spoof, ok := headers[spoofCurlHeader]; ok && len(spoof) > 0 && spoof[0] == "true" {
+	if curlSpoofRequested(headers) {
 		for _, name := range browserOnlyHeaders {
 			delete(headers, name)
 		}
-		for name, value := range spoofedCurlHeaders {
-			headers[name] = value
-		}
+		maps.Copy(headers, spoofedCurlHeaders)
 	}
 	for name := range headers {
 		if omitHeader(name) {
@@ -81,6 +88,26 @@ func flattenHeaders(headers map[string][]string) map[string]any {
 		}
 	}
 	return flat
+}
+
+// emitToSockets dispatches a payload to a list of live sockets. It is a
+// variable so a test can assert what fan-out sends without opening one.
+var emitToSockets = socketio.EmitToList
+
+// broadcastCapture pushes a stored capture to every socket watching its
+// endpoint. It marshals once and dispatches asynchronously so a slow client
+// does not stall the capture handler.
+func broadcastCapture(ctx context.Context, registry *socketRegistry, request database.Request) {
+	uuids := registry.uuidsFor(request.EndpointID)
+	if len(uuids) == 0 {
+		return
+	}
+	marshalled, err := json.Marshal(request)
+	if err != nil {
+		slog.ErrorContext(ctx, "websocket payload marshal failed", "err", err)
+		return
+	}
+	go emitToSockets(uuids, marshalled)
 }
 
 // captureRequest stores an inbound request against its endpoint and pushes it to
@@ -118,16 +145,7 @@ func captureRequest(registry *socketRegistry) fiber.Handler {
 		}
 		database.CreateRequest(c.Context(), &request)
 
-		// Fan-out to subscribed WS clients. Marshal once, then dispatch
-		// asynchronously so a slow client doesn't stall the capture handler.
-		if uuids := registry.uuidsFor(endpointID); len(uuids) > 0 {
-			marshalled, marshalErr := json.Marshal(request)
-			if marshalErr != nil {
-				slog.ErrorContext(c.Context(), "websocket payload marshal failed", "err", marshalErr)
-			} else {
-				go socketio.EmitToList(uuids, marshalled)
-			}
-		}
+		broadcastCapture(c.Context(), registry, request)
 
 		c.Set(captureUUIDHeader, request.UUID)
 		return c.SendStatus(http.StatusOK)
