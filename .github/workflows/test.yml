@@ -21,6 +21,10 @@ jobs:
       # Scoped to src: node_modules ships a stray Go package that ./... would
       # otherwise build.
       - run: go vet ./src/...
+      # The Go counterpart to the `complexity` rule the page scripts are linted
+      # with. Pinned so a later gocyclo release cannot change the verdict on a
+      # tree that did not change.
+      - run: go run github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0 -over 5 ./src
       - run: go test ./src/...
   lint:
     runs-on: ubuntu-latest
