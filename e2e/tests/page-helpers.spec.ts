@@ -43,6 +43,118 @@ test.describe("Page helpers", () => {
     });
   });
 
+  /**
+   * The two timestamps a capture carries. They are rendered together and say
+   * different things: the clock is when it landed, the relative age is how long
+   * ago that was. A card carrying only the second goes stale on screen, and one
+   * carrying only the first leaves the reader to do the subtraction.
+   */
+  test.describe("Relative time", () => {
+    // Driven from an offset rather than a fixed date, because the helper
+    // measures against the moment it is called. Every offset is a whole number
+    // of its unit: the few milliseconds that pass inside the call would round
+    // a value sitting exactly on .5 to the neighbouring unit instead.
+    const agoFor = (page: Parameters<typeof loadPageScripts>[0], ms: number) =>
+      page.evaluate(
+        (offset) => window.formatTimeAgo(new Date(Date.now() + offset)),
+        ms,
+      );
+
+    test("crosses into the next unit at each division", async ({ page }) => {
+      const phrases = await Promise.all(
+        [-5_000, -120_000, -7_200_000, -172_800_000].map((ms) =>
+          agoFor(page, ms),
+        ),
+      );
+
+      expect(phrases).toEqual([
+        "5 seconds ago",
+        "2 minutes ago",
+        "2 hours ago",
+        "2 days ago",
+      ]);
+    });
+
+    // The capture that just landed is the one the reader is waiting on, and
+    // "0 seconds ago" reads as a stopped clock rather than a fresh arrival.
+    test("the capture that just landed reads as now", async ({ page }) => {
+      expect(await agoFor(page, 0)).toBe("now");
+    });
+  });
+
+  test.describe("Clock time", () => {
+    test("states hours, minutes and seconds", async ({ page }) => {
+      const shown = await page.evaluate(() =>
+        window.formatClock(new Date(2026, 0, 2, 13, 4, 5)),
+      );
+
+      // The viewer's locale decides between 13:04:05 and 01:04:05 PM, so this
+      // asserts the parts every locale renders rather than one arrangement of
+      // them. Seconds are the part that matters: captures arrive seconds apart,
+      // and a clock without them shows a column of identical timestamps.
+      expect(shown.split(":")).toHaveLength(3);
+      expect(shown).toContain("04");
+      expect(shown).toContain("05");
+    });
+  });
+
+  /**
+   * Header lookup, shared by body rendering and the HAR export. A stored header
+   * is a scalar or an array depending on whether it repeated on the wire (see
+   * flattenHeaders in src/capture.go), and every caller wants one value.
+   */
+  test.describe("Header lookup", () => {
+    const lookup = (
+      page: Parameters<typeof loadPageScripts>[0],
+      headers: Record<string, string | string[]> | null,
+      name: string,
+    ) =>
+      page.evaluate((args) => window.headerValue(args.headers, args.name), {
+        headers,
+        name,
+      });
+
+    // Header names are case-insensitive on the wire, and a capture stores
+    // whichever case its sender happened to use.
+    test("matches a name in any case", async ({ page }) => {
+      const found = await lookup(
+        page,
+        { "content-TYPE": "application/json" },
+        "Content-Type",
+      );
+
+      expect(found).toBe("application/json");
+    });
+
+    test("a repeated header yields its first value", async ({ page }) => {
+      const found = await lookup(
+        page,
+        { Accept: ["text/html", "*/*"] },
+        "accept",
+      );
+
+      expect(found).toBe("text/html");
+    });
+
+    test("a name that was never sent yields nothing", async ({ page }) => {
+      const found = await lookup(
+        page,
+        { Host: "example.com" },
+        "Authorization",
+      );
+
+      expect(found).toBeUndefined();
+    });
+
+    // A capture whose headers did not store is still a capture the page has to
+    // render, so the lookup answers rather than throwing.
+    test("headers absent altogether yield nothing", async ({ page }) => {
+      const found = await lookup(page, null, "Content-Type");
+
+      expect(found).toBeUndefined();
+    });
+  });
+
   test.describe("Pluralising", () => {
     // A panel that says "1 requests" reads as a defect in the thing being
     // counted rather than in the sentence counting it.
