@@ -20,6 +20,13 @@ export default tseslint.config(
     ],
   },
 
+  // Cyclomatic complexity ceiling, over every file linted here. It sits at the
+  // worst score the tree currently carries, so it holds the line rather than
+  // leaving room to grow into, and a function that gains a branch has to lose
+  // one somewhere. ESLint's own default is 20, which everything here clears by
+  // a wide margin. Ratchet it down as hotspots are simplified.
+  { rules: { complexity: ["error", { max: 6 }] } },
+
   // Page scripts. No bundler and no module system: each file is a classic
   // script that publishes what the next one needs on `window`, so the globals
   // it defines and the ones it reads are both declared here.

@@ -52,6 +52,19 @@ go test ./src/...
 Every Go package lives under `src`. `./...` also walks `node_modules`, which
 ships a stray Go package once the npm tooling is installed.
 
+Check cyclomatic complexity:
+
+```bash
+go run github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0 -over 5 ./src
+go run github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0 -top 10 ./src
+```
+
+Both sides carry a ceiling, and both are set at the worst score the tree
+currently holds: `-over 5` for Go, and the `complexity` rule in
+`eslint.config.mjs` at 6 for the page scripts and the Playwright suite. `-top`
+takes no position and is the one to run when deciding what to simplify next.
+Neither ceiling grandfathers anything, so lower them as hotspots go.
+
 Run E2E tests (Playwright auto-starts the binary; build it first):
 
 ```bash
