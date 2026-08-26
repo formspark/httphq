@@ -78,22 +78,21 @@ func replaceAttr(groups []string, a slog.Attr) slog.Attr {
 // a deployment is not paying to record its own debug chatter, and debug
 // everywhere else. An operator overrides either with LOG_LEVEL; an unrecognised
 // value leaves the environment's default in place.
+var logLevels = map[string]slog.Level{
+	"debug": slog.LevelDebug,
+	"info":  slog.LevelInfo,
+	"warn":  slog.LevelWarn,
+	"error": slog.LevelError,
+}
+
 func resolveLevel(env, override string) slog.Level {
-	level := slog.LevelDebug
+	if level, ok := logLevels[strings.ToLower(override)]; ok {
+		return level
+	}
 	if env == "production" {
-		level = slog.LevelInfo
-	}
-	switch strings.ToLower(override) {
-	case "debug":
-		return slog.LevelDebug
-	case "info":
 		return slog.LevelInfo
-	case "warn":
-		return slog.LevelWarn
-	case "error":
-		return slog.LevelError
 	}
-	return level
+	return slog.LevelDebug
 }
 
 // Init installs the process-wide slog logger: JSON to stdout, an OTel-named

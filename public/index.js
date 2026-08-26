@@ -70,7 +70,16 @@ window.pluralize = function (count, noun) {
   return `${count} ${count === 1 ? noun : `${noun}s`}`;
 };
 
-/* Byte sizes for captured bodies. */
+/* Byte sizes for captured bodies.
+
+   Measured in bytes rather than characters, and measured on what was stored:
+   httphq holds a body as a Go string, and encoding/json replaces invalid UTF-8
+   with U+FFFD on the way out, so for a genuinely binary upload this can differ
+   from the original file's size. See database.Request.Body. */
+
+window.byteLength = function (text) {
+  return new TextEncoder().encode(text).length;
+};
 
 window.formatBytes = function (bytes) {
   if (bytes < 1024) return `${bytes} B`;

@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
@@ -89,16 +90,8 @@ func trustedProxyConfig() fiber.TrustProxyConfig {
 // header is a list) and validates it parses. With no platform configured, or
 // when the header is missing or malformed, it falls back to the TCP peer.
 func resolveClientIP(c fiber.Ctx) string {
-	if currentPlatform.ipHeader != "" {
-		v := c.Get(currentPlatform.ipHeader)
-		if currentPlatform.ipList {
-			if i := strings.IndexByte(v, ','); i >= 0 {
-				v = v[:i]
-			}
-		}
-		if ip := net.ParseIP(strings.TrimSpace(v)); ip != nil {
-			return ip.String()
-		}
+	if ip := net.ParseIP(platformClientIP(c)); ip != nil {
+		return ip.String()
 	}
 	if ip := net.ParseIP(c.IP()); ip != nil {
 		return ip.String()
@@ -106,19 +99,30 @@ func resolveClientIP(c fiber.Ctx) string {
 	return ""
 }
 
+// platformClientIP returns the raw client IP the configured PLATFORM's header
+// carries, taking the leftmost entry when that header is a list. Empty when no
+// platform is configured, which leaves the caller on the TCP peer.
+func platformClientIP(c fiber.Ctx) string {
+	if currentPlatform.ipHeader == "" {
+		return ""
+	}
+	v := c.Get(currentPlatform.ipHeader)
+	if currentPlatform.ipList {
+		if i := strings.IndexByte(v, ','); i >= 0 {
+			v = v[:i]
+		}
+	}
+	return strings.TrimSpace(v)
+}
+
 // omitHeader reports whether a captured-request header is infrastructure
 // noise, meaning a generic forwarding header or a vendor header added by the
 // configured PLATFORM, and so should be hidden from the user.
 func omitHeader(name string) bool {
-	for _, h := range omittedHeaders {
-		if strings.EqualFold(name, h) {
-			return true
-		}
+	sameName := func(h string) bool { return strings.EqualFold(name, h) }
+	hasPrefix := func(prefix string) bool {
+		return len(name) >= len(prefix) && strings.EqualFold(name[:len(prefix)], prefix)
 	}
-	for _, prefix := range currentPlatform.stripPrefix {
-		if len(name) >= len(prefix) && strings.EqualFold(name[:len(prefix)], prefix) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(omittedHeaders[:], sameName) ||
+		slices.ContainsFunc(currentPlatform.stripPrefix, hasPrefix)
 }

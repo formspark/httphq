@@ -3,11 +3,13 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
 	"testing"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -136,6 +138,17 @@ func TestResponseStatus(t *testing.T) {
 		record := accessLogFor(t, testRequest{method: http.MethodGet, path: "/no/such/page"})
 
 		assert.Equal(t, float64(http.StatusNotFound), record["http.response.status_code"])
+	})
+
+	// An error that names no status is still answered, and Fiber answers it
+	// with 500. Reading the response instead would log the untouched default
+	// and record the failure as a success.
+	t.Run("a failure that names no status is logged as a server error", func(t *testing.T) {
+		c := contextWith(t, fiber.New(), "203.0.113.7", nil)
+
+		status := responseStatus(c, errors.New("handler gave up"))
+
+		assert.Equal(t, http.StatusInternalServerError, status)
 	})
 }
 

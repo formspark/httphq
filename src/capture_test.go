@@ -6,9 +6,12 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"httphq/src/database"
 )
 
 func TestCaptureRequest(t *testing.T) {
@@ -243,5 +246,85 @@ func TestFlattenHeaders(t *testing.T) {
 
 	t.Run("no headers flatten to an empty object", func(t *testing.T) {
 		assert.Empty(t, flattenHeaders(map[string][]string{}))
+	})
+}
+
+// socketEmit is one fan-out dispatch: the sockets addressed and the payload
+// they were sent.
+type socketEmit struct {
+	uuids   []string
+	message []byte
+}
+
+// recordSocketEmits swaps the socket emitter for one that records what fan-out
+// dispatches. The emitter is process-wide, so a test that swaps it has to put
+// it back.
+func recordSocketEmits(t *testing.T) chan socketEmit {
+	t.Helper()
+	emits := make(chan socketEmit, 4)
+	previous := emitToSockets
+	emitToSockets = func(uuids []string, message []byte, _ ...int) {
+		emits <- socketEmit{uuids: uuids, message: message}
+	}
+	t.Cleanup(func() { emitToSockets = previous })
+	return emits
+}
+
+// awaitEmit returns the next dispatch. Fan-out runs in its own goroutine so
+// that a slow client cannot stall a capture, which means a test has to wait for
+// it rather than read the channel outright.
+func awaitEmit(t *testing.T, emits chan socketEmit) socketEmit {
+	t.Helper()
+	select {
+	case emit := <-emits:
+		return emit
+	case <-time.After(2 * time.Second):
+		t.Fatal("fan-out dispatched nothing")
+		return socketEmit{}
+	}
+}
+
+// Fan-out is what makes the feed live, so what matters is that a capture
+// reaches every socket watching its own endpoint and no others. The emitter is
+// swapped rather than a socket opened: the payload a watching page receives is
+// the subject here, not the transport under it.
+func TestBroadcastCapture(t *testing.T) {
+	captured := database.Request{
+		UUID:       "capture-uuid",
+		EndpointID: "watched",
+		Method:     http.MethodPost,
+		Body:       `{"hello":"world"}`,
+	}
+
+	t.Run("every socket watching the endpoint receives the capture", func(t *testing.T) {
+		emits := recordSocketEmits(t)
+		registry := newSocketRegistry()
+		registry.add("watched", "socket-1")
+		registry.add("watched", "socket-2")
+
+		broadcastCapture(t.Context(), registry, captured)
+
+		emit := awaitEmit(t, emits)
+		assert.ElementsMatch(t, []string{"socket-1", "socket-2"}, emit.uuids)
+
+		var payload database.Request
+		require.NoError(t, json.Unmarshal(emit.message, &payload),
+			"a page parses the pushed payload as a capture")
+		assert.Equal(t, captured.UUID, payload.UUID)
+		assert.Equal(t, captured.Body, payload.Body)
+	})
+
+	// The endpoint ID is the only isolation between two users of one instance,
+	// so a page open on another endpoint must never be pushed this traffic.
+	t.Run("a socket watching another endpoint is left alone", func(t *testing.T) {
+		emits := recordSocketEmits(t)
+		registry := newSocketRegistry()
+		registry.add("other", "socket-1")
+
+		broadcastCapture(t.Context(), registry, captured)
+
+		// Nothing is dispatched asynchronously either: with no socket on the
+		// endpoint, fan-out returns before it marshals or starts a goroutine.
+		assert.Empty(t, emits)
 	})
 }

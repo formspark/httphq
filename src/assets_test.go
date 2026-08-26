@@ -42,6 +42,37 @@ func templateFiles(t *testing.T) []string {
 	return files
 }
 
+// eachTemplate reads every template and hands its path and source to fn, so a
+// check over the template set says what it asserts rather than how it reads
+// the files.
+func eachTemplate(t *testing.T, fn func(path, source string)) {
+	t.Helper()
+	for _, path := range templateFiles(t) {
+		body, err := os.ReadFile(path)
+		require.NoError(t, err)
+		fn(path, string(body))
+	}
+}
+
+// helperVersioned collects the asset paths one template wraps in the asset
+// helper.
+func helperVersioned(source string) map[string]bool {
+	versioned := map[string]bool{}
+	for _, m := range assetHelperCall.FindAllStringSubmatch(source, -1) {
+		versioned[m[1]] = true
+	}
+	return versioned
+}
+
+// knownAssets collects the paths the startup hash pass walks.
+func knownAssets() map[string]bool {
+	known := map[string]bool{}
+	for _, path := range versionedAssets {
+		known[path] = true
+	}
+	return known
+}
+
 // assetDir populates a throwaway directory with every versioned asset, so an
 // index built on it behaves as it does against public/ without depending on
 // what happens to be committed there.
@@ -73,40 +104,27 @@ func rewriteAsset(t *testing.T, dir, path, contents string) {
 // damage only appears at a CDN edge after a deploy.
 func TestAssetReferences(t *testing.T) {
 	t.Run("every local asset reference goes through the helper", func(t *testing.T) {
-		for _, path := range templateFiles(t) {
-			body, err := os.ReadFile(path)
-			require.NoError(t, err)
-			source := string(body)
-
-			versioned := map[string]bool{}
-			for _, m := range assetHelperCall.FindAllStringSubmatch(source, -1) {
-				versioned[m[1]] = true
-			}
-
+		eachTemplate(t, func(path, source string) {
+			versioned := helperVersioned(source)
 			for _, m := range localAssetRef.FindAllStringSubmatch(source, -1) {
 				assert.Truef(t, versioned[m[1]],
 					"%s references %s without the asset helper; wrap it as {{asset `%s`}} so a cache cannot serve a stale copy against new markup",
 					path, m[1], m[1])
 			}
-		}
+		})
 	})
 
 	// Every asset the templates ask the helper to version has to be in the list
 	// the startup hash pass walks, or it ships unversioned in production.
 	t.Run("templates only version assets the index knows about", func(t *testing.T) {
-		known := map[string]bool{}
-		for _, path := range versionedAssets {
-			known[path] = true
-		}
-		for _, path := range templateFiles(t) {
-			body, err := os.ReadFile(path)
-			require.NoError(t, err)
-			for _, m := range assetHelperCall.FindAllStringSubmatch(string(body), -1) {
+		known := knownAssets()
+		eachTemplate(t, func(path, source string) {
+			for _, m := range assetHelperCall.FindAllStringSubmatch(source, -1) {
 				assert.Truef(t, known[m[1]],
 					"%s versions %s but it is missing from versionedAssets, so no hash is computed for it at startup",
 					path, m[1])
 			}
-		}
+		})
 	})
 
 	// The helper falls back to an unversioned path when it cannot read a file,
@@ -150,6 +168,18 @@ func TestAssetIndex(t *testing.T) {
 	// caching risk, a broken reference is a broken page.
 	t.Run("an unreadable asset falls back to its plain path", func(t *testing.T) {
 		index := newAssetIndex(filepath.Join(t.TempDir(), "does-not-exist"), false)
+
+		assert.Equal(t, "/app.css", index.url("/app.css"))
+	})
+
+	// A path that names a directory opens cleanly and only then fails to read,
+	// which is a different branch from a path that is not there at all. Both
+	// have to fall back, or a deploy that shadows an asset serves a bare page.
+	t.Run("a path shadowed by a directory falls back to its plain path", func(t *testing.T) {
+		dir := t.TempDir()
+		require.NoError(t, os.Mkdir(filepath.Join(dir, "app.css"), 0o750))
+
+		index := newAssetIndex(dir, false)
 
 		assert.Equal(t, "/app.css", index.url("/app.css"))
 	})

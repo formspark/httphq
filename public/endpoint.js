@@ -301,8 +301,10 @@
         link.href = href;
       },
 
+      // An unrecognised method still needs a badge. It borrows HEAD's palette
+      // rather than carrying an eighth of its own, so the set stays one family.
       methodBadge(method) {
-        return METHOD_CLASSES[method] || "bg-head-wash text-head-ink";
+        return METHOD_CLASSES[method] || METHOD_CLASSES.HEAD;
       },
 
       formatTimeAgo: window.formatTimeAgo,
@@ -357,17 +359,33 @@
         this.announce(`Deleted ${window.pluralize(count, "request")}`);
       },
 
+      // Every send outcome reaches the user the same way: the status line, the
+      // flag that colours it, and the live region that speaks it.
+      _reportSend(failed, status) {
+        this.sendFailed = failed;
+        this.sendStatus = status;
+        this.announce(status);
+      },
+
+      // Where the compose form points. Leading slashes are dropped from the
+      // sub-path so "foo" and "/foo" address the same capture path.
+      _sendTarget() {
+        const path = this.sendForm.path.replace(/^\/+/, "");
+        return `/to/${this.store.endpointId}${path ? "/" + path : ""}`;
+      },
+
       async sendCustom() {
         if (!this.store.endpointId) return;
         const parsed = window.parseHeaderLines(this.sendForm.headers);
         if (parsed.invalid.length) {
-          this.sendFailed = true;
-          this.sendStatus = `Line ${parsed.invalid[0].line} is not a header: "${parsed.invalid[0].text}". Use Key: Value.`;
-          this.announce(this.sendStatus);
+          const [first] = parsed.invalid;
+          this._reportSend(
+            true,
+            `Line ${first.line} is not a header: "${first.text}". Use Key: Value.`,
+          );
           return;
         }
-        const path = this.sendForm.path.replace(/^\/+/, "");
-        const target = `/to/${this.store.endpointId}${path ? "/" + path : ""}`;
+        const target = this._sendTarget();
         try {
           this.sendFailed = false;
           this.sendStatus = "Sending…";
@@ -376,18 +394,19 @@
             headers: parsed.headers,
             body: this.sendForm.body || undefined,
           });
-          this.sendFailed = !res.ok;
-          this.sendStatus = res.ok
-            ? `Sent ${this.sendForm.method}`
-            : `The server rejected it: HTTP ${res.status}.`;
-          this.announce(this.sendStatus);
-          if (res.ok) setTimeout(() => (this.sendStatus = ""), 2000);
+          if (!res.ok) {
+            this._reportSend(
+              true,
+              `The server rejected it: HTTP ${res.status}.`,
+            );
+            return;
+          }
+          this._reportSend(false, `Sent ${this.sendForm.method}`);
+          setTimeout(() => (this.sendStatus = ""), 2000);
         } catch (err) {
           // The browser refuses some combinations outright, e.g. a body on GET.
           // Report its reason rather than swallowing it, and keep it on screen.
-          this.sendFailed = true;
-          this.sendStatus = `Could not send: ${err.message}`;
-          this.announce(this.sendStatus);
+          this._reportSend(true, `Could not send: ${err.message}`);
         }
       },
     };
