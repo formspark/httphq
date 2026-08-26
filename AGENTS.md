@@ -26,6 +26,20 @@ the fixtures shared by every test that drives a real request.
 drive real requests through it without a listening socket. Anything that pulls
 configuration out of the environment belongs in `main`, not in a handler.
 
+## The Playwright suite covers screens and page scripts separately
+
+`e2e/tests` holds one spec per subject. A `*-screen.spec.ts` drives a screen
+through captured traffic and asserts what a reader ends up seeing.
+`render-body.spec.ts` and `page-helpers.spec.ts` drive the browser scripts
+directly through `loadPageScripts`, because traffic cannot express everything
+those scripts handle: the server parses and re-serialises a multipart body
+before storing it, so several part shapes a client can put on the wire never
+reach the page intact.
+
+Fixtures used by more than one spec live in `tests/support/harness.ts`, which is
+also the one place a type is asserted rather than proven, at the `JSON.parse`
+and `response.json()` boundaries.
+
 ## Comments
 
 Comments describe what the code does now and warn about non-obvious constraints

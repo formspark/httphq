@@ -1,32 +1,11 @@
 package main
 
 import (
-	"net"
 	"testing"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
-	"github.com/valyala/fasthttp"
 )
-
-// contextWith builds a request context from peerIP carrying the given headers,
-// so a test can exercise the header-reading helpers without a live server.
-func contextWith(t *testing.T, app *fiber.App, peerIP string, headers map[string]string) fiber.Ctx {
-	t.Helper()
-
-	fctx := &fasthttp.RequestCtx{}
-	if peerIP != "" {
-		fctx.SetRemoteAddr(&net.TCPAddr{IP: net.ParseIP(peerIP)})
-	}
-
-	c := app.AcquireCtx(fctx)
-	t.Cleanup(func() { app.ReleaseCtx(c) })
-
-	for name, value := range headers {
-		c.Request().Header.Set(name, value)
-	}
-	return c
-}
 
 // schemeFor returns the scheme Fiber resolves for a request from peerIP
 // carrying the given X-Forwarded-Proto (empty = header absent). The connection
@@ -141,6 +120,17 @@ func TestResolveClientIP(t *testing.T) {
 		})
 
 		assert.Equal(t, "2001:db8::1", resolveClientIP(c))
+	})
+
+	// A connection with no readable peer reports 0.0.0.0 rather than nothing,
+	// so that is what a capture stores and a reader sees. It looks like an
+	// address the client owned, and nothing downstream corrects that.
+	t.Run("an unreadable peer is reported as 0.0.0.0", func(t *testing.T) {
+		withPlatform(t, "cloudflare")
+
+		c := contextWith(t, app, "", map[string]string{"Cf-Connecting-Ip": "not-an-ip"})
+
+		assert.Equal(t, "0.0.0.0", resolveClientIP(c))
 	})
 }
 

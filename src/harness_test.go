@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/require"
+	"github.com/valyala/fasthttp"
 
 	"httphq/src/database"
 )
@@ -75,6 +77,25 @@ func withPlatform(t *testing.T, name string) {
 	previous := currentPlatform
 	currentPlatform = resolvePlatform(name)
 	t.Cleanup(func() { currentPlatform = previous })
+}
+
+// contextWith builds a request context from peerIP carrying the given headers,
+// so a test can exercise the header-reading helpers without a live server.
+func contextWith(t *testing.T, app *fiber.App, peerIP string, headers map[string]string) fiber.Ctx {
+	t.Helper()
+
+	fctx := &fasthttp.RequestCtx{}
+	if peerIP != "" {
+		fctx.SetRemoteAddr(&net.TCPAddr{IP: net.ParseIP(peerIP)})
+	}
+
+	c := app.AcquireCtx(fctx)
+	t.Cleanup(func() { app.ReleaseCtx(c) })
+
+	for name, value := range headers {
+		c.Request().Header.Set(name, value)
+	}
+	return c
 }
 
 type testRequest struct {

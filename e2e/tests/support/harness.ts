@@ -36,10 +36,43 @@ export const requestsUrl = (endpointId: string) =>
 export const pruneExpiredCaptures = (page: Page) =>
   page.evaluate(() => window.Alpine.store("main").pruneExpired(1));
 
+/**
+ * Loads the page scripts into a page that carries none of its own, so a test
+ * can call them directly.
+ *
+ * The endpoint page only ever reaches these helpers through captured traffic,
+ * and traffic cannot carry every shape they handle: the server normalises a
+ * multipart body before storing it, so several part shapes a client can put on
+ * the wire never arrive intact. Driving the helpers here is what holds them to
+ * their whole contract rather than the part the wire can express.
+ */
+export const loadPageScripts = async (page: Page) => {
+  // The contact screen ships no JavaScript, so whatever answers afterwards came
+  // from the scripts under test and not from the page around them.
+  await page.goto("/contact");
+  for (const url of ["/index.js", "/render-body.js", "/har.js"]) {
+    await page.addScriptTag({ url });
+  }
+};
+
+/** One malformed line from the send panel's header field. */
+export type InvalidHeaderLine = { line: number; text: string };
+
 declare global {
   interface Window {
     Alpine: {
       store(name: "main"): { pruneExpired(retentionMs: number): unknown };
+    };
+    renderBody(
+      body: string | null,
+      headers: CapturedRequest["headers"] | null,
+    ): string;
+    byteLength(text: string): number;
+    formatBytes(bytes: number): string;
+    pluralize(count: number, noun: string): string;
+    parseHeaderLines(text: string): {
+      headers: Record<string, string>;
+      invalid: InvalidHeaderLine[];
     };
   }
 }
@@ -97,6 +130,18 @@ export const listRequests = async (
   const response = await request.get(requestsUrl(endpointId));
   return (await response.json()) as RequestListing;
 };
+
+/**
+ * The body panel of the newest capture on screen. Every body assertion reaches
+ * for the same panel, so the locator is spelled once rather than at each call
+ * site, and a change to the markup lands in one place.
+ */
+export const newestBody = (page: Page) =>
+  page.locator('[data-test="request-body"]').first();
+
+/** The newest capture's body as displayed text, highlighting flattened away. */
+export const newestBodyText = (page: Page) =>
+  newestBody(page).locator("pre").innerText();
 
 export const readClipboard = (page: Page) =>
   page.evaluate(() => navigator.clipboard.readText());

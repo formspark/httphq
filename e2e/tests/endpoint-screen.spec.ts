@@ -2,6 +2,8 @@ import { test, expect } from "@playwright/test";
 import {
   captureUrl,
   newEndpointId,
+  newestBody,
+  newestBodyText,
   pruneExpiredCaptures,
   readClipboard,
   readClipboardJson,
@@ -150,7 +152,7 @@ test.describe("Endpoint screen", () => {
     }) => {
       await send(request, endpointUrl, { method: "GET" });
       await expect(
-        page.locator('[data-test="request-body"]').first(),
+        newestBody(page),
       ).toContainText("None");
     });
 
@@ -175,7 +177,7 @@ test.describe("Endpoint screen", () => {
       request,
     }) => {
       await send(request, endpointUrl, { data: "a".repeat(2048) });
-      const body = page.locator('[data-test="request-body"]').first();
+      const body = newestBody(page);
 
       await expect(body).toContainText("2.0 KB");
     });
@@ -274,7 +276,7 @@ test.describe("Endpoint screen", () => {
         data: { hello: "world", arr: [1, 2, 3] },
         headers: { "Content-Type": "application/json" },
       });
-      const body = page.locator('[data-test="request-body"]').first();
+      const body = newestBody(page);
       // Pretty-printed → contains a newline and 2-space indent.
       const text = await body.locator("pre").innerText();
       expect(text).toContain('"hello": "world"');
@@ -289,7 +291,7 @@ test.describe("Endpoint screen", () => {
         data: "<root><a>1</a></root>",
         headers: { "Content-Type": "application/xml" },
       });
-      const body = page.locator('[data-test="request-body"]').first();
+      const body = newestBody(page);
       const tagCount = await body.locator("pre span.hljs-tag").count();
       expect(tagCount).toBeGreaterThan(0);
     });
@@ -304,7 +306,7 @@ test.describe("Endpoint screen", () => {
         data: "<img src=x onerror=alert(1)>",
         headers: { "Content-Type": "text/html" },
       });
-      const body = page.locator('[data-test="request-body"]').first();
+      const body = newestBody(page);
       await expect(body).toContainText("onerror=alert(1)");
       await expect(body.locator("img")).toHaveCount(0);
     });
@@ -316,7 +318,7 @@ test.describe("Endpoint screen", () => {
       await request.post(endpointUrl, {
         multipart: { firstName: "Ada", role: "engineer" },
       });
-      const body = page.locator('[data-test="request-body"]').first();
+      const body = newestBody(page);
       const text = await body.locator("pre").innerText();
       expect(text).toContain('"name": "firstName"');
       expect(text).toContain('"value": "Ada"');
@@ -339,8 +341,7 @@ test.describe("Endpoint screen", () => {
           },
         },
       });
-      const body = page.locator('[data-test="request-body"]').first();
-      const text = await body.locator("pre").innerText();
+      const text = await newestBodyText(page);
       expect(text).toContain('"filename": "avatar.png"');
       expect(text).toContain('"contentType": "image/png"');
       expect(text).toMatch(/"size":\s*\d+/);
@@ -355,13 +356,40 @@ test.describe("Endpoint screen", () => {
       formData.append("tag", "red");
       formData.append("tag", "blue");
       await request.post(endpointUrl, { multipart: formData });
-      const body = page.locator('[data-test="request-body"]').first();
-      const text = await body.locator("pre").innerText();
+      const text = await newestBodyText(page);
       const tagValues = [
         ...text.matchAll(/"name": "tag",\s*\n\s*"value": "(\w+)"/g),
       ].map((m) => m[1]);
       expect(tagValues).toEqual(["red", "blue"]);
     });
+
+    // The header grammar allows a quoted boundary, and it may sit behind other
+    // parameters. Taking the quotes as part of the boundary, or reading only
+    // the first parameter, leaves nothing in the body matching the delimiter
+    // and the whole payload falls through to raw text.
+    test("parses a multipart body whose boundary is quoted", async ({
+      page,
+      request,
+    }) => {
+      const boundary = "QuotedBnd";
+      await send(request, endpointUrl, {
+        data: [
+          `--${boundary}`,
+          'Content-Disposition: form-data; name="city"',
+          "",
+          "Ghent",
+          `--${boundary}--`,
+          "",
+        ].join("\r\n"),
+        headers: {
+          "Content-Type": `multipart/form-data; charset=utf-8; boundary="${boundary}"`,
+        },
+      });
+      const text = await newestBodyText(page);
+      expect(text).toContain('"name": "city"');
+      expect(text).toContain('"value": "Ghent"');
+    });
+  });
 
     test("falls back to raw display when a multipart body has no boundary", async ({
       page,
@@ -371,10 +399,9 @@ test.describe("Endpoint screen", () => {
         data: "not-actually-parseable-multipart",
         headers: { "Content-Type": "multipart/form-data" },
       });
-      const body = page.locator('[data-test="request-body"]').first();
+      const body = newestBody(page);
       await expect(body).toContainText("not-actually-parseable-multipart");
     });
-  });
 
   test.describe("Filtering", () => {
     test("filters by request body via the search box", async ({

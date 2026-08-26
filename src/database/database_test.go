@@ -1,8 +1,10 @@
 package database_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -18,6 +20,19 @@ import (
 func freshDB(t *testing.T) {
 	t.Helper()
 	database.Connect(":memory:")
+}
+
+// captureLogs points the process logger at a buffer for one test. Every
+// operation here answers with a zero value, so a failure it ran into is
+// reported through the logs or nowhere, and this is the only way to read it.
+// The logger is process-wide, so it is restored before the next test.
+func captureLogs(t *testing.T) *bytes.Buffer {
+	t.Helper()
+	var out bytes.Buffer
+	previous := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&out, nil)))
+	t.Cleanup(func() { slog.SetDefault(previous) })
+	return &out
 }
 
 // requestOption customises a fixture request. Only the fields a test asserts on
@@ -70,6 +85,34 @@ func TestConnect(t *testing.T) {
 		var tables []string
 		database.DB.Raw(`SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name`).Scan(&tables)
 		assert.Equal(t, []string{"requests"}, tables)
+	})
+}
+
+// Every operation answers with a zero value rather than an error, because the
+// caller is a request handler that still has to respond. That makes a broken
+// store indistinguishable from an empty one at every call site, so the log line
+// is the only report there is and it has to be there.
+func TestBrokenStore(t *testing.T) {
+	t.Run("a failed query answers empty and reports itself to the logs", func(t *testing.T) {
+		freshDB(t)
+		logs := captureLogs(t)
+		require.NoError(t, database.DB.Migrator().DropTable(&database.Request{}))
+
+		assert.Equal(t, int64(0), database.CountRequests(t.Context()))
+		assert.Contains(t, logs.String(), "count requests failed")
+	})
+
+	t.Run("a failed listing answers with no requests at all", func(t *testing.T) {
+		freshDB(t)
+		logs := captureLogs(t)
+		require.NoError(t, database.DB.Migrator().DropTable(&database.Request{}))
+
+		listed := database.GetRequestsForEndpointID(t.Context(), "any-endpoint", "", time.Time{}, 10)
+
+		assert.Empty(t, listed, "a caller must not be handed a half-read page")
+		assert.Contains(t, logs.String(), "get requests failed")
+		assert.Contains(t, logs.String(), "any-endpoint",
+			"the log names the endpoint, or an operator cannot tell which one broke")
 	})
 }
 
