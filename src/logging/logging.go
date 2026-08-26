@@ -74,10 +74,9 @@ func replaceAttr(groups []string, a slog.Attr) slog.Attr {
 	return a
 }
 
-// resolveLevel picks the log level for an environment: info in production, so
-// a deployment is not paying to record its own debug chatter, and debug
-// everywhere else. An operator overrides either with LOG_LEVEL; an unrecognised
-// value leaves the environment's default in place.
+// logLevels are the values LOG_LEVEL accepts, matched case-insensitively.
+// Anything outside this set is not a level, which is what lets an unrecognised
+// override fall through to the environment's own default.
 var logLevels = map[string]slog.Level{
 	"debug": slog.LevelDebug,
 	"info":  slog.LevelInfo,
@@ -85,6 +84,10 @@ var logLevels = map[string]slog.Level{
 	"error": slog.LevelError,
 }
 
+// resolveLevel picks the log level for an environment: info in production, so
+// a deployment is not paying to record its own debug chatter, and debug
+// everywhere else. An operator overrides either with LOG_LEVEL; an unrecognised
+// value leaves the environment's default in place.
 func resolveLevel(env, override string) slog.Level {
 	if level, ok := logLevels[strings.ToLower(override)]; ok {
 		return level

@@ -170,6 +170,8 @@
       _reconnectDelay: RECONNECT_MIN_MS,
       _socket: null,
       _closed: false,
+      _wsUrl: "",
+      _retentionMs: 0,
 
       // The page has exactly one store, and every reader below reaches for it.
       // Naming it once keeps the lookup out of the expressions that use it.
@@ -177,21 +179,26 @@
         return Alpine.store("main");
       },
 
-      // Alpine calls this once when the component mounts. Endpoint id and
-      // WebSocket URL come from data-* attributes on the root element so the
-      // method can match Alpine's expected `init()` signature.
+      // Alpine calls this once when the component mounts. Everything the
+      // component needs about its endpoint arrives on data-* attributes of the
+      // root element rather than as arguments, so the method can match Alpine's
+      // expected `init()` signature.
+      //
+      // The socket URL is taken as rendered rather than rebuilt from location:
+      // its ws/wss scheme has to follow the scheme the page was served over,
+      // and the server is the side that resolves that through its trusted-proxy
+      // config. See endpointURLs in src/endpoint.go.
       init() {
-        const endpointId = this.$el.dataset.endpointId;
-        if (!endpointId) return;
-        const scheme = location.protocol === "https:" ? "wss:" : "ws:";
-        this._wsUrl = `${scheme}//${location.host}/ws/${endpointId}`;
+        const { endpointId, websocketUrl, retentionSeconds } = this.$el.dataset;
+        // Neither is recoverable from the page, so a render missing either one
+        // leaves the component inert rather than pointing a socket at a guess.
+        if (!endpointId || !websocketUrl) return;
+        this._wsUrl = websocketUrl;
         // A page served without the window keeps every capture it was given
         // rather than expiring them against a guess.
-        const retentionSeconds = Number(this.$el.dataset.retentionSeconds);
+        const seconds = Number(retentionSeconds);
         this._retentionMs =
-          Number.isFinite(retentionSeconds) && retentionSeconds > 0
-            ? retentionSeconds * 1000
-            : 0;
+          Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 0;
         this.store.setEndpoint(endpointId);
         this._connectWebSocket();
         setInterval(() => {
@@ -310,6 +317,7 @@
       formatTimeAgo: window.formatTimeAgo,
       formatClock: window.formatClock,
       formatBytes: window.formatBytes,
+      byteLength: window.byteLength,
       pluralize: window.pluralize,
       renderBody: window.renderBody,
 

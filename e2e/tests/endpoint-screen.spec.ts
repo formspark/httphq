@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type APIResponse, type Page } from "@playwright/test";
 import {
   captureUrl,
   newEndpointId,
@@ -18,6 +18,28 @@ import {
  * server under test.
  */
 const HYDRATION_TIMEOUT_MS = 15_000;
+
+/**
+ * The parts of the screen the assertions below reach for. Each selector is
+ * spelled once rather than at every call site, so a change to the markup lands
+ * in one place.
+ */
+const stream = (page: Page) => page.locator('[data-test="requests"]');
+const resultCount = (page: Page) =>
+  page.locator('[data-test="search-results"]');
+const searchBox = (page: Page) => page.locator('[data-test="search-input"]');
+const newestCard = (page: Page) =>
+  page.locator('[data-test="request"]').first();
+
+/**
+ * The capture a send produced, found by the UUID the server echoes back. Going
+ * through the UUID rather than through position is what lets a test assert
+ * about its own request while the stream carries others.
+ */
+const capturedUuid = (response: APIResponse) =>
+  response.headers()["httphq-request-uuid"];
+
+const cardFor = (page: Page, uuid: string) => page.locator(`#request-${uuid}`);
 
 test.describe("Endpoint screen", () => {
   let endpointId: string;
@@ -79,33 +101,27 @@ test.describe("Endpoint screen", () => {
   });
 
   test.describe("Capture stream", () => {
-    test("shows the empty state when no requests exist", async ({ page }) => {
-      await expect(page.locator('[data-test="requests"]')).toContainText(
-        "Waiting for requests",
-      );
+    test("an endpoint with no traffic says it is waiting", async ({ page }) => {
+      await expect(stream(page)).toContainText("Waiting for requests");
     });
 
-    test("does not show the empty state once requests arrive", async ({
+    test("the waiting state goes once a request arrives", async ({
       page,
       request,
     }) => {
       await send(request, endpointUrl, { data: "Hello, World!" });
-      await expect(page.locator('[data-test="requests"]')).not.toContainText(
-        "Waiting for requests",
-      );
+      await expect(stream(page)).not.toContainText("Waiting for requests");
     });
 
-    test("displays new requests in real-time over WebSocket", async ({
+    test("a request sent while the page is open appears without a reload", async ({
       page,
       request,
     }) => {
       await send(request, endpointUrl, { data: "Real-time-payload" });
-      await expect(page.locator('[data-test="requests"]')).toContainText(
-        "Real-time-payload",
-      );
+      await expect(stream(page)).toContainText("Real-time-payload");
     });
 
-    test("renders request details, headers and body", async ({
+    test("a capture shows its details, headers and body", async ({
       page,
       request,
     }) => {
@@ -113,7 +129,7 @@ test.describe("Endpoint screen", () => {
         data: "Hello, World!",
         headers: { "Content-Type": "text/plain" },
       });
-      const card = page.locator('[data-test="request"]').first();
+      const card = newestCard(page);
       const details = card.locator('[data-test="request-details"]');
       await expect(details).toContainText(/now|seconds? ago/);
       await expect(details).toContainText("127.0.0.1");
@@ -151,9 +167,7 @@ test.describe("Endpoint screen", () => {
       request,
     }) => {
       await send(request, endpointUrl, { method: "GET" });
-      await expect(
-        newestBody(page),
-      ).toContainText("None");
+      await expect(newestBody(page)).toContainText("None");
     });
 
     test("the header count matches the headers listed", async ({
@@ -182,13 +196,27 @@ test.describe("Endpoint screen", () => {
       await expect(body).toContainText("2.0 KB");
     });
 
+    // The panel measures what was stored, which is bytes, matching the size the
+    // HAR export reports and the one a multipart part carries. An ASCII payload
+    // cannot tell the two apart, so this one is deliberately not ASCII: 2048
+    // characters here are 4096 bytes.
+    test("the payload size counts bytes rather than characters", async ({
+      page,
+      request,
+    }) => {
+      await send(request, endpointUrl, { data: "é".repeat(2048) });
+      const body = newestBody(page);
+
+      await expect(body).toContainText("4.0 KB");
+    });
+
     test("delete-request removes a single card", async ({ page, request }) => {
       await send(request, endpointUrl, { data: "first" });
       const response = await send(request, endpointUrl, {
         data: { msg: "second" },
       });
-      const uuid = response.headers()["httphq-request-uuid"];
-      const card = page.locator(`#request-${uuid}`);
+      const uuid = capturedUuid(response);
+      const card = cardFor(page, uuid);
       await expect(card).toBeAttached();
       await card.locator('[data-test="delete-request"]').click();
       await expect(card).not.toBeAttached();
@@ -212,9 +240,7 @@ test.describe("Endpoint screen", () => {
 
       await page.locator('[data-test="delete-requests"]').click();
       await page.locator('[data-test="delete-confirm-button"]').click();
-      await expect(page.locator('[data-test="requests"]')).toContainText(
-        "Waiting for requests",
-      );
+      await expect(stream(page)).toContainText("Waiting for requests");
     });
 
     // Nothing tells the page that the server swept a capture out from under it,
@@ -227,8 +253,8 @@ test.describe("Endpoint screen", () => {
       request,
     }) => {
       const response = await send(request, endpointUrl, { data: "swept" });
-      const uuid = response.headers()["httphq-request-uuid"];
-      await expect(page.locator(`#request-${uuid}`)).toBeAttached();
+      const uuid = capturedUuid(response);
+      await expect(cardFor(page, uuid)).toBeAttached();
 
       // Deleted behind the page's back, which is what the retention sweep is
       // from the page's point of view.
@@ -236,9 +262,7 @@ test.describe("Endpoint screen", () => {
 
       await pruneExpiredCaptures(page);
 
-      await expect(page.locator('[data-test="requests"]')).toContainText(
-        "Waiting for requests",
-      );
+      await expect(stream(page)).toContainText("Waiting for requests");
     });
 
     // Rendering every capture at once is a five-figure node count and a visible
@@ -251,9 +275,7 @@ test.describe("Endpoint screen", () => {
       for (let i = 0; i < overOnePage; i++) {
         await send(request, endpointUrl, { data: `payload-${i}` });
       }
-      await expect(page.locator('[data-test="search-results"]')).toContainText(
-        `${overOnePage} results`,
-      );
+      await expect(resultCount(page)).toContainText(`${overOnePage} results`);
 
       await expect(page.locator('[data-test="request"]')).toHaveCount(25);
       const showMore = page.locator('[data-test="show-more"]');
@@ -268,7 +290,7 @@ test.describe("Endpoint screen", () => {
   });
 
   test.describe("Body rendering", () => {
-    test("pretty-prints JSON bodies via highlight.js", async ({
+    test("a JSON body is pretty-printed and syntax-highlighted", async ({
       page,
       request,
     }) => {
@@ -286,7 +308,7 @@ test.describe("Endpoint screen", () => {
       expect(tokenCount).toBeGreaterThan(0);
     });
 
-    test("highlights XML bodies", async ({ page, request }) => {
+    test("an XML body is syntax-highlighted", async ({ page, request }) => {
       await send(request, endpointUrl, {
         data: "<root><a>1</a></root>",
         headers: { "Content-Type": "application/xml" },
@@ -311,7 +333,7 @@ test.describe("Endpoint screen", () => {
       await expect(body.locator("img")).toHaveCount(0);
     });
 
-    test("renders multipart/form-data fields as a parsed JSON array", async ({
+    test("a multipart body shows its fields as a parsed list", async ({
       page,
       request,
     }) => {
@@ -328,7 +350,7 @@ test.describe("Endpoint screen", () => {
       expect(tokenCount).toBeGreaterThan(0);
     });
 
-    test("renders multipart file parts as metadata only, never file content", async ({
+    test("a multipart file part shows metadata, never its content", async ({
       page,
       request,
     }) => {
@@ -348,7 +370,7 @@ test.describe("Endpoint screen", () => {
       expect(text).not.toContain("fake-png-bytes");
     });
 
-    test("keeps repeated multipart field names as separate array entries", async ({
+    test("a repeated multipart field name keeps each of its entries", async ({
       page,
       request,
     }) => {
@@ -367,7 +389,7 @@ test.describe("Endpoint screen", () => {
     // parameters. Taking the quotes as part of the boundary, or reading only
     // the first parameter, leaves nothing in the body matching the delimiter
     // and the whole payload falls through to raw text.
-    test("parses a multipart body whose boundary is quoted", async ({
+    test("a quoted boundary is parsed like an unquoted one", async ({
       page,
       request,
     }) => {
@@ -389,9 +411,8 @@ test.describe("Endpoint screen", () => {
       expect(text).toContain('"name": "city"');
       expect(text).toContain('"value": "Ghent"');
     });
-  });
 
-    test("falls back to raw display when a multipart body has no boundary", async ({
+    test("a multipart body with no boundary falls back to raw text", async ({
       page,
       request,
     }) => {
@@ -402,16 +423,14 @@ test.describe("Endpoint screen", () => {
       const body = newestBody(page);
       await expect(body).toContainText("not-actually-parseable-multipart");
     });
+  });
 
   test.describe("Filtering", () => {
-    test("filters by request body via the search box", async ({
-      page,
-      request,
-    }) => {
+    test("the search box narrows by body", async ({ page, request }) => {
       await send(request, endpointUrl, { data: "Hello, World!" });
-      const requests = page.locator('[data-test="requests"]');
-      const results = page.locator('[data-test="search-results"]');
-      const search = page.locator('[data-test="search-input"]');
+      const requests = stream(page);
+      const results = resultCount(page);
+      const search = searchBox(page);
 
       await expect(requests).toContainText("Hello, World!");
 
@@ -427,7 +446,7 @@ test.describe("Endpoint screen", () => {
       await expect(requests).not.toContainText("Waiting for requests");
     });
 
-    test("filters by header key/value via the search box", async ({
+    test("the search box narrows by header name and value", async ({
       page,
       request,
     }) => {
@@ -437,9 +456,9 @@ test.describe("Endpoint screen", () => {
         data: "x",
         headers: { [key]: value },
       });
-      const requests = page.locator('[data-test="requests"]');
-      const results = page.locator('[data-test="search-results"]');
-      const search = page.locator('[data-test="search-input"]');
+      const requests = stream(page);
+      const results = resultCount(page);
+      const search = searchBox(page);
 
       await expect(requests).toContainText(key);
       await expect(requests).toContainText(value);
@@ -454,16 +473,16 @@ test.describe("Endpoint screen", () => {
       await expect(results).toContainText("0 results");
     });
 
-    test("filters by query string via the search box", async ({
+    test("the search box narrows by query string", async ({
       page,
       request,
     }) => {
       await send(request, `${endpointUrl}?event=charge.succeeded`, {
         data: "x",
       });
-      const results = page.locator('[data-test="search-results"]');
+      const results = resultCount(page);
 
-      await page.locator('[data-test="search-input"]').fill("charge.succeeded");
+      await searchBox(page).fill("charge.succeeded");
       await expect(results).toContainText("1 result");
     });
 
@@ -474,14 +493,10 @@ test.describe("Endpoint screen", () => {
       request,
     }) => {
       await send(request, endpointUrl, { data: "only" });
-      await expect(page.locator('[data-test="search-results"]')).toHaveText(
-        "1 result",
-      );
+      await expect(resultCount(page)).toHaveText("1 result");
 
       await send(request, endpointUrl, { data: "second" });
-      await expect(page.locator('[data-test="search-results"]')).toHaveText(
-        "2 results",
-      );
+      await expect(resultCount(page)).toHaveText("2 results");
     });
 
     test("the method filter narrows the list to matching methods", async ({
@@ -492,20 +507,14 @@ test.describe("Endpoint screen", () => {
       await send(request, endpointUrl, { method: "PUT", data: "p2" });
       await send(request, endpointUrl, { method: "DELETE" });
 
-      await expect(page.locator('[data-test="search-results"]')).toContainText(
-        "3 results",
-      );
+      await expect(resultCount(page)).toContainText("3 results");
 
       await page.locator('[data-test="method-filter"]').selectOption("POST");
-      await expect(page.locator('[data-test="search-results"]')).toContainText(
-        "1 result",
-      );
+      await expect(resultCount(page)).toContainText("1 result");
       await expect(page.locator('[data-test="request"]')).toHaveCount(1);
 
       await page.locator('[data-test="method-filter"]').selectOption("");
-      await expect(page.locator('[data-test="search-results"]')).toContainText(
-        "3 results",
-      );
+      await expect(resultCount(page)).toContainText("3 results");
     });
 
     test("a filtered-empty stream is not reported as waiting", async ({
@@ -555,10 +564,8 @@ test.describe("Endpoint screen", () => {
       await send(request, endpointUrl, { data: "beta" });
       await expect(page.locator('[data-test="request"]')).toHaveCount(2);
 
-      await page.locator('[data-test="search-input"]').fill("alpha");
-      await expect(page.locator('[data-test="search-results"]')).toContainText(
-        "1 result",
-      );
+      await searchBox(page).fill("alpha");
+      await expect(resultCount(page)).toContainText("1 result");
       await expect(
         page.locator('[data-test="delete-requests-label"]'),
       ).toContainText("Delete all (2)");
@@ -596,7 +603,7 @@ test.describe("Endpoint screen", () => {
         data: raw,
         headers: { "Content-Type": "application/json" },
       });
-      const card = page.locator('[data-test="request"]').first();
+      const card = newestCard(page);
       await card.locator('[data-test="copy-body"]').click();
       expect(await readClipboard(page)).toBe(raw);
     });
@@ -609,7 +616,7 @@ test.describe("Endpoint screen", () => {
         data: "x",
         headers: { "X-Sample": "value" },
       });
-      const card = page.locator('[data-test="request"]').first();
+      const card = newestCard(page);
       await card.locator('[data-test="copy-headers"]').click();
       const parsed = await readClipboardJson<Record<string, string>>(page);
       expect(parsed["X-Sample"]).toBe("value");
@@ -620,7 +627,7 @@ test.describe("Endpoint screen", () => {
       request,
     }) => {
       await send(request, `${endpointUrl}?a=1&b=2`, { data: "x" });
-      const card = page.locator('[data-test="request"]').first();
+      const card = newestCard(page);
       await card.locator('[data-test="copy-query"]').click();
       expect(await readClipboard(page)).toBe("a=1&b=2");
     });
@@ -634,8 +641,8 @@ test.describe("Endpoint screen", () => {
         data: raw,
         headers: { "Content-Type": "application/json", "X-Sample": "value" },
       });
-      const uuid = response.headers()["httphq-request-uuid"];
-      const card = page.locator(`#request-${uuid}`);
+      const uuid = capturedUuid(response);
+      const card = cardFor(page, uuid);
       await expect(card).toBeAttached();
 
       await card.locator('[data-test="copy-request-har"]').click();
@@ -670,7 +677,7 @@ test.describe("Endpoint screen", () => {
       request,
     }) => {
       await send(request, endpointUrl, { data: "x" });
-      const card = page.locator('[data-test="request"]').first();
+      const card = newestCard(page);
       await card.locator('[data-test="copy-request-har"]').click();
       const har = await readClipboardJson<HarDocument>(page);
 
@@ -681,7 +688,7 @@ test.describe("Endpoint screen", () => {
 
     test("a bodyless request omits postData", async ({ page, request }) => {
       await send(request, endpointUrl, { method: "GET" });
-      const card = page.locator('[data-test="request"]').first();
+      const card = newestCard(page);
       await card.locator('[data-test="copy-request-har"]').click();
       const har = await readClipboardJson<HarDocument>(page);
 
@@ -694,7 +701,7 @@ test.describe("Endpoint screen", () => {
       request,
     }) => {
       await send(request, endpointUrl, { data: "x" });
-      const card = page.locator('[data-test="request"]').first();
+      const card = newestCard(page);
       await card.locator('[data-test="copy-request-har"]').click();
       await expect(
         card.locator('[data-test="copy-request-har-label"]'),
@@ -726,9 +733,7 @@ test.describe("Endpoint screen", () => {
     }) => {
       await send(request, endpointUrl, { data: "p" });
       await send(request, endpointUrl, { method: "PUT", data: "u" });
-      await expect(page.locator('[data-test="search-results"]')).toContainText(
-        "2 results",
-      );
+      await expect(resultCount(page)).toContainText("2 results");
 
       await page.locator('[data-test="method-filter"]').selectOption("PUT");
       await expect(
@@ -840,7 +845,7 @@ test.describe("Endpoint screen", () => {
       await page.locator('[data-test="send-body"]').fill('{"hello":"panel"}');
       await page.locator('[data-test="send-submit"]').click();
 
-      const card = page.locator('[data-test="request"]').first();
+      const card = newestCard(page);
       await expect(card).toContainText("PUT");
       await expect(card.locator('[data-test="request-headers"]')).toContainText(
         "X-Source",
@@ -857,7 +862,7 @@ test.describe("Endpoint screen", () => {
         .fill("/orders/8821?event=charge.succeeded");
       await page.locator('[data-test="send-submit"]').click();
 
-      const card = page.locator('[data-test="request"]').first();
+      const card = newestCard(page);
       await expect(card.locator('[data-test="request-path"]')).toContainText(
         `${endpointPath}/orders/8821?event=charge.succeeded`,
       );

@@ -67,8 +67,15 @@ declare global {
       body: string | null,
       headers: CapturedRequest["headers"] | null,
     ): string;
+    headerValue(
+      headers: CapturedRequest["headers"] | null,
+      name: string,
+    ): string | undefined;
+    buildHarExport(requests: CapturedRequest[] | null): string;
     byteLength(text: string): number;
     formatBytes(bytes: number): string;
+    formatTimeAgo(date: Date): string;
+    formatClock(date: Date): string;
     pluralize(count: number, noun: string): string;
     parseHeaderLines(text: string): {
       headers: Record<string, string>;
@@ -179,3 +186,22 @@ export type HarDocument = {
   creator: { name: string; version: string };
   entries: HarEntry[];
 };
+
+/**
+ * Runs the exporter over captures built in the test rather than over traffic.
+ * A repeated header and a body that is not ASCII both reach the exporter from a
+ * real client, but neither survives the round trip through Playwright's request
+ * API and the server's own normalising, so driving it here is what holds it to
+ * its whole contract.
+ *
+ * The parse is asserted for the same reason as listRequests: `JSON.parse`
+ * cannot know the shape it returns, so the one declaration of it stays in the
+ * harness rather than in each test.
+ */
+export const buildHar = async (
+  page: Page,
+  requests: CapturedRequest[] | null,
+): Promise<HarDocument> =>
+  JSON.parse(
+    await page.evaluate((list) => window.buildHarExport(list), requests),
+  ) as HarDocument;

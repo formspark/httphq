@@ -4,6 +4,7 @@
   class="flex-1 pb-12"
   x-data="endpointPage"
   data-endpoint-id="{{.EndpointID}}"
+  data-websocket-url="{{.EndpointWebSocketURL}}"
   data-retention-seconds="{{.RetentionSeconds}}"
 >
   <h1 class="sr-only">Captured requests for {{.EndpointID}}</h1>
@@ -559,7 +560,7 @@
               <span
                 class="normal-case font-normal"
                 x-show="request.body"
-                x-text="`(${formatBytes(request.body.length)})`"
+                x-text="`(${formatBytes(byteLength(request.body))})`"
               ></span>
             </h3>
             <button

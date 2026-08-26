@@ -30,15 +30,19 @@ configuration out of the environment belongs in `main`, not in a handler.
 
 `e2e/tests` holds one spec per subject. A `*-screen.spec.ts` drives a screen
 through captured traffic and asserts what a reader ends up seeing.
-`render-body.spec.ts` and `page-helpers.spec.ts` drive the browser scripts
-directly through `loadPageScripts`, because traffic cannot express everything
-those scripts handle: the server parses and re-serialises a multipart body
-before storing it, so several part shapes a client can put on the wire never
-reach the page intact.
+`render-body.spec.ts`, `page-helpers.spec.ts` and `har-export.spec.ts` drive the
+browser scripts directly through `loadPageScripts`, because traffic cannot
+express everything those scripts handle: the server parses and re-serialises a
+multipart body before storing it, so several part shapes a client can put on the
+wire never reach the page intact, and neither a repeated header nor a body that
+is not ASCII survives the round trip through the test client.
+`capture-api.spec.ts` covers what only a client on the wire can observe, such as
+the body limit the server enforces around the handler rather than inside it.
 
-Fixtures used by more than one spec live in `tests/support/harness.ts`, which is
-also the one place a type is asserted rather than proven, at the `JSON.parse`
-and `response.json()` boundaries.
+A spec's own fixtures sit at the top of that spec, as the locator and multipart
+helpers do. Fixtures used by more than one spec live in
+`tests/support/harness.ts`, which is also the one place a type is asserted
+rather than proven, at the `JSON.parse` and `response.json()` boundaries.
 
 ## Comments
 
