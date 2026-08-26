@@ -75,13 +75,22 @@ func TestRenderContact(t *testing.T) {
 }
 
 func TestRenderEndpoint(t *testing.T) {
+	// The page script opens the feed against the URL rendered here rather than
+	// rebuilding it, so a socket URL the page never carries is a page whose feed
+	// never connects.
 	t.Run("advertises its capture and socket URLs", func(t *testing.T) {
 		id := endpointID(t)
 		body := bodyOf(t, get(t, "/"+id))
 
 		assert.Contains(t, body, "http://example.com/to/"+id)
 		assert.Contains(t, body, `data-endpoint-id="`+id+`"`)
+		assert.Contains(t, body, `data-websocket-url="ws://example.com/ws/`+id+`"`)
 		assert.Contains(t, body, "endpoint.js?v=")
+
+		// html/template rewrites a URL attribute it does not trust to this
+		// sentinel rather than failing, so an untyped ws:// URL would render a
+		// page that looks intact and never opens its feed.
+		assert.NotContains(t, body, "ZgotmplZ")
 	})
 
 	// The page expires captures out of its own list, so it needs the window as

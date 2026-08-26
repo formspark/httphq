@@ -1,6 +1,7 @@
 package main
 
 import (
+	"html/template"
 	"log/slog"
 	"maps"
 
@@ -85,10 +86,16 @@ func renderEndpoint(assets *assetIndex) fiber.Handler {
 		retention := retentionPhrase(retentionWindow)
 
 		page := fiber.Map{
-			"AppScripts":           true,
-			"EndpointID":           endpointID,
-			"EndpointURL":          endpointURL,
-			"EndpointWebSocketURL": websocketURL,
+			"AppScripts":  true,
+			"EndpointID":  endpointID,
+			"EndpointURL": endpointURL,
+			// Typed rather than passed as a string because html/template trusts
+			// only http, https and mailto in a URL attribute, and rewrites
+			// anything else to #ZgotmplZ. The value is safe to exempt: its
+			// scheme is derived here from c.Scheme(), and its endpoint ID has
+			// already passed requireValidEndpoint. Attribute escaping still
+			// applies, so the host cannot break out of the attribute.
+			"EndpointWebSocketURL": template.URL(websocketURL),
 			// The page drops captures from its own list once they age out, so it
 			// needs the window as a number rather than as the prose it renders.
 			"RetentionSeconds": int(retentionWindow.Seconds()),
