@@ -1,17 +1,20 @@
-bin
-coverage.out
-node_modules
-.idea
+# Editor and OS
+.DS_Store
+.claude/
+.idea/
+
+# Dependencies and build output
+bin/
+node_modules/
+
+# Local SQLite database. Capture history is ephemeral by design.
 *.db
 *.db-shm
 *.db-wal
-.DS_Store
 
-# E2E (Playwright)
-/e2e/test-results
-/e2e/playwright-report
-/e2e/blob-report
-/e2e/.cache
-
-# Impeccable critique snapshots are local tooling output, not source.
-.impeccable/critique/
+# Test output
+coverage.out
+/e2e/.cache/
+/e2e/blob-report/
+/e2e/playwright-report/
+/e2e/test-results/

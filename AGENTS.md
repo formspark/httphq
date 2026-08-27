@@ -97,42 +97,6 @@ Coverage is printed, not gated. A threshold set before the number is known is a
 guess, so the figure goes to the job summary and a ceiling can be set later at
 what the suite actually reaches.
 
-## Em dashes are checked on what a change adds
-
-AGENTS.md bans them. `scripts/check-em-dashes.sh` runs on pull requests and
-compares counts per file between the merge base and the branch, failing when a
-file gains one.
-
-Counts rather than a diff, for three reasons. A reflow re-adds every line it
-touches without writing prose, and a diff would report the whole backlog as new.
-An em dash added in one commit and rewritten in a later one is not in the change
-at all. And what matters is the state the branch ends in, not the route it took.
-
-The backlog is deliberately left alone: clearing it means rewriting each clause
-rather than running a substitution. A file already being edited for another
-reason is the right moment to clear the ones it carries.
-
-A bare `"—"` on its own is a data placeholder, a missing value in a table cell
-rather than prose, and is allowed.
-
-## Re-deriving a ratchet cap
-
-`scripts/measure-ratchet.sh <rule> [extension]` reports the worst score a rule
-finds, which is the number its cap should be set to.
-
-```bash
-scripts/measure-ratchet.sh complexity ts
-scripts/measure-ratchet.sh max-params
-```
-
-Doing it by hand is quietly unreliable in two ways that both look like a clean
-tree. Each rule words its message differently: `complexity` says "has a
-complexity of 15", `max-params` and `max-depth` say "(3)", so a grep written for
-one shape silently reports nothing for the other. And a glob handed to eslint is
-not a glob the shell expanded: `'src/**/*.tsx'` can match nothing while looking
-correctly scoped. The script handles both message shapes, takes an extension
-rather than a glob, and refuses to print an empty result.
-
 ## Lint-staged globs are checked against Prettier
 
 `scripts/check-lint-staged.mjs` fails when the tree contains a file extension

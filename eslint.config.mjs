@@ -20,6 +20,13 @@ export default tseslint.config(
     ],
   },
 
+  // The caps are measured, not chosen. Re-deriving one means running the rule
+  // at max 0 and reading the highest number back. Two things make that
+  // unreliable by hand: complexity words its message "has a complexity of 15"
+  // while max-params and max-depth say "(3)", so a grep for one shape finds
+  // nothing for the other; and a glob passed to eslint is not a glob the shell
+  // expanded, so scope it with a file list rather than a pattern.
+  //
   // Three ratchets, over every file linted here. Each cap sits at the worst
   // score the tree currently carries, so it holds the line rather than leaving
   // room to grow into, and a function that gains a branch has to lose one

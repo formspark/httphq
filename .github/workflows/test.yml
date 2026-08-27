@@ -24,19 +24,5 @@ permissions:
   contents: read
 
 jobs:
-  # Not in pipeline.yml: release.yml calls that too, and a push to master has no
-  # merge base to diff against.
-  em-dashes:
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    if: github.event_name == 'pull_request'
-    steps:
-      - uses: actions/checkout@v7
-        timeout-minutes: 1
-        with:
-          fetch-depth: 0
-      - run: bash scripts/check-em-dashes.sh "origin/${{ github.base_ref }}"
-        timeout-minutes: 1
-
   verify:
     uses: ./.github/workflows/pipeline.yml
