@@ -1,5 +1,9 @@
 name: test
+
 on:
+  # The nightly run exists because the page scripts pull Alpine and highlight.js
+  # from public CDNs at runtime, so the suite can start failing on a day nobody
+  # pushed anything.
   schedule:
     - cron: "0 0 * * *"
   pull_request:
@@ -9,81 +13,16 @@ on:
     branches:
       - develop
       - master
+
+# A superseded pull request run tells you about a commit that is no longer the
+# branch tip, so cancel it.
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
-  unit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
-        with:
-          go-version-file: "go.mod"
-          cache: false
-      # Scoped to src: node_modules ships a stray Go package that ./... would
-      # otherwise build.
-      - run: go vet ./src/...
-      # The Go counterpart to the `complexity` rule the page scripts are linted
-      # with. Pinned so a later gocyclo release cannot change the verdict on a
-      # tree that did not change.
-      - run: go run github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0 -over 5 ./src
-      - run: go test ./src/...
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: ".tool-versions"
-      - run: npm ci
-      # The Playwright suite is linted with type information, which needs its
-      # own dependencies resolvable.
-      - run: npm ci
-        working-directory: e2e
-      - run: npm run lint
-      - name: Type-check the Playwright suite
-        run: npx tsc --noEmit
-        working-directory: e2e
-  styles:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: ".tool-versions"
-      - run: npm ci
-      # public/app.css is committed so the binary and container need no Node.
-      # A rebuild that changes it means a template or script gained a class the
-      # committed sheet does not carry, and the running app would be missing it.
-      - name: Rebuild stylesheet and check it matches the committed one
-        run: |
-          npm run css
-          git diff --exit-code --stat public/app.css \
-            || { echo "::error::public/app.css is stale. Run 'npm run css' and commit the result"; exit 1; }
-  e2e:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: e2e
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
-        with:
-          go-version-file: "go.mod"
-          cache: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: ".tool-versions"
-      - name: Build server
-        run: CGO_ENABLED=0 go build -o ./bin/httphq ./src
-        working-directory: .
-      - name: Install dependencies
-        run: npm ci
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-      - name: Run Playwright tests
-        run: npx playwright test
-      - uses: actions/upload-artifact@v7
-        if: ${{ !cancelled() }}
-        with:
-          name: playwright-report
-          path: e2e/playwright-report
-          retention-days: 7
+  verify:
+    uses: ./.github/workflows/pipeline.yml

@@ -6,39 +6,35 @@ on:
       - master
   workflow_dispatch:
 
-jobs:
-  vet:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
-        with:
-          go-version-file: "go.mod"
-          cache: false
-      # Scoped to src: node_modules ships a stray Go package that ./... would
-      # otherwise build.
-      - run: go vet ./src/...
+# Releases queue rather than race: cancelling one mid-push would leave the
+# registry holding whichever tag happened to finish, which is not necessarily
+# the newest commit.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
-        with:
-          go-version-file: "go.mod"
-          cache: false
-      - run: CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /tmp/httphq ./src
+permissions:
+  contents: read
+
+jobs:
+  # The same workflow pull requests run. Before this, release ran only `go vet`
+  # and a build, so a red test suite still published an image.
+  verify:
+    uses: ./.github/workflows/pipeline.yml
 
   publish:
-    needs: [vet, build]
+    needs: [verify]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       packages: write
     steps:
       - uses: actions/checkout@v7
+        timeout-minutes: 1
 
       - id: meta
+        timeout-minutes: 1
         run: |
           OWNER="$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"
           TAG="$(date -u +'%Y.%m.%d-%H%M%S')-${GITHUB_SHA::7}"
@@ -50,14 +46,17 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - uses: docker/login-action@v4
+        timeout-minutes: 2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: docker/setup-buildx-action@v4
+        timeout-minutes: 2
 
       - uses: docker/build-push-action@v7
+        timeout-minutes: 10
         with:
           context: .
           platforms: linux/amd64
