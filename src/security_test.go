@@ -67,4 +67,25 @@ func TestContentSecurityPolicy(t *testing.T) {
 			assert.NotContains(t, policy, "script-src 'self' 'unsafe-inline'")
 		}
 	})
+
+	// The live feed's socket is served from the page's own origin, and CSP
+	// matches ws against an http origin's host and port, so 'self' already
+	// admits it. A bare `ws:` would additionally admit every websocket host on
+	// the internet, from a page that renders bodies a stranger sent.
+	t.Run("the socket is admitted by self rather than by every websocket host", func(t *testing.T) {
+		for _, policy := range []string{contentSecurityPolicy(false), contentSecurityPolicy(true)} {
+			for _, directive := range strings.Split(policy, "; ") {
+				name, value, _ := strings.Cut(directive, " ")
+				if name != "connect-src" {
+					continue
+				}
+				assert.Contains(t, value, "'self'")
+				for _, source := range strings.Fields(value) {
+					assert.NotEqual(t, "ws:", source)
+					assert.NotEqual(t, "wss:", source)
+					assert.NotEqual(t, "*", source)
+				}
+			}
+		}
+	})
 }
