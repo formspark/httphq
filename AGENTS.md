@@ -127,6 +127,21 @@ bypassing that platform, or a client can spoof its IP and evade rate limiting.
 Leaving it unset behind a proxy is the opposite failure: every request looks
 like it came from the proxy and rate limiting becomes global.
 
+## Database standards
+
+`TestDatabaseStandards` in `src/database` asks the schema AutoMigrate actually
+produces, rather than the struct tags that ask for it: snake_case tables and
+columns, a `created_at`, and an index on every column a query filters or orders
+by. A `gorm:"column:..."` tag naming something else satisfies the struct and
+fails the test, which is the point.
+
+The sibling repositories run the same questions as SQL against Postgres after
+applying their migrations. There are no migration files here and no
+information_schema to query, so these go through `sqlite_schema` and the pragmas.
+
+Two of their checks do not apply. Nothing carries `updated_at`, because a
+capture is written once and never edited, and there is no email column anywhere.
+
 ## Captured data is ephemeral
 
 SQLite writes to the container's writable layer. Capture history is lost on
