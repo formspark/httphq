@@ -1,0 +1,19 @@
+# golangci-lint's default linter set, which is govet plus the checks it does not
+# cover: unchecked error returns, dead assignments, unused code, and
+# staticcheck's correctness rules.
+#
+# The version is pinned in the workflow that runs it, for the same reason
+# gocyclo is: a later release must not change the verdict on a tree that did not
+# change.
+version: "2"
+
+linters:
+  default: standard
+
+  exclusions:
+    rules:
+      # A test that ignores an error is usually asserting the value beside it,
+      # and t.Fatal on every teardown call reads worse than it protects.
+      - path: _test\.go
+        linters:
+          - errcheck

@@ -34,10 +34,17 @@ jobs:
             echo "$unformatted" >&2
             exit 1
           fi
+      # Replaces a bare `go vet`, which golangci-lint runs as one of its
+      # linters alongside the checks vet does not cover: unchecked error
+      # returns, dead assignments, unused code, staticcheck's correctness rules.
+      #
+      # Pinned for the same reason gocyclo below is: a later release must not
+      # change the verdict on a tree that did not change.
+      #
       # Scoped to src: node_modules ships a stray Go package that ./... would
       # otherwise build.
-      - run: go vet ./src/...
-        timeout-minutes: 3
+      - run: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.2 run ./src/...
+        timeout-minutes: 5
       # The Go counterpart to the `complexity` rule the page scripts are linted
       # with. Pinned so a later gocyclo release cannot change the verdict on a
       # tree that did not change.

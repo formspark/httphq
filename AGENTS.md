@@ -88,7 +88,8 @@ generated-with footer.
 be skipped on the push that publishes the image. Adding a check means adding it
 to `pipeline.yml`, never to one of the two callers.
 
-The suite that gates a release is therefore the full one: `gofmt`, `go vet`,
+The suite that gates a release is therefore the full one: `gofmt`,
+`golangci-lint`,
 `gocyclo`, the Go tests with coverage, ESLint, Prettier, the Playwright suite,
 the stylesheet freshness check, and the production build with the flags the
 image uses.
@@ -126,6 +127,22 @@ one a client forged. Inbound traffic must not be able to reach the process
 bypassing that platform, or a client can spoof its IP and evade rate limiting.
 Leaving it unset behind a proxy is the opposite failure: every request looks
 like it came from the proxy and rate limiting becomes global.
+
+## Go linting
+
+`golangci-lint` at its default set, which is `go vet` plus the checks vet does
+not cover: unchecked error returns, dead assignments, unused code, and
+staticcheck's correctness rules. It replaces the bare `go vet` step.
+
+Pinned in the workflow for the same reason `gocyclo` is: a later release must
+not change the verdict on a tree that did not change.
+
+`errcheck` is relaxed inside `_test.go`. A test that ignores an error is usually
+asserting the value beside it, and a `t.Fatal` on every teardown call reads worse
+than it protects.
+
+The complexity ceiling stays separate. `gocyclo -over 5` is a ratchet rather
+than a correctness check, and it is documented alongside the ESLint one.
 
 ## Database standards
 

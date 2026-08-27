@@ -93,7 +93,10 @@ func (a *assetIndex) hash(path string) string {
 		slog.Warn("asset missing, serving unversioned", "path", path, "err", err)
 		return ""
 	}
-	defer f.Close()
+	// The read is what matters here; a close error on a file opened read-only
+	// says nothing the caller could act on, and the hash has already been taken
+	// by the time it fires. Discarded explicitly rather than ignored.
+	defer func() { _ = f.Close() }()
 	h := sha256.New()
 	if _, err := io.Copy(h, f); err != nil {
 		slog.Warn("asset unreadable, serving unversioned", "path", path, "err", err)
