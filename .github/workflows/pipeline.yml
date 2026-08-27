@@ -76,6 +76,12 @@ jobs:
       - name: Check formatting
         timeout-minutes: 2
         run: pnpm run format:check
+      # The pre-commit hook only formats what its globs match, so a gap there is
+      # silent: CI lints the file, the hook never touched it.
+      - name: Check lint-staged globs
+        timeout-minutes: 1
+        run: node scripts/check-lint-staged.mjs
+
       - name: Type-check the Playwright suite
         timeout-minutes: 2
         run: pnpm --filter httphq-e2e exec tsc --noEmit

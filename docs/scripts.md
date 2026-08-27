@@ -122,3 +122,8 @@ docker build . -t httphq
 docker run -dp 8080:8080 httphq
 docker container ls -s
 ```
+
+One thing worth knowing about the formatter: `prettier --write .` is not always a
+fixed point. A single pass has left files that `--check` still rejected, with a
+second pass converging them. Anything that scripts a format step should check
+afterwards rather than assume one pass settled it.

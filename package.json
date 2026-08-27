@@ -18,8 +18,8 @@
     "social-card": "node ./scripts/social-card.mjs"
   },
   "lint-staged": {
-    "*.{js,ts,css,html,json,md,yml}": "prettier --write",
-    "*.{js,ts}": "eslint --fix --no-warn-ignored",
+    "*.{js,ts,mjs,cjs,mts,cts,css,html,json,md,yml,yaml}": "prettier --write",
+    "*.{js,ts,mjs,cjs,mts,cts}": "eslint --fix --no-warn-ignored",
     "*.go": "gofmt -w"
   },
   "devDependencies": {
