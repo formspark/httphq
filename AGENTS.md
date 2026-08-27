@@ -69,6 +69,45 @@ Button labels, tooltips and empty-state copy name the format or the action
 constraint is on product copy only; commit messages and docs may mention agents
 freely.
 
+## Commits are squashed, and the subject carries the pull request number
+
+Squash-merge, with the pull request number as a `(#N)` suffix on the subject.
+Subjects are sentences that say what the change does, not conventional-commit
+prefixes: "Refuse an oversized body instead of storing a bodyless capture", not
+`fix: refuse oversized body`. The comment rules above govern commit bodies and
+pull request descriptions too, so a paragraph carries a fact rather than a
+summary of the diff.
+
+No assistant attribution of any kind: no co-author trailer, no session link, no
+generated-with footer.
+
+## Every check runs on both paths
+
+`pipeline.yml` is the single definition of what verified means, and both
+`test.yml` and `release.yml` call it. A check cannot exist on pull requests yet
+be skipped on the push that publishes the image. Adding a check means adding it
+to `pipeline.yml`, never to one of the two callers.
+
+The suite that gates a release is therefore the full one: `gofmt`, `go vet`,
+`gocyclo`, the Go tests with coverage, ESLint, Prettier, the Playwright suite,
+the stylesheet freshness check, and the production build with the flags the
+image uses.
+
+Coverage is printed, not gated. A threshold set before the number is known is a
+guess, so the figure goes to the job summary and a ceiling can be set later at
+what the suite actually reaches.
+
+## Reading CI
+
+- Read the checks table, not a watcher's exit code.
+  `gh pr checks <n> --watch --fail-fast` has exited 0 with a failed run sitting
+  in the table.
+- `gh pr merge --auto` does not wait here. Auto-merge is disabled on this
+  repository, so the flag is accepted and the merge happens immediately.
+- A cancelled job is the cap, not a regression. Check with
+  `gh api repos/{owner}/{repo}/actions/jobs/<id> --jq '.steps[]'` before treating
+  a timeout as a code problem.
+
 ## Client IP is a trust decision
 
 `PLATFORM` selects which header the real client IP is read from, and setting it
