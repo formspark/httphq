@@ -74,18 +74,24 @@ func TestContentSecurityPolicy(t *testing.T) {
 	// the internet, from a page that renders bodies a stranger sent.
 	t.Run("the socket is admitted by self rather than by every websocket host", func(t *testing.T) {
 		for _, policy := range []string{contentSecurityPolicy(false), contentSecurityPolicy(true)} {
-			for _, directive := range strings.Split(policy, "; ") {
-				name, value, _ := strings.Cut(directive, " ")
-				if name != "connect-src" {
-					continue
-				}
-				assert.Contains(t, value, "'self'")
-				for _, source := range strings.Fields(value) {
-					assert.NotEqual(t, "ws:", source)
-					assert.NotEqual(t, "wss:", source)
-					assert.NotEqual(t, "*", source)
-				}
-			}
+			sources := directiveSources(policy, "connect-src")
+			assert.Contains(t, sources, "'self'")
+			assert.NotContains(t, sources, "ws:")
+			assert.NotContains(t, sources, "wss:")
+			assert.NotContains(t, sources, "*")
 		}
 	})
+}
+
+// The sources of one directive, split the way CSP reads them. Returns nil when
+// the policy has no such directive, which the assertions above then report as
+// the missing source rather than as an empty pass.
+func directiveSources(policy, directive string) []string {
+	for _, candidate := range strings.Split(policy, "; ") {
+		name, value, _ := strings.Cut(candidate, " ")
+		if name == directive {
+			return strings.Fields(value)
+		}
+	}
+	return nil
 }
