@@ -1,0 +1,15 @@
+# Two packages. The root holds the build-time tooling: the stylesheet build, the
+# linters and the formatter. `e2e` is its own package because it is type-checked
+# against its own tsconfig and installs a browser nothing else here needs.
+#
+# The Go application depends on neither. public/app.css is committed and served
+# from the binary's static directory, so the container and `go run` need no Node.
+packages:
+  - "e2e"
+
+# @parcel/watcher backs `tailwindcss --watch` and loads a prebuilt binary from a
+# platform-specific optional dependency, so its build script has nothing to do.
+# The stylesheet freshness check in CI is what holds that true: it runs the
+# non-watch build and fails if the committed sheet differs.
+allowBuilds:
+  "@parcel/watcher": false

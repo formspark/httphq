@@ -247,7 +247,7 @@ and a seven-hue spectrum spent only on classifying traffic.
 
 ### Primary
 
-- **Brand 600** (`oklch(52% 0.157 275.25)`): the accent that fills the one primary control per view, and the indigo diamond in `public/logo.svg` and the favicon set. The mark and the accent are one colour under one token, so the logo cannot drift from the interface it sits in; it measures 5.74:1 against white and holds a white label. Moving it means regenerating the image assets, which is what `npm run social-card` and the icon set exist for.
+- **Brand 600** (`oklch(52% 0.157 275.25)`): the accent that fills the one primary control per view, and the indigo diamond in `public/logo.svg` and the favicon set. The mark and the accent are one colour under one token, so the logo cannot drift from the interface it sits in; it measures 5.74:1 against white and holds a white label. Moving it means regenerating the image assets, which is what `pnpm run social-card` and the icon set exist for.
 - **The steps around it**: brand 500 is the hover step and the focus ring; brand 700 sets the endpoint URL; brand 50 tints the icon tiles; brand 400 is the quieter ring on form fields; brand 100 and brand 900 are the selection wash and its ink.
 
 **The Chroma Rule.** The accent carries a chroma of 0.157, not more. A

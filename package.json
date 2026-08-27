@@ -1,19 +1,35 @@
 {
   "name": "httphq-assets",
   "private": true,
-  "description": "Build-time tooling: stylesheet generation and linting. The Go application does not depend on npm at runtime; public/app.css is committed and served from the binary's static directory.",
+  "description": "Build-time tooling: stylesheet generation, linting and formatting. The Go application does not depend on Node at runtime; public/app.css is committed and served from the binary's static directory.",
+  "packageManager": "pnpm@11.17.0",
+  "engines": {
+    "node": ">=22.23.1",
+    "pnpm": ">=11"
+  },
   "scripts": {
     "css": "tailwindcss --input ./src/styles/app.css --output ./public/app.css --minify",
     "css:watch": "tailwindcss --input ./src/styles/app.css --output ./public/app.css --watch",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "prepare": "husky",
     "social-card": "node ./scripts/social-card.mjs"
+  },
+  "lint-staged": {
+    "*.{js,ts,css,html,json,md,yml}": "prettier --write",
+    "*.{js,ts}": "eslint --fix --no-warn-ignored",
+    "*.go": "gofmt -w"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@tailwindcss/cli": "4.2.4",
     "eslint": "^10.8.1",
     "globals": "^17.9.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.2.0",
+    "prettier": "^3.9.6",
     "tailwindcss": "4.2.4",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.66.0"

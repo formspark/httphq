@@ -1,4 +1,4 @@
-/* Stylesheet entry point. Built to public/app.css by `npm run css`.
+/* Stylesheet entry point. Built to public/app.css by `pnpm run css`.
    Everything here is import and configuration only; rules live in the modules
    so each one stays small enough to read in full. */
 
