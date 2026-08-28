@@ -1,6 +1,13 @@
 # ***** Builder *****
 
-FROM golang:1.25-alpine AS builder
+FROM golang:1.26-alpine AS builder
+
+# The image tag tracks the 1.26 line but lags its newest patch, and go.mod names
+# the patch that carries the standard library fixes. The official images set
+# GOTOOLCHAIN=local, which refuses to close that gap, so this lets the build
+# fetch exactly what go.mod asks for rather than pinning the tag to a patch that
+# does not exist yet.
+ENV GOTOOLCHAIN=auto
 
 WORKDIR /usr/src/app
 
