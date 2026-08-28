@@ -1,10 +1,13 @@
 module httphq
 
-// The version CI installs, because setup-go reads this line and then sets
+// The version CI installs: setup-go reads this line and then sets
 // GOTOOLCHAIN=local, which refuses the automatic download a `toolchain`
-// directive would need. The standard library carried around twenty advisories
-// reachable from this code at go1.26.0; the fixes land across the 1.26 patch line, and this
-// takes the line past all of them.
+// directive would need, so the toolchain has to be named here.
+//
+// It is a floor, not a preference. Below it the standard library carries
+// advisories this code reaches, and govulncheck in the pipeline fails. Above
+// 1.26 the pinned golangci-lint refuses the module, because it will not read a
+// language version newer than the one it was built with.
 go 1.26.6
 
 require (
