@@ -230,7 +230,9 @@ test.describe("Page helpers", () => {
       const parsed = await parse(page, "X-Token: abc\n\nnot a header at all");
 
       expect(parsed.headers).toEqual({ "X-Token": "abc" });
-      expect(parsed.invalid).toEqual([{ line: 3, text: "not a header at all" }]);
+      expect(parsed.invalid).toEqual([
+        { line: 3, text: "not a header at all" },
+      ]);
     });
 
     test("a line with no key before its colon is reported", async ({

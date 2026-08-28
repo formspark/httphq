@@ -67,4 +67,31 @@ func TestContentSecurityPolicy(t *testing.T) {
 			assert.NotContains(t, policy, "script-src 'self' 'unsafe-inline'")
 		}
 	})
+
+	// The live feed's socket is served from the page's own origin, and CSP
+	// matches ws against an http origin's host and port, so 'self' already
+	// admits it. A bare `ws:` would additionally admit every websocket host on
+	// the internet, from a page that renders bodies a stranger sent.
+	t.Run("the socket is admitted by self rather than by every websocket host", func(t *testing.T) {
+		for _, policy := range []string{contentSecurityPolicy(false), contentSecurityPolicy(true)} {
+			sources := directiveSources(policy, "connect-src")
+			assert.Contains(t, sources, "'self'")
+			assert.NotContains(t, sources, "ws:")
+			assert.NotContains(t, sources, "wss:")
+			assert.NotContains(t, sources, "*")
+		}
+	})
+}
+
+// The sources of one directive, split the way CSP reads them. Returns nil when
+// the policy has no such directive, which the assertions above then report as
+// the missing source rather than as an empty pass.
+func directiveSources(policy, directive string) []string {
+	for _, candidate := range strings.Split(policy, "; ") {
+		name, value, _ := strings.Cut(candidate, " ")
+		if name == directive {
+			return strings.Fields(value)
+		}
+	}
+	return nil
 }

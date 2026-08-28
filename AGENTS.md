@@ -69,6 +69,56 @@ Button labels, tooltips and empty-state copy name the format or the action
 constraint is on product copy only; commit messages and docs may mention agents
 freely.
 
+## Commits are squashed, and the subject carries the pull request number
+
+Squash-merge, with the pull request number as a `(#N)` suffix on the subject.
+Subjects are sentences that say what the change does, not conventional-commit
+prefixes: "Refuse an oversized body instead of storing a bodyless capture", not
+`fix: refuse oversized body`. The comment rules above govern commit bodies and
+pull request descriptions too, so a paragraph carries a fact rather than a
+summary of the diff.
+
+No assistant attribution of any kind: no co-author trailer, no session link, no
+generated-with footer.
+
+## Every check runs on both paths
+
+`pipeline.yml` is the single definition of what verified means, and both
+`test.yml` and `release.yml` call it. A check cannot exist on pull requests yet
+be skipped on the push that publishes the image. Adding a check means adding it
+to `pipeline.yml`, never to one of the two callers.
+
+The suite that gates a release is therefore the full one: `gofmt`,
+`golangci-lint`,
+`gocyclo`, the Go tests with coverage, ESLint, Prettier, the Playwright suite,
+the stylesheet freshness check, and the production build with the flags the
+image uses.
+
+Coverage is printed, not gated. A threshold set before the number is known is a
+guess, so the figure goes to the job summary and a ceiling can be set later at
+what the suite actually reaches.
+
+## Lint-staged globs are checked against Prettier
+
+`scripts/check-lint-staged.mjs` fails when the tree contains a file extension
+Prettier can format that no lint-staged pattern matches. Prettier decides what
+counts rather than a list kept anywhere, so the two cannot drift.
+
+The gap it exists for is silent: CI lints and formats the file, the pre-commit
+hook never touches it. It has already been found by hand twice, months apart, in
+two different repositories.
+
+## Reading CI
+
+- Read the checks table, not a watcher's exit code.
+  `gh pr checks <n> --watch --fail-fast` has exited 0 with a failed run sitting
+  in the table.
+- `gh pr merge --auto` does not wait here. Auto-merge is disabled on this
+  repository, so the flag is accepted and the merge happens immediately.
+- A cancelled job is the cap, not a regression. Check with
+  `gh api repos/{owner}/{repo}/actions/jobs/<id> --jq '.steps[]'` before treating
+  a timeout as a code problem.
+
 ## Client IP is a trust decision
 
 `PLATFORM` selects which header the real client IP is read from, and setting it
@@ -77,6 +127,37 @@ one a client forged. Inbound traffic must not be able to reach the process
 bypassing that platform, or a client can spoof its IP and evade rate limiting.
 Leaving it unset behind a proxy is the opposite failure: every request looks
 like it came from the proxy and rate limiting becomes global.
+
+## Go linting
+
+`golangci-lint` at its default set, which is `go vet` plus the checks vet does
+not cover: unchecked error returns, dead assignments, unused code, and
+staticcheck's correctness rules. It replaces the bare `go vet` step.
+
+Pinned in the workflow for the same reason `gocyclo` is: a later release must
+not change the verdict on a tree that did not change.
+
+`errcheck` is relaxed inside `_test.go`. A test that ignores an error is usually
+asserting the value beside it, and a `t.Fatal` on every teardown call reads worse
+than it protects.
+
+The complexity ceiling stays separate. `gocyclo -over 5` is a ratchet rather
+than a correctness check, and it is documented alongside the ESLint one.
+
+## Database standards
+
+`TestDatabaseStandards` in `src/database` asks the schema AutoMigrate actually
+produces, rather than the struct tags that ask for it: snake_case tables and
+columns, a `created_at`, and an index on every column a query filters or orders
+by. A `gorm:"column:..."` tag naming something else satisfies the struct and
+fails the test, which is the point.
+
+The sibling repositories run the same questions as SQL against Postgres after
+applying their migrations. There are no migration files here and no
+information_schema to query, so these go through `sqlite_schema` and the pragmas.
+
+Two of their checks do not apply. Nothing carries `updated_at`, because a
+capture is written once and never edited, and there is no email column anywhere.
 
 ## Captured data is ephemeral
 

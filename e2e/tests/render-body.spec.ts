@@ -47,10 +47,10 @@ test.describe("Body renderer", () => {
     headers: Record<string, string> | null = null,
   ) =>
     unescapeHtml(
-      await page.evaluate(
-        ([b, h]) => window.renderBody(b, h),
-        [body, headers] as const,
-      ),
+      await page.evaluate(([b, h]) => window.renderBody(b, h), [
+        body,
+        headers,
+      ] as const),
     );
 
   test.describe("Multipart parts", () => {
@@ -59,7 +59,10 @@ test.describe("Body renderer", () => {
     }) => {
       const rendered = await render(
         page,
-        multipart(['Content-Disposition: form-data; name="city"\n\nGhent\n'], "\n"),
+        multipart(
+          ['Content-Disposition: form-data; name="city"\n\nGhent\n'],
+          "\n",
+        ),
         contentType(`multipart/form-data; boundary=${BOUNDARY}`),
       );
 
@@ -126,8 +129,7 @@ test.describe("Body renderer", () => {
    */
   test.describe("Multipart rejection", () => {
     const rejected: Record<string, string> = {
-      "a part with no content-disposition":
-        "X-Other: 1\r\n\r\norphan\r\n",
+      "a part with no content-disposition": "X-Other: 1\r\n\r\norphan\r\n",
       "a part whose disposition names no field":
         "Content-Disposition: form-data\r\n\r\nnameless\r\n",
       "a part whose headers are never closed by a blank line":

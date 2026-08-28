@@ -28,7 +28,12 @@ func contentSecurityPolicy(allowDesignTooling bool) string {
 		"script-src 'self' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net" + designTooling + "; " +
 		"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
 		"img-src 'self' data:; " +
-		"connect-src 'self' ws: wss:" + designTooling + "; " +
+		// 'self' already covers the socket: it is served from the same origin as
+		// the page, and CSP matches ws against an http origin's host and port.
+		// A bare `ws:` would additionally allow every websocket host on the
+		// internet, which is a wide grant for a page that renders bodies a
+		// stranger sent.
+		"connect-src 'self'" + designTooling + "; " +
 		"frame-ancestors 'none'"
 }
 

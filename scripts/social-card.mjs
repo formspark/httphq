@@ -2,7 +2,7 @@
 //
 // The card exists as markup rather than as a binary someone once exported, so
 // it takes its colours from the built stylesheet and cannot drift away from the
-// palette the way a hand-made image does. Run `npm run social-card` after any
+// palette the way a hand-made image does. Run `pnpm run social-card` after any
 // change to the palette or to the card.
 
 import { execFileSync } from "node:child_process";
@@ -51,7 +51,7 @@ try {
   }, REQUIRED_TOKENS);
   if (unset.length > 0) {
     throw new Error(
-      `stylesheet does not define ${unset.join(", ")}; run \`npm run css\` first, ` +
+      `stylesheet does not define ${unset.join(", ")}; run \`pnpm run css\` first, ` +
         `and check the product still uses these tokens`,
     );
   }
