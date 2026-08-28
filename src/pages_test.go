@@ -3,8 +3,10 @@ package main
 import (
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 
+	"github.com/atrox/haikunatorgo/v2"
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 )
@@ -129,5 +131,56 @@ func TestCreateEndpoint(t *testing.T) {
 		location := response.Header.Get(fiber.HeaderLocation)
 		assert.True(t, validEndpointID(strings.TrimPrefix(location, "/")),
 			"generated endpoint %q must satisfy the validator every route applies", location)
+	})
+}
+
+// The endpoint ID is the only thing protecting a capture stream, and those
+// streams routinely hold webhooks carrying credentials. These assert the three
+// properties that makes necessary: enough room that ids do not repeat, an
+// unpredictable source, and safety when minted from concurrent requests.
+func TestNewEndpointID(t *testing.T) {
+	words := haikunator.New()
+
+	t.Run("emits an id the routes accept", func(t *testing.T) {
+		id, err := newEndpointID(words)
+
+		assert.NoError(t, err)
+		assert.Regexp(t, endpointIDPattern, id)
+	})
+
+	t.Run("does not repeat across many mints", func(t *testing.T) {
+		seen := make(map[string]struct{}, 10000)
+		for range 10000 {
+			id, err := newEndpointID(words)
+			assert.NoError(t, err)
+			_, duplicate := seen[id]
+			assert.False(t, duplicate, "minted a duplicate endpoint id: %s", id)
+			seen[id] = struct{}{}
+		}
+	})
+
+	// haikunator's own generator is documented as unsafe for concurrent use,
+	// and endpoints are minted from Fiber's per-request goroutines, so this is
+	// the case that has to hold under -race.
+	t.Run("is safe to mint concurrently", func(t *testing.T) {
+		var group sync.WaitGroup
+		ids := make([]string, 64)
+		for i := range ids {
+			group.Add(1)
+			go func() {
+				defer group.Done()
+				id, err := newEndpointID(words)
+				assert.NoError(t, err)
+				ids[i] = id
+			}()
+		}
+		group.Wait()
+
+		unique := make(map[string]struct{}, len(ids))
+		for _, id := range ids {
+			assert.Regexp(t, endpointIDPattern, id)
+			unique[id] = struct{}{}
+		}
+		assert.Len(t, unique, len(ids))
 	})
 }

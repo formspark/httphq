@@ -1,9 +1,11 @@
 package main
 
 import (
+	"crypto/rand"
 	"html/template"
 	"log/slog"
 	"maps"
+	"math/big"
 
 	"github.com/atrox/haikunatorgo/v2"
 	"github.com/gofiber/fiber/v3"
@@ -113,12 +115,60 @@ func renderEndpoint(assets *assetIndex) fiber.Handler {
 	}
 }
 
+// endpointTokenChars omits the characters that are read back wrongly off a
+// screen (i/l/1, o/0), so an ID someone retypes lands on the endpoint they
+// meant. Every character is one the endpoint ID pattern already accepts.
+const endpointTokenChars = "abcdefghjkmnpqrstuvwxyz23456789"
+
+// endpointTokenLength gives the token about 60 bits on top of the word pair.
+const endpointTokenLength = 12
+
+// randomIndex draws from crypto/rand rather than the math/rand source
+// haikunator carries. That source is seeded once from the clock, so recovering
+// the seed yields every ID a process will mint; it is also documented as unsafe
+// for concurrent use, and endpoints are minted from per-request goroutines.
+func randomIndex(n int) (int, error) {
+	index, err := rand.Int(rand.Reader, big.NewInt(int64(n)))
+	if err != nil {
+		return 0, err
+	}
+	return int(index.Int64()), nil
+}
+
+// newEndpointID builds "adjective-noun-token". The words come from
+// haikunator's lists, so the ID stays readable and shareable, but every choice
+// is drawn from crypto/rand.
+func newEndpointID(words *haikunator.Haikunator) (string, error) {
+	adjectiveIndex, err := randomIndex(len(words.Adjectives))
+	if err != nil {
+		return "", err
+	}
+	nounIndex, err := randomIndex(len(words.Nouns))
+	if err != nil {
+		return "", err
+	}
+	token := make([]byte, endpointTokenLength)
+	for i := range token {
+		charIndex, err := randomIndex(len(endpointTokenChars))
+		if err != nil {
+			return "", err
+		}
+		token[i] = endpointTokenChars[charIndex]
+	}
+	return words.Adjectives[adjectiveIndex] + "-" + words.Nouns[nounIndex] +
+		"-" + string(token), nil
+}
+
 // createEndpoint mints an endpoint ID and sends the caller to its page. The ID
-// is the only thing protecting a stream, so it comes from a generator with
-// enough room that guessing one is not a search worth running.
+// is the only thing protecting a stream, and these streams routinely capture
+// webhooks carrying credentials, so it has to be unguessable rather than merely
+// unlikely to repeat.
 func createEndpoint(haikuMaker *haikunator.Haikunator) fiber.Handler {
 	return func(c fiber.Ctx) error {
-		endpointID := haikuMaker.Haikunate()
+		endpointID, err := newEndpointID(haikuMaker)
+		if err != nil {
+			return err
+		}
 		slog.InfoContext(c.Context(), "endpoint created", "endpoint_id", endpointID)
 		return c.Redirect().To("/" + endpointID)
 	}
