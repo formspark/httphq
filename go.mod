@@ -1,12 +1,11 @@
 module httphq
 
-go 1.25.0
-
-// Pins the toolchain that builds this module rather than raising the language
-// version consumers need. The standard library carried around twenty
-// advisories reachable from this code at go1.26.0; they are fixed across the
-// 1.26 patches, and this takes the line past all of them.
-toolchain go1.27.0
+// The version CI installs, because setup-go reads this line and then sets
+// GOTOOLCHAIN=local, which refuses the automatic download a `toolchain`
+// directive would need. The standard library carried around twenty advisories
+// reachable from this code at go1.26.0; the fixes land across the 1.26 patch line, and this
+// takes the line past all of them.
+go 1.26.6
 
 require (
 	github.com/atrox/haikunatorgo/v2 v2.0.1
