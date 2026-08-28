@@ -1,6 +1,12 @@
 # ***** Builder *****
 
-FROM golang:1.25-alpine AS builder
+FROM golang:1.26-alpine AS builder
+
+# The tag tracks a minor line and can sit behind the patch go.mod names, and the
+# official images set GOTOOLCHAIN=local, which refuses to close that gap. This
+# lets the build fetch what go.mod asks for, so the version lives in one place
+# rather than in a tag that has to be edited alongside it.
+ENV GOTOOLCHAIN=auto
 
 WORKDIR /usr/src/app
 

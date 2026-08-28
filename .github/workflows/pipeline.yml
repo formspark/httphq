@@ -22,6 +22,17 @@ jobs:
         timeout-minutes: 2
         with:
           go-version-file: "go.mod"
+      # Reachability, not presence: govulncheck reports an advisory only when a
+      # path from this code actually reaches the vulnerable symbol, so it does
+      # not fail on a dependency that merely sits in go.sum. That makes it
+      # strict enough to gate on. Pinned like the other Go tools here, so a
+      # later release cannot change the verdict on a tree that did not change.
+      #
+      # `./src/...` rather than `./...`: node_modules ships a stray Go package.
+      - name: Check for known vulnerabilities
+        timeout-minutes: 5
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./src/...
+
       # gofmt is not a formatter run here, it is a question: the answer is the
       # list of files that disagree with it. Without this the repository relied
       # on everyone remembering the manual step in docs/scripts.md.
