@@ -134,6 +134,28 @@ jobs:
       - run: CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /tmp/httphq ./src
         timeout-minutes: 3
 
+  # The binary above is built from the checkout; the image is built from the
+  # subset of it the Dockerfile copies. Only this catches a build input the
+  # Dockerfile does not know about, and release.yml pushes an image it never
+  # built anywhere else, so the two paths would disagree without it. Nothing is
+  # pushed here: the registry is release.yml's business.
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        timeout-minutes: 1
+      - uses: docker/setup-buildx-action@v4
+        timeout-minutes: 2
+      - uses: docker/build-push-action@v7
+        timeout-minutes: 10
+        with:
+          context: .
+          platforms: linux/amd64
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 15
