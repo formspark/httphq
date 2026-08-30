@@ -15,9 +15,9 @@ import (
 	"httphq/src/database"
 )
 
-// settleTimeout bounds the wait for something a connection did on its own
-// goroutine: registering on connect, or being dropped on close. Generous
-// because it covers a scheduling delay rather than any work.
+// settleTimeout bounds the wait for anything a connection does on a goroutine of
+// its own: registration on connect, a pushed capture, the drop on close.
+// Generous because it covers a scheduling delay rather than any work.
 const settleTimeout = 2 * time.Second
 
 // servedApplication starts an application on a loopback port of its own and
