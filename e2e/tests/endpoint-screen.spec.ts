@@ -24,12 +24,11 @@ const HYDRATION_TIMEOUT_MS = 15_000;
  * spelled once rather than at every call site, so a change to the markup lands
  * in one place.
  */
-const stream = (page: Page) => page.locator('[data-test="requests"]');
-const resultCount = (page: Page) =>
-  page.locator('[data-test="search-results"]');
-const searchBox = (page: Page) => page.locator('[data-test="search-input"]');
-const newestCard = (page: Page) =>
-  page.locator('[data-test="request"]').first();
+const stream = (page: Page) => page.getByTestId("requests");
+const resultCount = (page: Page) => page.getByTestId("search-results");
+const searchBox = (page: Page) => page.getByTestId("search-input");
+const requestCards = (page: Page) => page.getByTestId("request");
+const newestCard = (page: Page) => requestCards(page).first();
 
 /**
  * The capture a send produced, found by the UUID the server echoes back. Going
@@ -60,7 +59,7 @@ test.describe("Endpoint screen", () => {
     // Given longer than an ordinary assertion because it is waiting on that
     // script to arrive from a CDN, which is slower and less predictable than
     // anything the app itself does.
-    await expect(page.locator('[data-test="empty-waiting"]')).toBeVisible({
+    await expect(page.getByTestId("empty-waiting")).toBeVisible({
       timeout: HYDRATION_TIMEOUT_MS,
     });
   });
@@ -71,20 +70,16 @@ test.describe("Endpoint screen", () => {
     });
 
     test("the endpoint URL is shown with a copy button", async ({ page }) => {
-      await expect(page.locator('[data-test="endpoint-url"]')).toContainText(
-        endpointUrl,
-      );
-      await expect(page.locator('[data-test="copy-url"]')).toBeVisible();
+      await expect(page.getByTestId("endpoint-url")).toContainText(endpointUrl);
+      await expect(page.getByTestId("copy-url")).toBeVisible();
     });
 
     test("the copy-url button writes the URL to the clipboard", async ({
       page,
     }) => {
-      await page.locator('[data-test="copy-url"]').click();
+      await page.getByTestId("copy-url").click();
       expect(await readClipboard(page)).toBe(endpointUrl);
-      await expect(page.locator('[data-test="copy-url-label"]')).toContainText(
-        "Copied!",
-      );
+      await expect(page.getByTestId("copy-url-label")).toContainText("Copied!");
     });
 
     test("the retention and visibility terms are stated", async ({ page }) => {
@@ -94,9 +89,7 @@ test.describe("Endpoint screen", () => {
     });
 
     test("the connection indicator settles on live", async ({ page }) => {
-      await expect(
-        page.locator('[data-test="connection-status"]'),
-      ).toContainText("Live");
+      await expect(page.getByTestId("connection-status")).toContainText("Live");
     });
   });
 
@@ -130,15 +123,15 @@ test.describe("Endpoint screen", () => {
         headers: { "Content-Type": "text/plain" },
       });
       const card = newestCard(page);
-      const details = card.locator('[data-test="request-details"]');
+      const details = card.getByTestId("request-details");
       await expect(details).toContainText(/now|seconds? ago/);
       await expect(details).toContainText("127.0.0.1");
       await expect(details).toContainText(endpointPath);
       await expect(card).toContainText("POST");
-      await expect(card.locator('[data-test="request-headers"]')).toContainText(
+      await expect(card.getByTestId("request-headers")).toContainText(
         "Content-Type",
       );
-      await expect(card.locator('[data-test="request-body"]')).toContainText(
+      await expect(card.getByTestId("request-body")).toContainText(
         "Hello, World!",
       );
     });
@@ -150,16 +143,16 @@ test.describe("Endpoint screen", () => {
       await send(request, `${endpointUrl}?event=charge.succeeded`, {
         data: "x",
       });
-      const withQuery = page.locator('[data-test="query-string"]').first();
+      const withQuery = page.getByTestId("query-string").first();
       await expect(withQuery).toContainText("event=charge.succeeded");
-      await expect(
-        page.locator('[data-test="request-path"]').first(),
-      ).toContainText("?event=charge.succeeded");
+      await expect(page.getByTestId("request-path").first()).toContainText(
+        "?event=charge.succeeded",
+      );
 
       await send(request, endpointUrl, { data: "y" });
-      await expect(
-        page.locator('[data-test="query-string"]').first(),
-      ).toContainText("None");
+      await expect(page.getByTestId("query-string").first()).toContainText(
+        "None",
+      );
     });
 
     test("a bodyless request reports no body rather than an empty panel", async ({
@@ -178,7 +171,7 @@ test.describe("Endpoint screen", () => {
         data: "x",
         headers: { "X-One": "1", "X-Two": "2" },
       });
-      const headers = page.locator('[data-test="request-headers"]').first();
+      const headers = page.getByTestId("request-headers").first();
       await expect(headers).toContainText("X-One");
       await expect(headers).toContainText("X-Two");
       await expect(headers).toContainText(/Headers\s*\(\d+\)/);
@@ -210,6 +203,16 @@ test.describe("Endpoint screen", () => {
       await expect(body).toContainText("4.0 KB");
     });
 
+    // Everything on this page changes without a navigation, so an arrival that
+    // is not spoken here is one a screen reader user is never told about.
+    test("an arriving capture is announced", async ({ page, request }) => {
+      await send(request, endpointUrl, { method: "PUT", data: "spoken" });
+
+      await expect(page.getByTestId("announcer")).toHaveText(
+        "PUT request received",
+      );
+    });
+
     test("delete-request removes a single card", async ({ page, request }) => {
       await send(request, endpointUrl, { data: "first" });
       const response = await send(request, endpointUrl, {
@@ -218,7 +221,7 @@ test.describe("Endpoint screen", () => {
       const uuid = capturedUuid(response);
       const card = cardFor(page, uuid);
       await expect(card).toBeAttached();
-      await card.locator('[data-test="delete-request"]').click();
+      await card.getByTestId("delete-request").click();
       await expect(card).not.toBeAttached();
     });
 
@@ -229,17 +232,17 @@ test.describe("Endpoint screen", () => {
       await send(request, endpointUrl, { data: "x" });
       await send(request, endpointUrl, { data: "y" });
 
-      await page.locator('[data-test="delete-requests"]').click();
+      await page.getByTestId("delete-requests").click();
       // Destructive and unrecoverable, so it confirms first; the requests are
       // still there until the confirmation is accepted.
-      await expect(page.locator('[data-test="delete-confirm"]')).toBeVisible();
-      await expect(page.locator('[data-test="request"]')).toHaveCount(2);
+      await expect(page.getByTestId("delete-confirm")).toBeVisible();
+      await expect(requestCards(page)).toHaveCount(2);
 
-      await page.locator('[data-test="delete-cancel"]').click();
-      await expect(page.locator('[data-test="request"]')).toHaveCount(2);
+      await page.getByTestId("delete-cancel").click();
+      await expect(requestCards(page)).toHaveCount(2);
 
-      await page.locator('[data-test="delete-requests"]').click();
-      await page.locator('[data-test="delete-confirm-button"]').click();
+      await page.getByTestId("delete-requests").click();
+      await page.getByTestId("delete-confirm-button").click();
       await expect(stream(page)).toContainText("Waiting for requests");
     });
 
@@ -277,14 +280,12 @@ test.describe("Endpoint screen", () => {
       }
       await expect(resultCount(page)).toContainText(`${overOnePage} results`);
 
-      await expect(page.locator('[data-test="request"]')).toHaveCount(25);
-      const showMore = page.locator('[data-test="show-more"]');
+      await expect(requestCards(page)).toHaveCount(25);
+      const showMore = page.getByTestId("show-more");
       await expect(showMore).toContainText("Show 1 more");
 
       await showMore.click();
-      await expect(page.locator('[data-test="request"]')).toHaveCount(
-        overOnePage,
-      );
+      await expect(requestCards(page)).toHaveCount(overOnePage);
       await expect(showMore).toBeHidden();
     });
   });
@@ -331,6 +332,25 @@ test.describe("Endpoint screen", () => {
       const body = newestBody(page);
       await expect(body).toContainText("onerror=alert(1)");
       await expect(body.locator("img")).toHaveCount(0);
+    });
+
+    // Highlighting emits roughly an element per token, so colouring a large
+    // payload costs a visible stall and tens of thousands of nodes to decorate
+    // text the reader scrolls past. Above the renderer's ceiling the colour is
+    // dropped and nothing else is: the body is still whole and still formatted.
+    test("a body past the highlight ceiling keeps its text and loses its colour", async ({
+      page,
+      request,
+    }) => {
+      await send(request, endpointUrl, {
+        data: { note: "x".repeat(60_000) },
+        headers: { "Content-Type": "application/json" },
+      });
+      const body = newestBody(page);
+
+      await expect(body).toContainText('"note"');
+      expect(await body.locator("pre span.hljs-string").count()).toBe(0);
+      expect(await newestBodyText(page)).toContain("x".repeat(1_000));
     });
 
     test("a multipart body shows its fields as a parsed list", async ({
@@ -509,11 +529,11 @@ test.describe("Endpoint screen", () => {
 
       await expect(resultCount(page)).toContainText("3 results");
 
-      await page.locator('[data-test="method-filter"]').selectOption("POST");
+      await page.getByTestId("method-filter").selectOption("POST");
       await expect(resultCount(page)).toContainText("1 result");
-      await expect(page.locator('[data-test="request"]')).toHaveCount(1);
+      await expect(requestCards(page)).toHaveCount(1);
 
-      await page.locator('[data-test="method-filter"]').selectOption("");
+      await page.getByTestId("method-filter").selectOption("");
       await expect(resultCount(page)).toContainText("3 results");
     });
 
@@ -522,16 +542,14 @@ test.describe("Endpoint screen", () => {
       request,
     }) => {
       await send(request, endpointUrl, { data: "x" });
-      await expect(page.locator('[data-test="request"]')).toHaveCount(1);
+      await expect(requestCards(page)).toHaveCount(1);
 
-      await page
-        .locator('[data-test="search-input"]')
-        .fill("nothing-matches-this-term");
-      await expect(page.locator('[data-test="empty-filtered"]')).toBeVisible();
-      await expect(page.locator('[data-test="empty-waiting"]')).toHaveCount(0);
+      await searchBox(page).fill("nothing-matches-this-term");
+      await expect(page.getByTestId("empty-filtered")).toBeVisible();
+      await expect(page.getByTestId("empty-waiting")).toHaveCount(0);
 
-      await page.locator('[data-test="clear-filters"]').click();
-      await expect(page.locator('[data-test="request"]')).toHaveCount(1);
+      await page.getByTestId("clear-filters").click();
+      await expect(requestCards(page)).toHaveCount(1);
     });
 
     // Delete-all clears the endpoint, not the filtered view its neighbour
@@ -542,16 +560,16 @@ test.describe("Endpoint screen", () => {
     }) => {
       await send(request, endpointUrl, { data: "p" });
       await send(request, endpointUrl, { method: "PUT", data: "u" });
-      await expect(page.locator('[data-test="request"]')).toHaveCount(2);
+      await expect(requestCards(page)).toHaveCount(2);
 
-      await page.locator('[data-test="method-filter"]').selectOption("PUT");
+      await page.getByTestId("method-filter").selectOption("PUT");
 
-      await expect(
-        page.locator('[data-test="copy-all-har-label"]'),
-      ).toContainText("Copy shown (1)");
-      await expect(
-        page.locator('[data-test="delete-requests-label"]'),
-      ).toContainText("Delete all (2)");
+      await expect(page.getByTestId("copy-all-har-label")).toContainText(
+        "Copy shown (1)",
+      );
+      await expect(page.getByTestId("delete-requests-label")).toContainText(
+        "Delete all (2)",
+      );
     });
 
     // The search runs on the server, so the list it returns is not the
@@ -562,16 +580,16 @@ test.describe("Endpoint screen", () => {
     }) => {
       await send(request, endpointUrl, { data: "alpha" });
       await send(request, endpointUrl, { data: "beta" });
-      await expect(page.locator('[data-test="request"]')).toHaveCount(2);
+      await expect(requestCards(page)).toHaveCount(2);
 
       await searchBox(page).fill("alpha");
       await expect(resultCount(page)).toContainText("1 result");
-      await expect(
-        page.locator('[data-test="delete-requests-label"]'),
-      ).toContainText("Delete all (2)");
+      await expect(page.getByTestId("delete-requests-label")).toContainText(
+        "Delete all (2)",
+      );
 
-      await page.locator('[data-test="delete-requests"]').click();
-      await expect(page.locator('[data-test="delete-confirm"]')).toContainText(
+      await page.getByTestId("delete-requests").click();
+      await expect(page.getByTestId("delete-confirm")).toContainText(
         "Delete all 2 captured requests?",
       );
     });
@@ -581,13 +599,11 @@ test.describe("Endpoint screen", () => {
       request,
     }) => {
       await send(request, endpointUrl, { data: "alpha" });
-      await expect(page.locator('[data-test="request"]')).toHaveCount(1);
+      await expect(requestCards(page)).toHaveCount(1);
 
-      await page
-        .locator('[data-test="search-input"]')
-        .fill("nothing-matches-this-term");
+      await searchBox(page).fill("nothing-matches-this-term");
 
-      await expect(page.locator('[data-test="empty-filtered"]')).toContainText(
+      await expect(page.getByTestId("empty-filtered")).toContainText(
         "1 captured on this endpoint",
       );
     });
@@ -604,7 +620,7 @@ test.describe("Endpoint screen", () => {
         headers: { "Content-Type": "application/json" },
       });
       const card = newestCard(page);
-      await card.locator('[data-test="copy-body"]').click();
+      await card.getByTestId("copy-body").click();
       expect(await readClipboard(page)).toBe(raw);
     });
 
@@ -617,7 +633,7 @@ test.describe("Endpoint screen", () => {
         headers: { "X-Sample": "value" },
       });
       const card = newestCard(page);
-      await card.locator('[data-test="copy-headers"]').click();
+      await card.getByTestId("copy-headers").click();
       const parsed = await readClipboardJson<Record<string, string>>(page);
       expect(parsed["X-Sample"]).toBe("value");
     });
@@ -628,7 +644,7 @@ test.describe("Endpoint screen", () => {
     }) => {
       await send(request, `${endpointUrl}?a=1&b=2`, { data: "x" });
       const card = newestCard(page);
-      await card.locator('[data-test="copy-query"]').click();
+      await card.getByTestId("copy-query").click();
       expect(await readClipboard(page)).toBe("a=1&b=2");
     });
 
@@ -645,7 +661,7 @@ test.describe("Endpoint screen", () => {
       const card = cardFor(page, uuid);
       await expect(card).toBeAttached();
 
-      await card.locator('[data-test="copy-request-har"]').click();
+      await card.getByTestId("copy-request-har").click();
       const har = await readClipboardJson<HarDocument>(page);
 
       expect(har.creator.name).toBe("httphq");
@@ -678,7 +694,7 @@ test.describe("Endpoint screen", () => {
     }) => {
       await send(request, endpointUrl, { data: "x" });
       const card = newestCard(page);
-      await card.locator('[data-test="copy-request-har"]').click();
+      await card.getByTestId("copy-request-har").click();
       const har = await readClipboardJson<HarDocument>(page);
 
       expect(har.entries[0]).not.toHaveProperty("response");
@@ -689,7 +705,7 @@ test.describe("Endpoint screen", () => {
     test("a bodyless request omits postData", async ({ page, request }) => {
       await send(request, endpointUrl, { method: "GET" });
       const card = newestCard(page);
-      await card.locator('[data-test="copy-request-har"]').click();
+      await card.getByTestId("copy-request-har").click();
       const har = await readClipboardJson<HarDocument>(page);
 
       expect(har.entries[0].request).not.toHaveProperty("postData");
@@ -702,10 +718,10 @@ test.describe("Endpoint screen", () => {
     }) => {
       await send(request, endpointUrl, { data: "x" });
       const card = newestCard(page);
-      await card.locator('[data-test="copy-request-har"]').click();
-      await expect(
-        card.locator('[data-test="copy-request-har-label"]'),
-      ).toContainText("Copied!");
+      await card.getByTestId("copy-request-har").click();
+      await expect(card.getByTestId("copy-request-har-label")).toContainText(
+        "Copied!",
+      );
     });
 
     test("copy-all writes every visible request, newest first", async ({
@@ -713,11 +729,11 @@ test.describe("Endpoint screen", () => {
       request,
     }) => {
       await send(request, endpointUrl, { data: "first" });
-      await expect(page.locator('[data-test="request"]')).toHaveCount(1);
+      await expect(requestCards(page)).toHaveCount(1);
       await send(request, endpointUrl, { data: "second" });
-      await expect(page.locator('[data-test="request"]')).toHaveCount(2);
+      await expect(requestCards(page)).toHaveCount(2);
 
-      await page.locator('[data-test="copy-all-har"]').click();
+      await page.getByTestId("copy-all-har").click();
       const har = await readClipboardJson<HarDocument>(page);
 
       expect(har.entries).toHaveLength(2);
@@ -735,12 +751,12 @@ test.describe("Endpoint screen", () => {
       await send(request, endpointUrl, { method: "PUT", data: "u" });
       await expect(resultCount(page)).toContainText("2 results");
 
-      await page.locator('[data-test="method-filter"]').selectOption("PUT");
-      await expect(
-        page.locator('[data-test="copy-all-har-label"]'),
-      ).toContainText("Copy shown (1)");
+      await page.getByTestId("method-filter").selectOption("PUT");
+      await expect(page.getByTestId("copy-all-har-label")).toContainText(
+        "Copy shown (1)",
+      );
 
-      await page.locator('[data-test="copy-all-har"]').click();
+      await page.getByTestId("copy-all-har").click();
       const har = await readClipboardJson<HarDocument>(page);
 
       expect(har.entries).toHaveLength(1);
@@ -752,34 +768,34 @@ test.describe("Endpoint screen", () => {
     test("copy-all is disabled while nothing has been captured", async ({
       page,
     }) => {
-      await expect(page.locator('[data-test="copy-all-har"]')).toBeDisabled();
+      await expect(page.getByTestId("copy-all-har")).toBeDisabled();
     });
   });
 
   test.describe("Connecting an agent", () => {
     test("the panel is collapsed until it is opened", async ({ page }) => {
-      await expect(page.locator('[data-test="agent-prompt"]')).toBeHidden();
+      await expect(page.getByTestId("agent-prompt")).toBeHidden();
 
-      await page.locator('[data-test="agent-toggle"]').click();
+      await page.getByTestId("agent-toggle").click();
 
-      await expect(page.locator('[data-test="agent-prompt"]')).toBeVisible();
+      await expect(page.getByTestId("agent-prompt")).toBeVisible();
     });
 
     // Both panels sit above the stream. Opening one to read a prompt must not
     // push the other open on top of it.
     test("opening it leaves the send panel closed", async ({ page }) => {
-      await page.locator('[data-test="agent-toggle"]').click();
+      await page.getByTestId("agent-toggle").click();
 
-      await expect(page.locator('[data-test="agent-prompt"]')).toBeVisible();
-      await expect(page.locator('[data-test="send-submit"]')).toBeHidden();
+      await expect(page.getByTestId("agent-prompt")).toBeVisible();
+      await expect(page.getByTestId("send-submit")).toBeHidden();
     });
 
     // The prompt is built from the request, so it has to name the host the
     // page was actually served from rather than a hardcoded one.
     test("the prompt carries this endpoint's own URLs", async ({ page }) => {
-      await page.locator('[data-test="agent-toggle"]').click();
+      await page.getByTestId("agent-toggle").click();
 
-      const prompt = page.locator('[data-test="agent-prompt"]');
+      const prompt = page.getByTestId("agent-prompt");
       await expect(prompt).toContainText(endpointUrl);
       await expect(prompt).toContainText(
         `/api/endpoints/${endpointId}/requests`,
@@ -789,9 +805,9 @@ test.describe("Endpoint screen", () => {
     test("the prompt states the cursor loop and the poll interval", async ({
       page,
     }) => {
-      await page.locator('[data-test="agent-toggle"]').click();
+      await page.getByTestId("agent-toggle").click();
 
-      const prompt = page.locator('[data-test="agent-prompt"]');
+      const prompt = page.getByTestId("agent-prompt");
       await expect(prompt).toContainText("?since=");
       await expect(prompt).toContainText("hasMore");
       await expect(prompt).toContainText("2 seconds");
@@ -802,12 +818,10 @@ test.describe("Endpoint screen", () => {
     test("the copy button writes the prompt with no stray whitespace", async ({
       page,
     }) => {
-      await page.locator('[data-test="agent-toggle"]').click();
-      const shown = await page
-        .locator('[data-test="agent-prompt"]')
-        .textContent();
+      await page.getByTestId("agent-toggle").click();
+      const shown = await page.getByTestId("agent-prompt").textContent();
 
-      await page.locator('[data-test="copy-agent-prompt"]').click();
+      await page.getByTestId("copy-agent-prompt").click();
 
       const copied = await readClipboard(page);
       expect(copied).toBe(shown);
@@ -816,55 +830,67 @@ test.describe("Endpoint screen", () => {
     });
 
     test("the copy button label flips to Copied!", async ({ page }) => {
-      await page.locator('[data-test="agent-toggle"]').click();
-      await page.locator('[data-test="copy-agent-prompt"]').click();
+      await page.getByTestId("agent-toggle").click();
+      await page.getByTestId("copy-agent-prompt").click();
 
-      await expect(
-        page.locator('[data-test="copy-agent-prompt-label"]'),
-      ).toContainText("Copied!");
+      await expect(page.getByTestId("copy-agent-prompt-label")).toContainText(
+        "Copied!",
+      );
     });
   });
 
   test.describe("Sending a test request", () => {
     test("the panel is collapsed until it is opened", async ({ page }) => {
-      await expect(page.locator('[data-test="send-submit"]')).toBeHidden();
+      await expect(page.getByTestId("send-submit")).toBeHidden();
 
-      await page.locator('[data-test="send-toggle"]').click();
+      await page.getByTestId("send-toggle").click();
 
-      await expect(page.locator('[data-test="send-submit"]')).toBeVisible();
+      await expect(page.getByTestId("send-submit")).toBeVisible();
     });
 
     test("submitting the panel produces a captured request", async ({
       page,
     }) => {
-      await page.locator('[data-test="send-toggle"]').click();
-      await page.locator('[data-test="send-method"]').selectOption("PUT");
+      await page.getByTestId("send-toggle").click();
+      await page.getByTestId("send-method").selectOption("PUT");
       await page
-        .locator('[data-test="send-headers"]')
+        .getByTestId("send-headers")
         .fill("X-Source: panel\nContent-Type: application/json");
-      await page.locator('[data-test="send-body"]').fill('{"hello":"panel"}');
-      await page.locator('[data-test="send-submit"]').click();
+      await page.getByTestId("send-body").fill('{"hello":"panel"}');
+      await page.getByTestId("send-submit").click();
 
       const card = newestCard(page);
       await expect(card).toContainText("PUT");
-      await expect(card.locator('[data-test="request-headers"]')).toContainText(
+      await expect(card.getByTestId("request-headers")).toContainText(
         "X-Source",
       );
-      await expect(card.locator('[data-test="request-body"]')).toContainText(
-        "panel",
-      );
+      await expect(card.getByTestId("request-body")).toContainText("panel");
     });
 
     test("the path and query field reaches the capture", async ({ page }) => {
-      await page.locator('[data-test="send-toggle"]').click();
+      await page.getByTestId("send-toggle").click();
       await page
-        .locator('[data-test="send-path"]')
+        .getByTestId("send-path")
         .fill("/orders/8821?event=charge.succeeded");
-      await page.locator('[data-test="send-submit"]').click();
+      await page.getByTestId("send-submit").click();
 
       const card = newestCard(page);
-      await expect(card.locator('[data-test="request-path"]')).toContainText(
+      await expect(card.getByTestId("request-path")).toContainText(
         `${endpointPath}/orders/8821?event=charge.succeeded`,
+      );
+    });
+
+    // "orders/8821" and "/orders/8821" address the same capture path, so a user
+    // who leaves the slash off does not quietly send somewhere else.
+    test("a sub-path with no leading slash reaches the same place", async ({
+      page,
+    }) => {
+      await page.getByTestId("send-toggle").click();
+      await page.getByTestId("send-path").fill("orders/8821");
+      await page.getByTestId("send-submit").click();
+
+      await expect(newestCard(page).getByTestId("request-path")).toContainText(
+        `${endpointPath}/orders/8821`,
       );
     });
 
@@ -874,15 +900,15 @@ test.describe("Endpoint screen", () => {
     test("a malformed header line is reported instead of dropped", async ({
       page,
     }) => {
-      await page.locator('[data-test="send-toggle"]').click();
+      await page.getByTestId("send-toggle").click();
       await page
-        .locator('[data-test="send-headers"]')
+        .getByTestId("send-headers")
         .fill("Authorization Bearer sk_test_123");
-      await page.locator('[data-test="send-submit"]').click();
-      await expect(page.locator('[data-test="send-status"]')).toContainText(
+      await page.getByTestId("send-submit").click();
+      await expect(page.getByTestId("send-status")).toContainText(
         "is not a header",
       );
-      await expect(page.locator('[data-test="request"]')).toHaveCount(0);
+      await expect(requestCards(page)).toHaveCount(0);
     });
   });
 

@@ -12,7 +12,13 @@
   <!-- Arrivals, status and confirmations are announced here. Everything on this
        page changes without a navigation, so without a live region a screen
        reader user is told nothing at all. -->
-  <p class="sr-only" role="status" aria-live="polite" x-text="announcement"></p>
+  <p
+    class="sr-only"
+    role="status"
+    aria-live="polite"
+    data-test="announcer"
+    x-text="announcement"
+  ></p>
 
   <!-- Endpoint URL panel -->
   <section class="mt-2 mb-6" aria-labelledby="endpoint-url-heading">
@@ -37,9 +43,7 @@
           class="btn btn-secondary shrink-0"
         >
           {{template "partials/icons/copy" .}}
-          <span
-            data-test="copy-url-label"
-            x-text="copiedKey === 'url' ? 'Copied!' : 'Copy'"
+          <span data-test="copy-url-label" x-text="copyLabel('url', 'Copy')"
             >Copy</span
           >
         </button>
@@ -196,7 +200,7 @@
           {{template "partials/icons/copy" .}}
           <span
             data-test="copy-agent-prompt-label"
-            x-text="copiedKey === 'agent' ? 'Copied!' : 'Copy prompt'"
+            x-text="copyLabel('agent', 'Copy prompt')"
             >Copy prompt</span
           >
         </button>
@@ -242,7 +246,7 @@
              bare icon, shorter than its neighbour and unreadable. -->
         <span
           data-test="copy-all-har-label"
-          x-text="copiedKey === '__all__' ? 'Copied!' : `Copy shown (${$store.main.visibleRequests.length})`"
+          x-text="copyLabel('__all__', `Copy shown (${$store.main.visibleRequests.length})`)"
           >Copy shown</span
         >
       </button>
@@ -425,7 +429,7 @@
               {{template "partials/icons/clipboard" .}}
               <span
                 data-test="copy-request-har-label"
-                x-text="copiedKey === request.uuid ? 'Copied!' : 'Copy request'"
+                x-text="copyLabel(request.uuid, 'Copy request')"
               ></span>
             </button>
             <button
@@ -499,7 +503,7 @@
                 @click="copy(JSON.stringify(request.headers, null, 2), request.uuid + ':headers')"
                 aria-label="Copy headers as JSON"
                 class="btn-inline"
-                x-text="copiedKey === request.uuid + ':headers' ? 'Copied!' : 'Copy'"
+                x-text="copyLabel(request.uuid + ':headers', 'Copy')"
               >
                 Copy
               </button>
@@ -540,7 +544,7 @@
               @click="copy(request.queryString, request.uuid + ':query')"
               aria-label="Copy query string"
               class="btn-inline"
-              x-text="copiedKey === request.uuid + ':query' ? 'Copied!' : 'Copy'"
+              x-text="copyLabel(request.uuid + ':query', 'Copy')"
             >
               Copy
             </button>
@@ -570,7 +574,7 @@
               @click="copy(request.body, request.uuid + ':body')"
               aria-label="Copy body"
               class="btn-inline"
-              x-text="copiedKey === request.uuid + ':body' ? 'Copied!' : 'Copy'"
+              x-text="copyLabel(request.uuid + ':body', 'Copy')"
             >
               Copy
             </button>

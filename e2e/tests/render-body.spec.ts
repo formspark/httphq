@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { loadPageScripts } from "./support/harness";
 
 /**
@@ -42,7 +42,7 @@ test.describe("Body renderer", () => {
 
   /** Renders a body and returns what it put on the page, unescaped. */
   const render = async (
-    page: Parameters<typeof loadPageScripts>[0],
+    page: Page,
     body: string | null,
     headers: Record<string, string> | null = null,
   ) =>

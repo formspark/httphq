@@ -31,6 +31,9 @@
   // How long a copy button reads "Copied!" before returning to its label.
   const COPIED_MS = 1_500;
 
+  // How long the status line holds a successful send before it clears.
+  const SENT_MS = 2_000;
+
   function transformRequest(r) {
     return { ...r, createdAt: new Date(r.createdAt) };
   }
@@ -348,6 +351,14 @@
         return this._copyAndFlash(text, key, "Copied to clipboard");
       },
 
+      // The label a copy button carries: its own while idle, the confirmation
+      // while it is the one that last wrote to the clipboard. Several buttons
+      // share this component instance, so the key is what tells them apart, and
+      // it has to be the same key the click handler passes to copy().
+      copyLabel(key, idle) {
+        return this.copiedKey === key ? "Copied!" : idle;
+      },
+
       copyHar(requests, key) {
         return this._copyAndFlash(
           window.buildHarExport(requests),
@@ -382,26 +393,39 @@
         return `/to/${this.store.endpointId}${path ? "/" + path : ""}`;
       },
 
+      // The header field, parsed. A malformed line is reported and nothing is
+      // returned, because sending a request that is missing a header the user
+      // wrote would send them chasing a failure that was never in it.
+      _sendHeaders() {
+        const parsed = window.parseHeaderLines(this.sendForm.headers);
+        const [first] = parsed.invalid;
+        if (!first) return parsed.headers;
+        this._reportSend(
+          true,
+          `Line ${first.line} is not a header: "${first.text}". Use Key: Value.`,
+        );
+        return null;
+      },
+
+      // The compose form as a request. An empty body field sends no body at
+      // all: fetch refuses a body on GET or HEAD, and an empty string is still
+      // a body.
+      _sendRequest(headers) {
+        return fetch(this._sendTarget(), {
+          method: this.sendForm.method,
+          headers,
+          body: this.sendForm.body || undefined,
+        });
+      },
+
       async sendCustom() {
         if (!this.store.endpointId) return;
-        const parsed = window.parseHeaderLines(this.sendForm.headers);
-        if (parsed.invalid.length) {
-          const [first] = parsed.invalid;
-          this._reportSend(
-            true,
-            `Line ${first.line} is not a header: "${first.text}". Use Key: Value.`,
-          );
-          return;
-        }
-        const target = this._sendTarget();
+        const headers = this._sendHeaders();
+        if (!headers) return;
         try {
           this.sendFailed = false;
           this.sendStatus = "Sending…";
-          const res = await fetch(target, {
-            method: this.sendForm.method,
-            headers: parsed.headers,
-            body: this.sendForm.body || undefined,
-          });
+          const res = await this._sendRequest(headers);
           if (!res.ok) {
             this._reportSend(
               true,
@@ -410,7 +434,7 @@
             return;
           }
           this._reportSend(false, `Sent ${this.sendForm.method}`);
-          setTimeout(() => (this.sendStatus = ""), 2000);
+          setTimeout(() => (this.sendStatus = ""), SENT_MS);
         } catch (err) {
           // The browser refuses some combinations outright, e.g. a body on GET.
           // Report its reason rather than swallowing it, and keep it on screen.

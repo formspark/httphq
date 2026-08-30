@@ -26,6 +26,10 @@ the fixtures shared by every test that drives a real request.
 drive real requests through it without a listening socket. Anything that pulls
 configuration out of the environment belongs in `main`, not in a handler.
 
+The live feed is the exception. A WebSocket upgrade needs a real connection
+underneath it, so `sockets_test.go` starts an application of its own on a
+loopback port and dials it. Everything else stays on the in-memory transport.
+
 ## The Playwright suite covers screens and page scripts separately
 
 `e2e/tests` holds one spec per subject. A `*-screen.spec.ts` drives a screen
@@ -43,6 +47,12 @@ A spec's own fixtures sit at the top of that spec, as the locator and multipart
 helpers do. Fixtures used by more than one spec live in
 `tests/support/harness.ts`, which is also the one place a type is asserted
 rather than proven, at the `JSON.parse` and `response.json()` boundaries.
+
+Screens are reached through `getByTestId`. `testIdAttribute` in
+`playwright.config.ts` points it at the `data-test` attribute the templates
+carry, so a test names a hook and never spells an attribute selector. An element
+a test reaches for gets a `data-test`; anything a reader can identify by its
+role or its text is reached that way instead.
 
 ## Comments
 
@@ -141,7 +151,7 @@ not change the verdict on a tree that did not change.
 asserting the value beside it, and a `t.Fatal` on every teardown call reads worse
 than it protects.
 
-The complexity ceiling stays separate. `gocyclo -over 5` is a ratchet rather
+The complexity ceiling stays separate. `gocyclo -over 4` is a ratchet rather
 than a correctness check, and it is documented alongside the ESLint one.
 
 ## Database standards
