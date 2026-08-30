@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -14,22 +13,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// accessLogFor drives one request with the process logger pointed at a buffer
-// and returns the access-log line it produced. The logger is process-wide, so
-// it is restored before the next test reads it.
+// accessLogFor drives one request and returns the access-log line it produced.
 //
-// The handler is a plain JSON handler rather than the one Init installs, so
-// levels appear as slog spells them. Rendering them lower-case is the logging
-// package's job and is covered there.
+// The lines are written through a plain JSON handler rather than the one Init
+// installs, so levels appear as slog spells them. Rendering them lower-case is
+// the logging package's job and is covered there.
 func accessLogFor(t *testing.T, spec testRequest) map[string]any {
 	t.Helper()
 
-	var out bytes.Buffer
-	previous := slog.Default()
-	slog.SetDefault(slog.New(slog.NewJSONHandler(&out, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
-	})))
-	t.Cleanup(func() { slog.SetDefault(previous) })
+	out := captureLogs(t)
 
 	do(t, spec)
 

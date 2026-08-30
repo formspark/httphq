@@ -57,15 +57,22 @@ func curlSpoofRequested(headers map[string][]string) bool {
 	return len(spoof) > 0 && spoof[0] == "true"
 }
 
+// spoofCurl rewrites a browser's headers so the capture reads as a command-line
+// client's: the additions only a browser makes are dropped, and the values curl
+// would have sent replace the ones it shares.
+func spoofCurl(headers map[string][]string) {
+	for _, name := range browserOnlyHeaders {
+		delete(headers, name)
+	}
+	maps.Copy(headers, spoofedCurlHeaders)
+}
+
 // captureHeaders reduces the request's headers to what the user should see: the
 // browser's own additions removed when curl is spoofed, then every
 // infrastructure header stripped.
 func captureHeaders(headers map[string][]string) map[string][]string {
 	if curlSpoofRequested(headers) {
-		for _, name := range browserOnlyHeaders {
-			delete(headers, name)
-		}
-		maps.Copy(headers, spoofedCurlHeaders)
+		spoofCurl(headers)
 	}
 	for name := range headers {
 		if omitHeader(name) {

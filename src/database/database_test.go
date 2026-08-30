@@ -272,6 +272,27 @@ func uuidsOf(requests []database.Request) []string {
 	return uuids
 }
 
+// drainWithCursor reads an endpoint's whole stream the way a poller does: a page
+// at a time, advancing the cursor to the last capture it was handed, until a
+// page comes back empty. Returns the UUIDs it was given, in order, and how many
+// calls it took.
+func drainWithCursor(t *testing.T, endpointID string, cursor time.Time, limit int) ([]string, int) {
+	t.Helper()
+
+	var seen []string
+	calls := 0
+	for {
+		page := database.GetRequestsForEndpointID(t.Context(), endpointID, "", cursor, limit)
+		if len(page) == 0 {
+			return seen, calls
+		}
+		calls++
+		require.Less(t, calls, 10, "the drain is not converging")
+		seen = append(seen, uuidsOf(page)...)
+		cursor = page[len(page)-1].CreatedAt
+	}
+}
+
 func TestGetRequestsForEndpointIDSince(t *testing.T) {
 	// A fixed base keeps the ordering assertions readable and keeps the rows
 	// clear of time.Now(), so nothing depends on how fast the test runs.
@@ -356,32 +377,17 @@ func TestGetRequestsForEndpointIDSince(t *testing.T) {
 			burst = 25
 			limit = 10
 		)
+		// The expectation is built from the same names that were stored, in the
+		// order they were stored, so the assertion cannot drift from the fixture.
+		want := make([]string, 0, burst)
 		for i := range burst {
-			storeRequest(t.Context(), fmt.Sprintf("capture-%02d", i),
-				withCreatedAt(at(time.Duration(i)*time.Second)))
+			uuid := fmt.Sprintf("capture-%02d", i)
+			want = append(want, uuid)
+			storeRequest(t.Context(), uuid, withCreatedAt(at(time.Duration(i)*time.Second)))
 		}
 
-		var (
-			seen   []string
-			cursor = base.Add(-time.Second)
-			calls  int
-		)
-		for {
-			page := database.GetRequestsForEndpointID(t.Context(), "test-id", "", cursor, limit)
-			if len(page) == 0 {
-				break
-			}
-			calls++
-			require.Less(t, calls, 10, "the drain is not converging")
+		seen, calls := drainWithCursor(t, "test-id", base.Add(-time.Second), limit)
 
-			seen = append(seen, uuidsOf(page)...)
-			cursor = page[len(page)-1].CreatedAt
-		}
-
-		want := make([]string, burst)
-		for i := range want {
-			want[i] = fmt.Sprintf("capture-%02d", i)
-		}
 		assert.Equal(t, want, seen, "every capture exactly once, in order")
 		assert.Equal(t, 3, calls, "25 captures at 10 a page is three pages")
 	})

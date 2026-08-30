@@ -27,17 +27,15 @@ test.describe("Home screen", () => {
 
   test.describe("Creating an endpoint", () => {
     test("the create button is visible", async ({ page }) => {
-      await expect(
-        page.locator('button[data-test="create-endpoint"]'),
-      ).toBeVisible();
+      await expect(page.getByTestId("create-endpoint")).toBeVisible();
     });
 
     test("the create button lands on a working endpoint screen", async ({
       page,
     }) => {
-      await page.locator('button[data-test="create-endpoint"]').click();
+      await page.getByTestId("create-endpoint").click();
       await expect(page).toHaveURL(/\/[a-z0-9-]+$/);
-      await expect(page.locator('[data-test="endpoint-url"]')).toBeVisible();
+      await expect(page.getByTestId("endpoint-url")).toBeVisible();
     });
 
     // The facts a visitor needs before pointing live traffic at a public URL,
@@ -56,7 +54,7 @@ test.describe("Home screen", () => {
 
   test.describe("Supporting sections", () => {
     test("the use cases section is visible", async ({ page }) => {
-      const section = page.locator('[data-test="use-cases"]');
+      const section = page.getByTestId("use-cases");
       await expect(section).toBeVisible();
       await expect(section).toContainText("Test webhooks");
       await expect(section).toContainText("Inspect payloads");
@@ -64,7 +62,7 @@ test.describe("Home screen", () => {
     });
 
     test("the example capture shows a rendered request", async ({ page }) => {
-      const example = page.locator('[data-test="example-capture"]');
+      const example = page.getByTestId("example-capture");
       await expect(example).toBeVisible();
       await expect(example).toContainText("POST");
       await expect(example).toContainText("content-type");

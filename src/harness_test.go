@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -79,6 +81,24 @@ func withPlatform(t *testing.T, name string) {
 	t.Cleanup(func() { currentPlatform = previous })
 }
 
+// captureLogs points the process logger at a buffer for one test and hands the
+// buffer back. Several subjects report through the logs and nowhere else, so
+// reading them is the only way to assert what happened. The logger is
+// process-wide, so it is restored before the next test reads it.
+//
+// Debug is recorded as well as info, because a line demoted to debug is still a
+// line a test may be asserting on.
+func captureLogs(t *testing.T) *bytes.Buffer {
+	t.Helper()
+	var out bytes.Buffer
+	previous := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&out, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	})))
+	t.Cleanup(func() { slog.SetDefault(previous) })
+	return &out
+}
+
 // contextWith builds a request context from peerIP carrying the given headers,
 // so a test can exercise the header-reading helpers without a live server.
 func contextWith(t *testing.T, app *fiber.App, peerIP string, headers map[string]string) fiber.Ctx {
@@ -110,6 +130,20 @@ type testRequest struct {
 	repeated map[string][]string
 }
 
+// applyHeaders writes a spec's headers onto a request. The two maps are walked
+// separately because they say different things: one header per name, and one
+// name carrying several.
+func applyHeaders(request *http.Request, spec testRequest) {
+	for name, value := range spec.headers {
+		request.Header.Set(name, value)
+	}
+	for name, values := range spec.repeated {
+		for _, value := range values {
+			request.Header.Add(name, value)
+		}
+	}
+}
+
 func do(t *testing.T, spec testRequest) *http.Response {
 	t.Helper()
 
@@ -118,14 +152,7 @@ func do(t *testing.T, spec testRequest) *http.Response {
 		body = strings.NewReader(spec.body)
 	}
 	req := httptest.NewRequest(spec.method, spec.path, body)
-	for name, value := range spec.headers {
-		req.Header.Set(name, value)
-	}
-	for name, values := range spec.repeated {
-		for _, value := range values {
-			req.Header.Add(name, value)
-		}
-	}
+	applyHeaders(req, spec)
 
 	response, err := application(t).Test(req)
 	require.NoError(t, err)

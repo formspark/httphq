@@ -31,7 +31,7 @@ export default tseslint.config(
   // score the tree currently carries, so it holds the line rather than leaving
   // room to grow into, and a function that gains a branch has to lose one
   // somewhere. Lower them as hotspots are simplified; raising one is how a
-  // ratchet stops working. `gocyclo -over 5` in CI is the Go counterpart to the
+  // ratchet stops working. `gocyclo -over 4` in CI is the Go counterpart to the
   // first of these.
   //
   // The modified variant scores a whole switch as one decision rather than one
@@ -40,7 +40,7 @@ export default tseslint.config(
   // repositories rather than differing in a way that looks deliberate.
   {
     rules: {
-      complexity: ["error", { max: 6, variant: "modified" }],
+      complexity: ["error", { max: 5, variant: "modified" }],
       "max-params": ["error", 3],
       "max-depth": ["error", 2],
     },

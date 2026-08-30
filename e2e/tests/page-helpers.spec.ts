@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { loadPageScripts } from "./support/harness";
 
 /**
@@ -54,7 +54,7 @@ test.describe("Page helpers", () => {
     // measures against the moment it is called. Every offset is a whole number
     // of its unit: the few milliseconds that pass inside the call would round
     // a value sitting exactly on .5 to the neighbouring unit instead.
-    const agoFor = (page: Parameters<typeof loadPageScripts>[0], ms: number) =>
+    const agoFor = (page: Page, ms: number) =>
       page.evaluate(
         (offset) => window.formatTimeAgo(new Date(Date.now() + offset)),
         ms,
@@ -105,7 +105,7 @@ test.describe("Page helpers", () => {
    */
   test.describe("Header lookup", () => {
     const lookup = (
-      page: Parameters<typeof loadPageScripts>[0],
+      page: Page,
       headers: Record<string, string | string[]> | null,
       name: string,
     ) =>
@@ -174,7 +174,7 @@ test.describe("Page helpers", () => {
    * auth failure that was never in their request.
    */
   test.describe("Header lines", () => {
-    const parse = (page: Parameters<typeof loadPageScripts>[0], text: string) =>
+    const parse = (page: Page, text: string) =>
       page.evaluate((source) => window.parseHeaderLines(source), text);
 
     test("splits each line on its first colon", async ({ page }) => {

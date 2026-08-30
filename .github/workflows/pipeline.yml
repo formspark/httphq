@@ -59,7 +59,7 @@ jobs:
       # The Go counterpart to the `complexity` rule the page scripts are linted
       # with. Pinned so a later gocyclo release cannot change the verdict on a
       # tree that did not change.
-      - run: go run github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0 -over 5 ./src
+      - run: go run github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0 -over 4 ./src
         timeout-minutes: 2
       # Coverage is measured and reported, not gated. A threshold set before the
       # number is known is a guess; this prints it so a later one can be set at

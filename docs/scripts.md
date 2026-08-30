@@ -61,12 +61,12 @@ ships a stray Go package once the npm tooling is installed.
 Check cyclomatic complexity:
 
 ```bash
-go run github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0 -over 5 ./src
+go run github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0 -over 4 ./src
 go run github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0 -top 10 ./src
 ```
 
 Both sides carry a ceiling, and both are set at the worst score the tree
-currently holds: `-over 5` for Go, and `complexity` at 6 in `eslint.config.mjs`
+currently holds: `-over 4` for Go, and `complexity` at 5 in `eslint.config.mjs`
 for the page scripts and the Playwright suite. The JavaScript side carries two
 more ratchets set the same way, `max-params` at 3 and `max-depth` at 2. `-top`
 takes no position and is the one to run when deciding what to simplify next.

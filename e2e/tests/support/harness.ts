@@ -144,7 +144,7 @@ export const listRequests = async (
  * site, and a change to the markup lands in one place.
  */
 export const newestBody = (page: Page) =>
-  page.locator('[data-test="request-body"]').first();
+  page.getByTestId("request-body").first();
 
 /** The newest capture's body as displayed text, highlighting flattened away. */
 export const newestBodyText = (page: Page) =>

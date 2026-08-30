@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/datatypes"
 
 	"httphq/src/database"
 )
@@ -166,7 +167,6 @@ func TestCaptureRequest(t *testing.T) {
 		require.Error(t, err)
 		assert.Empty(t, capturedRequests(t, id, ""))
 	})
-
 }
 
 func TestCaptureHeaders(t *testing.T) {
@@ -312,6 +312,26 @@ func TestBroadcastCapture(t *testing.T) {
 			"a page parses the pushed payload as a capture")
 		assert.Equal(t, captured.UUID, payload.UUID)
 		assert.Equal(t, captured.Body, payload.Body)
+	})
+
+	// Fan-out is the one place a capture is re-serialised after it was stored,
+	// so a row whose headers are not valid JSON fails here and nowhere else.
+	// Nothing above this reports it, and half a payload would reach the page as
+	// a capture it cannot parse, so the dispatch is dropped and logged.
+	t.Run("a capture that will not marshal is logged rather than dispatched", func(t *testing.T) {
+		emits := recordSocketEmits(t)
+		logs := captureLogs(t)
+		registry := newSocketRegistry()
+		registry.add("watched", "socket-1")
+
+		broadcastCapture(t.Context(), registry, database.Request{
+			UUID:       "capture-uuid",
+			EndpointID: "watched",
+			Headers:    datatypes.JSON("not json"),
+		})
+
+		assert.Empty(t, emits)
+		assert.Contains(t, logs.String(), "websocket payload marshal failed")
 	})
 
 	// The endpoint ID is the only isolation between two users of one instance,

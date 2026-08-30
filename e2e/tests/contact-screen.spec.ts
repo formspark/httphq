@@ -20,7 +20,7 @@ test.describe("Contact screen", () => {
       await page.locator('input[name="name"]').fill("John Doe");
       await page.locator('input[name="email"]').fill("john@doe.test");
       await page.locator('textarea[name="message"]').fill("Hello, World!");
-      await expect(page.locator('button[data-test="send-form"]')).toBeEnabled();
+      await expect(page.getByTestId("send-form")).toBeEnabled();
     });
 
     test("every field is labelled and required", async ({ page }) => {
@@ -32,7 +32,7 @@ test.describe("Contact screen", () => {
     });
 
     test("an empty form does not submit", async ({ page }) => {
-      await page.locator('button[data-test="send-form"]').click();
+      await page.getByTestId("send-form").click();
       await expect(page).toHaveURL(/\/contact$/);
     });
 

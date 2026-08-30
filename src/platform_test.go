@@ -23,11 +23,13 @@ func schemeFor(t *testing.T, app *fiber.App, peerIP, forwardedProto string) stri
 
 // proxyTrustApp mirrors the production Fiber config for a request that arrives
 // with a PLATFORM configured (TrustProxy enabled): the app trusts the fronting
-// proxy on the ranges from trustedProxyConfig.
+// proxy on the ranges from trustedProxyConfig, and reads the peer it reports
+// from the same forwarded header the application does.
 func proxyTrustApp() *fiber.App {
 	return fiber.New(fiber.Config{
 		TrustProxy:       true,
 		TrustProxyConfig: trustedProxyConfig(),
+		ProxyHeader:      fiber.HeaderXForwardedFor,
 	})
 }
 
@@ -51,7 +53,11 @@ func TestResolvePlatform(t *testing.T) {
 	t.Run("the name is trimmed and matched case-insensitively", func(t *testing.T) {
 		assert.Equal(t, platforms["cloudflare"], resolvePlatform("  CloudFlare  "))
 	})
+}
 
+// The table itself, rather than the lookup into it. A platform entry that
+// disagrees with the header it names is wrong however it was resolved.
+func TestPlatforms(t *testing.T) {
 	t.Run("list-valued platforms are the ones reading X-Forwarded-For", func(t *testing.T) {
 		for name, config := range platforms {
 			if config.ipHeader == fiber.HeaderXForwardedFor {
@@ -110,6 +116,20 @@ func TestResolveClientIP(t *testing.T) {
 				assert.Equal(t, "203.0.113.7", resolveClientIP(c))
 			})
 		}
+	})
+
+	// The rate limiter buckets on whatever this returns, so a value that is not
+	// an address must not become a bucket of its own. Behind a trusted proxy
+	// there is no second opinion to fall back to: Fiber reads the peer from the
+	// same forwarded header, so a garbage entry is all either source has.
+	t.Run("an address none of the sources can parse yields nothing", func(t *testing.T) {
+		withPlatform(t, "proxy")
+
+		c := contextWith(t, proxyTrustApp(), "10.0.0.1", map[string]string{
+			fiber.HeaderXForwardedFor: "not-an-ip",
+		})
+
+		assert.Empty(t, resolveClientIP(c))
 	})
 
 	t.Run("IPv6 survives round-tripping", func(t *testing.T) {

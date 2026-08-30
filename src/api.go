@@ -45,6 +45,24 @@ func newestCreatedAt(requests []database.Request) time.Time {
 	return newest
 }
 
+// nextCursor is what a caller echoes back on its next call.
+//
+// It is the newest capture in the page, or the moment the query ran when the
+// page came back empty, so a poller that starts before any traffic still has
+// something to advance from rather than re-asking for the same empty window
+// forever. It never moves backwards: a cursor already ahead of both survives
+// the round trip, or the caller is handed captures it has already processed.
+func nextCursor(requests []database.Request, queryStart, since time.Time) time.Time {
+	cursor := queryStart
+	if len(requests) > 0 {
+		cursor = newestCreatedAt(requests)
+	}
+	if cursor.Before(since) {
+		return since
+	}
+	return cursor
+}
+
 // handleListRequests returns a window of an endpoint's captures, narrowed by
 // the search and by an optional `since` cursor. `total` is what the endpoint
 // holds regardless of search, cursor or window, so the page can say what a
@@ -78,21 +96,10 @@ func handleListRequests(c fiber.Ctx) error {
 	requests := database.GetRequestsForEndpointID(
 		c.Context(), endpointID, c.Query("search"), since, requestPageSize)
 
-	// An empty page still advances the cursor to the start of this query, so a
-	// poller that begins before any traffic arrives does not re-ask for the
-	// same empty window forever.
-	cursor := queryStart
-	if len(requests) > 0 {
-		cursor = newestCreatedAt(requests)
-	}
-	if cursor.Before(since) {
-		cursor = since
-	}
-
 	return c.JSON(fiber.Map{
 		"requests": requests,
 		"total":    database.CountRequestsForEndpointID(c.Context(), endpointID),
-		"cursor":   cursor.Format(time.RFC3339Nano),
+		"cursor":   nextCursor(requests, queryStart, since).Format(time.RFC3339Nano),
 		// A full page means a burst is still draining, so the caller should
 		// come straight back rather than sleeping through the backlog.
 		"hasMore": len(requests) == requestPageSize,

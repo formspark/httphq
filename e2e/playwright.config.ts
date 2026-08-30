@@ -16,6 +16,11 @@ export default defineConfig({
     baseURL: BASE_URL,
     trace: "on-first-retry",
     permissions: ["clipboard-read", "clipboard-write"],
+    // The templates mark their test hooks with data-test, so getByTestId reads
+    // them directly. Spelling the attribute here rather than writing the
+    // selector at each call site keeps a hook's name the only thing a test
+    // states about it.
+    testIdAttribute: "data-test",
   },
   projects: [
     {

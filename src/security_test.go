@@ -1,12 +1,39 @@
 package main
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 )
+
+// policyDirectives reads a policy the way CSP itself does: each directive by
+// name, carrying the sources it admits. A directive the policy never states is
+// absent rather than empty, which the assertions below then report as a missing
+// source rather than as a pass.
+func policyDirectives(policy string) map[string][]string {
+	directives := map[string][]string{}
+	for _, candidate := range strings.Split(policy, "; ") {
+		name, value, _ := strings.Cut(candidate, " ")
+		directives[name] = strings.Fields(value)
+	}
+	return directives
+}
+
+// directivesCarrying names every directive that admits a source, so a test can
+// assert the whole of where one reaches. A directive that quietly gains it then
+// fails rather than passing unmentioned.
+func directivesCarrying(policy, source string) []string {
+	var carrying []string
+	for name, sources := range policyDirectives(policy) {
+		if slices.Contains(sources, source) {
+			carrying = append(carrying, name)
+		}
+	}
+	return carrying
+}
 
 // The headers are set by middleware rather than per route, so the assertion
 // that matters is that no surface can be reached without them. The paths below
@@ -48,14 +75,12 @@ func TestContentSecurityPolicy(t *testing.T) {
 		assert.Contains(t, contentSecurityPolicy(true), designToolingOrigin)
 	})
 
+	// The tooling injects a script and opens a socket back to itself, so those
+	// two directives are the whole of what it needs. A third would be a wider
+	// grant than the tooling asked for.
 	t.Run("the tooling origin reaches only the directives that need it", func(t *testing.T) {
-		for _, directive := range strings.Split(contentSecurityPolicy(true), "; ") {
-			name, _, _ := strings.Cut(directive, " ")
-			if strings.Contains(directive, designToolingOrigin) {
-				assert.Containsf(t, []string{"script-src", "connect-src"}, name,
-					"%s should not carry the design tooling origin", name)
-			}
-		}
+		assert.ElementsMatch(t, []string{"script-src", "connect-src"},
+			directivesCarrying(contentSecurityPolicy(true), designToolingOrigin))
 	})
 
 	t.Run("the baseline directives hold in both environments", func(t *testing.T) {
@@ -74,24 +99,11 @@ func TestContentSecurityPolicy(t *testing.T) {
 	// the internet, from a page that renders bodies a stranger sent.
 	t.Run("the socket is admitted by self rather than by every websocket host", func(t *testing.T) {
 		for _, policy := range []string{contentSecurityPolicy(false), contentSecurityPolicy(true)} {
-			sources := directiveSources(policy, "connect-src")
+			sources := policyDirectives(policy)["connect-src"]
 			assert.Contains(t, sources, "'self'")
 			assert.NotContains(t, sources, "ws:")
 			assert.NotContains(t, sources, "wss:")
 			assert.NotContains(t, sources, "*")
 		}
 	})
-}
-
-// The sources of one directive, split the way CSP reads them. Returns nil when
-// the policy has no such directive, which the assertions above then report as
-// the missing source rather than as an empty pass.
-func directiveSources(policy, directive string) []string {
-	for _, candidate := range strings.Split(policy, "; ") {
-		name, value, _ := strings.Cut(candidate, " ")
-		if name == directive {
-			return strings.Fields(value)
-		}
-	}
-	return nil
 }
