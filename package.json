@@ -15,7 +15,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "prepare": "husky",
-    "social-card": "node ./scripts/social-card.mjs"
+    "social-card": "node ./scripts/social-card.mjs",
+    "typecheck": "pnpm --filter httphq-e2e exec tsc --noEmit"
   },
   "lint-staged": {
     "*.{js,ts,mjs,cjs,mts,cts,css,html,json,md,yml,yaml}": "prettier --write",
