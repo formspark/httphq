@@ -82,4 +82,12 @@ export default tseslint.config(
     files: ["eslint.config.mjs"],
     languageOptions: { globals: globals.node },
   },
+
+  // A disable comment that no longer suppresses anything is a claim about the
+  // code that has stopped being true.
+  {
+    linterOptions: {
+      reportUnusedDisableDirectives: "error",
+    },
+  },
 );
