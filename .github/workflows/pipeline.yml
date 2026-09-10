@@ -102,7 +102,7 @@ jobs:
 
       - name: Type-check the Playwright suite
         timeout-minutes: 2
-        run: pnpm --filter httphq-e2e exec tsc --noEmit
+        run: pnpm run typecheck
 
   styles:
     runs-on: ubuntu-latest

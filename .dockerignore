@@ -1,0 +1,26 @@
+.git
+.github
+.husky
+node_modules
+
+# The locally built binary. The image builds its own in the builder stage, and
+# this one is 27 MB of context the build never reads.
+bin
+
+# Local SQLite database. Capture history is ephemeral by design.
+*.db
+*.db-shm
+*.db-wal
+
+# Test output
+coverage.out
+e2e/.cache
+e2e/blob-report
+e2e/playwright-report
+e2e/test-results
+
+AGENTS.md
+CLAUDE.md
+DESIGN.md
+PRODUCT.md
+README.md
