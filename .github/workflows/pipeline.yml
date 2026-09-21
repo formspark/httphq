@@ -100,7 +100,7 @@ jobs:
         timeout-minutes: 1
         run: node scripts/check-lint-staged.mjs
 
-      - name: Type-check the Playwright suite
+      - name: Type-check the page scripts and the Playwright suite
         timeout-minutes: 2
         run: pnpm run typecheck
 

@@ -1,6 +1,7 @@
 /* Shared helpers for the endpoint page. Loaded only where the capture stream
    renders; the marketing and contact pages ship no JavaScript at all. */
 
+/** @type {{ amount: number, name: Intl.RelativeTimeFormatUnit }[]} */
 const TIME_DIVISIONS = [
   { amount: 60, name: "seconds" },
   { amount: 60, name: "minutes" },
@@ -14,7 +15,7 @@ const TIME_DIVISIONS = [
 const timeFormatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 
 window.formatTimeAgo = function (date) {
-  let duration = (date - new Date()) / 1000;
+  let duration = (date.getTime() - Date.now()) / 1000;
   for (let i = 0; i < TIME_DIVISIONS.length; i++) {
     const division = TIME_DIVISIONS[i];
     if (Math.abs(duration) < division.amount) {
@@ -87,6 +88,21 @@ window.formatBytes = function (bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+/* Header lookup into a captured request. A stored header is a scalar string,
+   or a string[] when it repeated on the wire (see flattenHeaders in
+   src/capture.go), and every reader wants one value, so a repeated header
+   yields its first. Names match in any case, as they do on the wire. */
+
+window.headerValue = function (headers, name) {
+  if (!headers) return undefined;
+  const key = Object.keys(headers).find(
+    (k) => k.toLowerCase() === name.toLowerCase(),
+  );
+  if (key === undefined) return undefined;
+  const value = headers[key];
+  return Array.isArray(value) ? value[0] : value;
+};
+
 /* Header parsing for the send-custom-request panel.
 
    Malformed lines are returned rather than dropped. Silently discarding a line
@@ -94,7 +110,9 @@ window.formatBytes = function (bytes) {
    success, sends the user chasing an auth bug that does not exist. */
 
 window.parseHeaderLines = function (text) {
+  /** @type {Record<string, string>} */
   const headers = {};
+  /** @type {InvalidHeaderLine[]} */
   const invalid = [];
   if (!text) return { headers, invalid };
   text.split(/\r?\n/).forEach((line, i) => {

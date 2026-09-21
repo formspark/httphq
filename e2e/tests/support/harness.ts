@@ -55,31 +55,16 @@ export const loadPageScripts = async (page: Page) => {
   }
 };
 
-/** One malformed line from the send panel's header field. */
-export type InvalidHeaderLine = { line: number; text: string };
-
+/**
+ * The helpers the page scripts publish are declared once, in
+ * types/page-scripts.d.ts. Only the endpoint page's store is declared here:
+ * endpoint.js is not type-checked, and a test reaches into the store for the
+ * one pass it drives directly.
+ */
 declare global {
   interface Window {
     Alpine: {
       store(name: "main"): { pruneExpired(retentionMs: number): unknown };
-    };
-    renderBody(
-      body: string | null,
-      headers: CapturedRequest["headers"] | null,
-    ): string;
-    headerValue(
-      headers: CapturedRequest["headers"] | null,
-      name: string,
-    ): string | undefined;
-    buildHarExport(requests: CapturedRequest[] | null): string;
-    byteLength(text: string): number;
-    formatBytes(bytes: number): string;
-    formatTimeAgo(date: Date): string;
-    formatClock(date: Date): string;
-    pluralize(count: number, noun: string): string;
-    parseHeaderLines(text: string): {
-      headers: Record<string, string>;
-      invalid: InvalidHeaderLine[];
     };
   }
 }
@@ -114,7 +99,7 @@ export type CapturedRequest = {
   queryString: string;
   body: string;
   createdAt: string;
-  headers: Record<string, string | string[]>;
+  headers: CaptureHeaders;
 };
 
 /** The listing response, as the page and any poller read it. */

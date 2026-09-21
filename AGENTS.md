@@ -46,7 +46,10 @@ the body limit the server enforces around the handler rather than inside it.
 A spec's own fixtures sit at the top of that spec, as the locator and multipart
 helpers do. Fixtures used by more than one spec live in
 `tests/support/harness.ts`, which is also the one place a type is asserted
-rather than proven, at the `JSON.parse` and `response.json()` boundaries.
+rather than proven, at the `JSON.parse` and `response.json()` boundaries. The
+helpers the page scripts publish on `window` are declared once, in
+`types/page-scripts.d.ts`, and the suite reads that declaration rather than
+keeping its own.
 
 Screens are reached through `getByTestId`. `testIdAttribute` in
 `playwright.config.ts` points it at the `data-test` attribute the templates

@@ -38,6 +38,14 @@
     return { ...r, createdAt: new Date(r.createdAt) };
   }
 
+  // The retention window the page was rendered with, in milliseconds, or 0 for
+  // none. A page served without a usable window keeps every capture it was
+  // given rather than expiring them against a guess.
+  function retentionMsFrom(retentionSeconds) {
+    const seconds = Number(retentionSeconds);
+    return Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 0;
+  }
+
   document.addEventListener("alpine:init", () => {
     // The page scripts are loaded as a set, and only the endpoint page asks
     // for them. Registering the store and the component regardless would put
@@ -197,11 +205,7 @@
         // leaves the component inert rather than pointing a socket at a guess.
         if (!endpointId || !websocketUrl) return;
         this._wsUrl = websocketUrl;
-        // A page served without the window keeps every capture it was given
-        // rather than expiring them against a guess.
-        const seconds = Number(retentionSeconds);
-        this._retentionMs =
-          Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 0;
+        this._retentionMs = retentionMsFrom(retentionSeconds);
         this.store.setEndpoint(endpointId);
         this._connectWebSocket();
         setInterval(() => {
@@ -371,8 +375,10 @@
         this.pendingDeleteAll = true;
       },
 
+      // Counted from `total`, as the confirmation is: the delete clears the
+      // endpoint, not the searched view `requests` holds.
       async deleteAllConfirmed() {
-        const count = this.store.requests.length;
+        const count = this.store.total;
         this.pendingDeleteAll = false;
         await this.store.deleteRequests();
         this.announce(`Deleted ${window.pluralize(count, "request")}`);
@@ -418,6 +424,17 @@
         });
       },
 
+      // What the server answered. A refusal stays on screen like any other
+      // failure; a success clears itself once the reader has had time to see it.
+      _reportResponse(res) {
+        if (!res.ok) {
+          this._reportSend(true, `The server rejected it: HTTP ${res.status}.`);
+          return;
+        }
+        this._reportSend(false, `Sent ${this.sendForm.method}`);
+        setTimeout(() => (this.sendStatus = ""), SENT_MS);
+      },
+
       async sendCustom() {
         if (!this.store.endpointId) return;
         const headers = this._sendHeaders();
@@ -425,16 +442,7 @@
         try {
           this.sendFailed = false;
           this.sendStatus = "Sending…";
-          const res = await this._sendRequest(headers);
-          if (!res.ok) {
-            this._reportSend(
-              true,
-              `The server rejected it: HTTP ${res.status}.`,
-            );
-            return;
-          }
-          this._reportSend(false, `Sent ${this.sendForm.method}`);
-          setTimeout(() => (this.sendStatus = ""), SENT_MS);
+          this._reportResponse(await this._sendRequest(headers));
         } catch (err) {
           // The browser refuses some combinations outright, e.g. a body on GET.
           // Report its reason rather than swallowing it, and keep it on screen.

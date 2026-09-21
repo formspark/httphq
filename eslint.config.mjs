@@ -2,7 +2,7 @@
 // scripts in public/, which the browser loads as plain scripts with no build
 // step, and the Playwright suite in e2e/, which is type-checked TypeScript.
 //
-// The Go application is linted by `go vet`; nothing here touches it.
+// The Go application is linted by golangci-lint; nothing here touches it.
 
 import js from "@eslint/js";
 import globals from "globals";
@@ -40,7 +40,7 @@ export default tseslint.config(
   // repositories rather than differing in a way that looks deliberate.
   {
     rules: {
-      complexity: ["error", { max: 5, variant: "modified" }],
+      complexity: ["error", { max: 4, variant: "modified" }],
       "max-params": ["error", 3],
       "max-depth": ["error", 2],
     },

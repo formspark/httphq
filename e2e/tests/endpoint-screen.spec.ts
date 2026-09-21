@@ -20,6 +20,22 @@ import {
 const HYDRATION_TIMEOUT_MS = 15_000;
 
 /**
+ * Opens an endpoint's screen and waits for it to hydrate.
+ *
+ * The wait gates on something only Alpine can have rendered. The endpoint URL
+ * and every other server-rendered element is on screen before the page has
+ * hydrated, so waiting on one lets a test start racing a boot that has a
+ * third-party script in front of it. The waiting panel is the first thing the
+ * mounted component draws on an endpoint with no traffic.
+ */
+const openEndpointScreen = async (page: Page, endpointId: string) => {
+  await page.goto(`/${endpointId}`);
+  await expect(page.getByTestId("empty-waiting")).toBeVisible({
+    timeout: HYDRATION_TIMEOUT_MS,
+  });
+};
+
+/**
  * The parts of the screen the assertions below reach for. Each selector is
  * spelled once rather than at every call site, so a change to the markup lands
  * in one place.
@@ -29,6 +45,33 @@ const resultCount = (page: Page) => page.getByTestId("search-results");
 const searchBox = (page: Page) => page.getByTestId("search-input");
 const requestCards = (page: Page) => page.getByTestId("request");
 const newestCard = (page: Page) => requestCards(page).first();
+const announcer = (page: Page) => page.getByTestId("announcer");
+const sendStatus = (page: Page) => page.getByTestId("send-status");
+
+/** The send panel's fields. Any a test leaves out keep what the page gave them. */
+type PanelFields = {
+  method?: string;
+  path?: string;
+  headers?: string;
+  body?: string;
+};
+
+const fillIfGiven = async (page: Page, testId: string, value?: string) => {
+  if (value !== undefined) await page.getByTestId(testId).fill(value);
+};
+
+/** Opens the send panel, fills the fields given, and submits it. */
+const submitSendPanel = async (
+  page: Page,
+  { method, path, headers, body }: PanelFields = {},
+) => {
+  await page.getByTestId("send-toggle").click();
+  if (method) await page.getByTestId("send-method").selectOption(method);
+  await fillIfGiven(page, "send-path", path);
+  await fillIfGiven(page, "send-headers", headers);
+  await fillIfGiven(page, "send-body", body);
+  await page.getByTestId("send-submit").click();
+};
 
 /**
  * The capture a send produced, found by the UUID the server echoes back. Going
@@ -49,19 +92,7 @@ test.describe("Endpoint screen", () => {
     endpointId = newEndpointId();
     endpointPath = `/to/${endpointId}`;
     endpointUrl = captureUrl(endpointId);
-    await page.goto(`/${endpointId}`);
-    // Gate on something only Alpine can have rendered. The endpoint URL and
-    // every other server-rendered element is on screen before the page has
-    // hydrated, so waiting on one lets each test start racing a boot that has
-    // a third-party script in front of it. The waiting panel is the first
-    // thing the mounted component draws on an endpoint with no traffic.
-    //
-    // Given longer than an ordinary assertion because it is waiting on that
-    // script to arrive from a CDN, which is slower and less predictable than
-    // anything the app itself does.
-    await expect(page.getByTestId("empty-waiting")).toBeVisible({
-      timeout: HYDRATION_TIMEOUT_MS,
-    });
+    await openEndpointScreen(page, endpointId);
   });
 
   test.describe("Page", () => {
@@ -208,9 +239,7 @@ test.describe("Endpoint screen", () => {
     test("an arriving capture is announced", async ({ page, request }) => {
       await send(request, endpointUrl, { method: "PUT", data: "spoken" });
 
-      await expect(page.getByTestId("announcer")).toHaveText(
-        "PUT request received",
-      );
+      await expect(announcer(page)).toHaveText("PUT request received");
     });
 
     test("delete-request removes a single card", async ({ page, request }) => {
@@ -246,28 +275,6 @@ test.describe("Endpoint screen", () => {
       await expect(stream(page)).toContainText("Waiting for requests");
     });
 
-    // Nothing tells the page that the server swept a capture out from under it,
-    // so a list left open long enough would go on rendering requests that no
-    // longer exist, beside the promise that they were deleted. The page runs
-    // this on an interval; the test drives the same pass directly rather than
-    // holding the suite open for it.
-    test("a capture the server no longer holds stops being rendered", async ({
-      page,
-      request,
-    }) => {
-      const response = await send(request, endpointUrl, { data: "swept" });
-      const uuid = capturedUuid(response);
-      await expect(cardFor(page, uuid)).toBeAttached();
-
-      // Deleted behind the page's back, which is what the retention sweep is
-      // from the page's point of view.
-      await request.delete(requestsUrl(endpointId));
-
-      await pruneExpiredCaptures(page);
-
-      await expect(stream(page)).toContainText("Waiting for requests");
-    });
-
     // Rendering every capture at once is a five-figure node count and a visible
     // stall, so the rest stay in the store until asked for.
     test("only a page of cards is rendered until more are asked for", async ({
@@ -290,6 +297,101 @@ test.describe("Endpoint screen", () => {
     });
   });
 
+  /**
+   * The page drops captures from its own list once they outlive the retention
+   * window the server rendered into it, checked on the same interval that
+   * refreshes relative timestamps. Nothing tells the page that the server swept
+   * a capture, so each test deletes its capture through the API and leaves the
+   * page to notice by age alone.
+   */
+  test.describe("Retention", () => {
+    // A list left open long enough would otherwise go on rendering requests
+    // that no longer exist, beside the promise that they were deleted. This
+    // drives the pass directly rather than holding the suite open for it.
+    test("a capture the server no longer holds stops being rendered", async ({
+      page,
+      request,
+    }) => {
+      const response = await send(request, endpointUrl, { data: "swept" });
+      const uuid = capturedUuid(response);
+      await expect(cardFor(page, uuid)).toBeAttached();
+
+      await request.delete(requestsUrl(endpointId));
+
+      await pruneExpiredCaptures(page);
+
+      await expect(stream(page)).toContainText("Waiting for requests");
+    });
+
+    // The window arrives in seconds and the page compares milliseconds, so a
+    // unit slip either expires every capture on the first tick or none ever.
+    // The relative time is what shows a tick has run and been rendered.
+    test("a capture is dropped once it outlives the window, not before", async ({
+      page,
+      request,
+    }) => {
+      await page.clock.install();
+      await openEndpointScreen(page, endpointId);
+      const uuid = capturedUuid(
+        await send(request, endpointUrl, { data: "ageing" }),
+      );
+      const card = cardFor(page, uuid);
+      await expect(card).toBeAttached();
+      await request.delete(requestsUrl(endpointId));
+
+      await page.clock.fastForward("01:00");
+      await expect(card.getByTestId("request-details")).toContainText(
+        "1 minute ago",
+      );
+
+      await page.clock.fastForward("04:00:00");
+      await expect(stream(page)).toContainText("Waiting for requests");
+    });
+
+    // A page served without a usable window keeps what it was given rather
+    // than expiring captures against a guess. The attribute is rewritten as
+    // Alpine boots, before the component reads it. Serving a rewritten
+    // document through page.route instead gets the page's own socket refused
+    // by the browser's local network checks.
+    const unusable: Record<string, string | null> = {
+      absent: null,
+      zero: "0",
+      "not a number": "soon",
+    };
+
+    for (const [description, served] of Object.entries(unusable)) {
+      test(`a window that is ${description} expires nothing`, async ({
+        page,
+        request,
+      }) => {
+        await page.addInitScript((seconds) => {
+          document.addEventListener("alpine:init", () => {
+            const root = document.querySelector("main");
+            if (root === null) return;
+            if (seconds === null)
+              root.removeAttribute("data-retention-seconds");
+            else root.setAttribute("data-retention-seconds", seconds);
+          });
+        }, served);
+        await page.clock.install();
+        await openEndpointScreen(page, endpointId);
+        const uuid = capturedUuid(
+          await send(request, endpointUrl, { data: "kept" }),
+        );
+        const card = cardFor(page, uuid);
+        await expect(card).toBeAttached();
+        await request.delete(requestsUrl(endpointId));
+
+        await page.clock.fastForward("05:00:00");
+
+        await expect(card.getByTestId("request-details")).toContainText(
+          "5 hours ago",
+        );
+        await expect(card).toBeAttached();
+      });
+    }
+  });
+
   test.describe("Body rendering", () => {
     test("a JSON body is pretty-printed and syntax-highlighted", async ({
       page,
@@ -300,7 +402,6 @@ test.describe("Endpoint screen", () => {
         headers: { "Content-Type": "application/json" },
       });
       const body = newestBody(page);
-      // Pretty-printed → contains a newline and 2-space indent.
       const text = await body.locator("pre").innerText();
       expect(text).toContain('"hello": "world"');
       expect(text).toContain("\n  ");
@@ -594,6 +695,24 @@ test.describe("Endpoint screen", () => {
       );
     });
 
+    // The announcement stands in for the emptied list for a screen reader
+    // user, so it counts what was deleted: the endpoint, not the search.
+    test("a delete-all under a search announces the endpoint's count", async ({
+      page,
+      request,
+    }) => {
+      await send(request, endpointUrl, { data: "alpha" });
+      await send(request, endpointUrl, { data: "beta" });
+      await expect(requestCards(page)).toHaveCount(2);
+      await searchBox(page).fill("alpha");
+      await expect(resultCount(page)).toContainText("1 result");
+
+      await page.getByTestId("delete-requests").click();
+      await page.getByTestId("delete-confirm-button").click();
+
+      await expect(announcer(page)).toHaveText("Deleted 2 requests");
+    });
+
     test("a search that hides everything still reports the endpoint total", async ({
       page,
       request,
@@ -851,13 +970,11 @@ test.describe("Endpoint screen", () => {
     test("submitting the panel produces a captured request", async ({
       page,
     }) => {
-      await page.getByTestId("send-toggle").click();
-      await page.getByTestId("send-method").selectOption("PUT");
-      await page
-        .getByTestId("send-headers")
-        .fill("X-Source: panel\nContent-Type: application/json");
-      await page.getByTestId("send-body").fill('{"hello":"panel"}');
-      await page.getByTestId("send-submit").click();
+      await submitSendPanel(page, {
+        method: "PUT",
+        headers: "X-Source: panel\nContent-Type: application/json",
+        body: '{"hello":"panel"}',
+      });
 
       const card = newestCard(page);
       await expect(card).toContainText("PUT");
@@ -868,11 +985,9 @@ test.describe("Endpoint screen", () => {
     });
 
     test("the path and query field reaches the capture", async ({ page }) => {
-      await page.getByTestId("send-toggle").click();
-      await page
-        .getByTestId("send-path")
-        .fill("/orders/8821?event=charge.succeeded");
-      await page.getByTestId("send-submit").click();
+      await submitSendPanel(page, {
+        path: "/orders/8821?event=charge.succeeded",
+      });
 
       const card = newestCard(page);
       await expect(card.getByTestId("request-path")).toContainText(
@@ -885,9 +1000,7 @@ test.describe("Endpoint screen", () => {
     test("a sub-path with no leading slash reaches the same place", async ({
       page,
     }) => {
-      await page.getByTestId("send-toggle").click();
-      await page.getByTestId("send-path").fill("orders/8821");
-      await page.getByTestId("send-submit").click();
+      await submitSendPanel(page, { path: "orders/8821" });
 
       await expect(newestCard(page).getByTestId("request-path")).toContainText(
         `${endpointPath}/orders/8821`,
@@ -896,18 +1009,75 @@ test.describe("Endpoint screen", () => {
 
     // Silently discarding a line that is one typo away from an Authorization
     // header, and then reporting success, sends the user chasing an auth bug
-    // that does not exist.
+    // that does not exist. The report names the line as the user counts it.
     test("a malformed header line is reported instead of dropped", async ({
       page,
     }) => {
-      await page.getByTestId("send-toggle").click();
-      await page
-        .getByTestId("send-headers")
-        .fill("Authorization Bearer sk_test_123");
-      await page.getByTestId("send-submit").click();
-      await expect(page.getByTestId("send-status")).toContainText(
-        "is not a header",
+      await submitSendPanel(page, {
+        headers: "X-Source: panel\nAuthorization Bearer sk_test_123",
+      });
+
+      await expect(sendStatus(page)).toHaveText(
+        'Line 2 is not a header: "Authorization Bearer sk_test_123". Use Key: Value.',
       );
+      await expect(requestCards(page)).toHaveCount(0);
+    });
+
+    // A success clears itself once the reader has had time to see it. The
+    // clock is installed first so the clearing timer runs on demand.
+    test("a successful send is reported, then clears", async ({ page }) => {
+      await page.clock.install();
+
+      await submitSendPanel(page, { method: "PUT", body: "reported" });
+
+      await expect(sendStatus(page)).toHaveText("Sent PUT");
+      await expect(newestCard(page)).toContainText("reported");
+      await page.clock.fastForward("05");
+      await expect(sendStatus(page)).toHaveText("");
+    });
+
+    // fetch refuses any body on a GET, an empty string included, so the empty
+    // field has to send no body at all rather than an empty one.
+    test("an empty body field sends no body, so a GET goes through", async ({
+      page,
+    }) => {
+      await submitSendPanel(page, { method: "GET" });
+
+      await expect(sendStatus(page)).toHaveText("Sent GET");
+      const card = newestCard(page);
+      await expect(card.getByTestId("request-method")).toHaveText("GET");
+      await expect(card.getByTestId("request-body")).toContainText("None");
+    });
+
+    // A refusal, such as the production rate limit, is an answer rather than
+    // a transport failure, so it is reported with the status the server gave.
+    // Unlike a success it stays on screen, because the reader has something
+    // to act on.
+    test("a refusal is reported with its status and stays", async ({
+      page,
+    }) => {
+      await page.route(`**/to/${endpointId}`, (route) =>
+        route.fulfill({ status: 429 }),
+      );
+      await page.clock.install();
+
+      await submitSendPanel(page);
+
+      const refusal = "The server rejected it: HTTP 429.";
+      await expect(sendStatus(page)).toHaveText(refusal);
+      await expect(announcer(page)).toHaveText(refusal);
+      await page.clock.fastForward("05");
+      await expect(sendStatus(page)).toHaveText(refusal);
+    });
+
+    // The browser refuses some requests outright, and a body on a GET is one.
+    // Its reason is shown rather than swallowed, and nothing is sent.
+    test("a request the browser refuses to build is reported, not sent", async ({
+      page,
+    }) => {
+      await submitSendPanel(page, { method: "GET", body: "not on a GET" });
+
+      await expect(sendStatus(page)).toContainText("Could not send:");
       await expect(requestCards(page)).toHaveCount(0);
     });
   });
@@ -917,7 +1087,9 @@ test.describe("Endpoint screen", () => {
       page,
       request,
     }) => {
-      // Simulate the tab going to background.
+      // A headless page never loses visibility by itself, so the tab is sent
+      // to the background, and later brought back, by overriding
+      // document.hidden and announcing the change.
       await page.evaluate(() => {
         Object.defineProperty(document, "hidden", {
           configurable: true,
@@ -932,7 +1104,6 @@ test.describe("Endpoint screen", () => {
       await send(request, endpointUrl, { data: "background-2" });
       await expect.poll(async () => page.title()).toContain("(2)");
 
-      // Bring the tab back to foreground.
       await page.evaluate(() => {
         Object.defineProperty(document, "hidden", {
           configurable: true,

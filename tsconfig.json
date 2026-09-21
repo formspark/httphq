@@ -1,0 +1,25 @@
+// Type-checks the page scripts in public/ as plain JavaScript, against the
+// globals declared in types/page-scripts.d.ts. Nothing is emitted: the browser
+// loads the files exactly as written.
+//
+// endpoint.js is not listed. Its Alpine component reads `this.$el`, which only
+// Alpine's own component typing can describe, and it renders server responses
+// that would need validating before they could be typed without a cast.
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "lib": ["ES2022", "DOM"],
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2022",
+    "types": []
+  },
+  "files": [
+    "public/index.js",
+    "public/render-body.js",
+    "public/har.js",
+    "types/page-scripts.d.ts"
+  ]
+}
