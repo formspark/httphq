@@ -38,15 +38,32 @@ Run project:
 go run ./src
 ```
 
-Lint the page scripts and the Playwright suite:
+Lint and type-check the page scripts and the Playwright suite:
 
 ```bash
 pnpm run lint
 pnpm run lint:fix
+pnpm run typecheck
 ```
 
 The Playwright suite is linted with type information, so `e2e` needs its own
-dependencies installed. The Go application is checked by `go vet` instead.
+dependencies installed.
+
+The type check covers the Playwright suite and three of the page scripts:
+`index.js`, `render-body.js` and `har.js`, checked as JavaScript against the
+globals declared in `types/page-scripts.d.ts`. The suite reads the same
+declarations, so a helper and the tests that call it cannot disagree about its
+signature. `endpoint.js` is left out, because its Alpine component reads
+`this.$el`, which only Alpine's own component typing can describe.
+
+Lint the Go application:
+
+```bash
+go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.2 run ./src/...
+```
+
+golangci-lint runs `go vet` as one of its linters, so CI runs it in place of a
+bare `go vet`.
 
 Run unit tests:
 
@@ -66,7 +83,7 @@ go run github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0 -top 10 ./src
 ```
 
 Both sides carry a ceiling, and both are set at the worst score the tree
-currently holds: `-over 4` for Go, and `complexity` at 5 in `eslint.config.mjs`
+currently holds: `-over 4` for Go, and `complexity` at 4 in `eslint.config.mjs`
 for the page scripts and the Playwright suite. The JavaScript side carries two
 more ratchets set the same way, `max-params` at 3 and `max-depth` at 2. `-top`
 takes no position and is the one to run when deciding what to simplify next.

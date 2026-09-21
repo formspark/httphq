@@ -40,8 +40,8 @@ test.describe("HAR export", () => {
       expect(har.creator).toEqual({ name: "httphq", version: "1" });
     });
 
-    // A single request and a whole list share one envelope, so a consumer
-    // parses the same shape whichever button produced the document.
+    // The page hands over captures in display order, newest first, so the
+    // document reads in the same order as the stream it was copied from.
     test("captures keep the order they were given", async ({ page }) => {
       const har = await buildHar(page, [
         capture({ uuid: "newest", body: "second" }),
