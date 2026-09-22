@@ -28,11 +28,11 @@
 
 httphq is configured entirely through environment variables.
 
-| Variable          | Default       | Description                                                                                                |
-| ----------------- | ------------- | ---------------------------------------------------------------------------------------------------------- |
-| `APPLICATION_ENV` | `development` | Set to `production` to bind all interfaces, raise the rate limit, and default logging to `info`.           |
-| `LOG_LEVEL`       | env-dependent | Overrides the log level: `debug`, `info`, `warn`, or `error`.                                              |
-| `PLATFORM`        | `direct`      | The hosting platform in front of httphq. Selects which header the real client IP is read from (see below). |
+| Variable          | Required | Default       | Secret | Notes                                                                                                      |
+| ----------------- | -------- | ------------- | ------ | ---------------------------------------------------------------------------------------------------------- |
+| `APPLICATION_ENV` | no       | `development` | no     | Set to `production` to bind all interfaces, raise the rate limit, and default logging to `info`.           |
+| `LOG_LEVEL`       | no       | env-dependent | no     | Overrides the log level: `debug`, `info`, `warn`, or `error`.                                              |
+| `PLATFORM`        | no       | `direct`      | no     | The hosting platform in front of httphq. Selects which header the real client IP is read from (see below). |
 
 ### `PLATFORM`
 

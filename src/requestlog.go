@@ -27,12 +27,11 @@ var probePaths = map[string]struct{}{
 	"/api/health": {},
 }
 
-// responseStatus is the status the caller will be answered with.
-//
-// A handler that refuses a request returns an error rather than writing a
-// status, and Fiber's error handler turns that into a response only after this
-// middleware has unwound. Reading the response directly at that point yields
-// the untouched default, so every refusal would be logged as a success.
+// responseStatus works the status out from the error when there is one. A
+// handler that refuses a request returns an error rather than writing a status,
+// and Fiber's error handler turns that into a response only after this
+// middleware has unwound, so the response still holds the untouched default
+// here and every refusal would be logged as a success.
 func responseStatus(c fiber.Ctx, err error) int {
 	if err == nil {
 		return c.Response().StatusCode()
