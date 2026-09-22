@@ -1,15 +1,14 @@
 // Every file extension in the tree that Prettier can format must be covered by
-// a lint-staged pattern, or the pre-commit hook silently skips it.
-//
-// This is not hypothetical. The same gap appeared independently in two
-// repositories: one ignored .mjs, .mts, .cjs and .cts while CI linted them, so
-// the eslint config, the vitest configs and the build scripts were never
-// formatted on the way in; another ignored .mdx while tracking one. Both were
-// found by hand, months apart. Nothing stopped the third.
+// a lint-staged pattern, or the pre-commit hook silently skips it. The gap is
+// invisible: files of that type go in unformatted, and nothing fails until
+// `format:check` does.
 //
 // Prettier decides what counts, rather than a list kept here. Asking it which
 // parser it would use for a path is the same question the hook asks, so the two
 // cannot drift.
+//
+// Every statement fits in 80 columns, so Prettier prints this file the same at
+// any print width and the copies in the sibling repositories stay identical.
 
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -27,14 +26,14 @@ if (patterns.length === 0) {
 // The patterns are all of the form `*.{a,b,c}`. Reading the extensions out of
 // them beats matching globs, and a pattern in another shape is worth failing on
 // rather than quietly ignoring.
+const BRACES = /^\*\.\{([^}]+)\}$/;
+const SINGLE = /^\*\.([a-z0-9]+)$/;
 const covered = new Set();
 for (const pattern of patterns) {
-  const match =
-    /^\*\.\{([^}]+)\}$/.exec(pattern) ?? /^\*\.([a-z0-9]+)$/.exec(pattern);
+  const match = BRACES.exec(pattern) ?? SINGLE.exec(pattern);
   if (!match) {
-    console.error(
-      `Cannot read extensions from lint-staged pattern: ${pattern}`,
-    );
+    console.error("Cannot read extensions from lint-staged pattern:");
+    console.error(`  ${pattern}`);
     console.error("This check understands `*.{a,b,c}` and `*.ext`.");
     process.exit(1);
   }
@@ -43,9 +42,8 @@ for (const pattern of patterns) {
   }
 }
 
-const tracked = execFileSync("git", ["ls-files"], { encoding: "utf8" })
-  .split("\n")
-  .filter(Boolean);
+const listed = execFileSync("git", ["ls-files"], { encoding: "utf8" });
+const tracked = listed.split("\n").filter(Boolean);
 
 const ignored = new Set(
   readFileSync(".prettierignore", "utf8")
@@ -54,13 +52,16 @@ const ignored = new Set(
     .filter((line) => line && !line.startsWith("#")),
 );
 
+function isIgnored(file) {
+  return [...ignored].some((path) => file === path || file.startsWith(path));
+}
+
 const missing = new Map();
 for (const file of tracked) {
   const extension = file.includes(".") ? file.split(".").pop() : "";
   if (!extension || covered.has(extension)) continue;
   // A path Prettier is told to leave alone does not need a hook entry.
-  if ([...ignored].some((entry) => file === entry || file.startsWith(entry)))
-    continue;
+  if (isIgnored(file)) continue;
 
   const info = await prettier.getFileInfo(file);
   if (!info.inferredParser) continue;
@@ -79,11 +80,8 @@ for (const [extension, example] of missing) {
   console.error(`  .${extension}  e.g. ${example}`);
 }
 console.error("");
-console.error(
-  "Add them to the lint-staged patterns in package.json, or add the",
-);
-console.error(
-  "paths to .prettierignore if the formatter should leave them alone.",
-);
+console.error("Add them to the lint-staged patterns in package.json, or add");
+console.error("the paths to .prettierignore if the formatter should leave");
+console.error("them alone.");
 console.error("");
 process.exit(1);

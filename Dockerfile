@@ -1,5 +1,3 @@
-# ***** Builder *****
-
 FROM golang:1.26-alpine AS builder
 
 # The tag tracks a minor line and can sit behind the patch go.mod names, and the
@@ -17,9 +15,7 @@ COPY ./src ./src
 
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o ./bin/httphq ./src
 
-# ***** Application *****
-
-FROM alpine:3.21
+FROM alpine:3.24
 
 WORKDIR /app
 

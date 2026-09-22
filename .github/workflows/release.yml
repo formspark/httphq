@@ -17,8 +17,7 @@ permissions:
   contents: read
 
 jobs:
-  # The same workflow pull requests run. Before this, release ran only `go vet`
-  # and a build, so a red test suite still published an image.
+  # The same workflow pull requests run, so a red suite cannot publish an image.
   verify:
     uses: ./.github/workflows/pipeline.yml
 

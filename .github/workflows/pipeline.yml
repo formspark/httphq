@@ -1,6 +1,10 @@
 # The single definition of what "verified" means. test.yml and release.yml both
 # call this workflow, so a check cannot exist on pull requests yet be skipped on
 # the push that publishes the image.
+#
+# Every check is a package.json script, and `pnpm verify` runs the same scripts
+# in the same order, so a tree that passes locally passes here. The Go jobs set
+# up pnpm only to read those scripts; they install no Node dependencies.
 name: pipeline
 
 on:
@@ -14,7 +18,7 @@ permissions:
 jobs:
   unit:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
         timeout-minutes: 1
@@ -22,53 +26,49 @@ jobs:
         timeout-minutes: 2
         with:
           go-version-file: "go.mod"
+      # Before setup-node, which needs pnpm on PATH. The version comes from
+      # packageManager in package.json.
+      - uses: pnpm/action-setup@v6
+        timeout-minutes: 2
+      - uses: actions/setup-node@v7
+        timeout-minutes: 2
+        with:
+          node-version-file: ".tool-versions"
       # Reachability, not presence: govulncheck reports an advisory only when a
       # path from this code actually reaches the vulnerable symbol, so it does
       # not fail on a dependency that merely sits in go.sum. That makes it
-      # strict enough to gate on. Pinned like the other Go tools here, so a
-      # later release cannot change the verdict on a tree that did not change.
+      # strict enough to gate on.
       #
-      # `./src/...` rather than `./...`: node_modules ships a stray Go package.
+      # Every Go tool here is pinned in its script, so a later release cannot
+      # change the verdict on a tree that did not change. Each is scoped to
+      # ./src, because node_modules ships a stray Go package that ./... would
+      # otherwise build.
       - name: Check for known vulnerabilities
         timeout-minutes: 5
-        run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./src/...
-
-      # gofmt is not a formatter run here, it is a question: the answer is the
-      # list of files that disagree with it. Without this the repository relied
-      # on everyone remembering the manual step in docs/scripts.md.
+        run: pnpm run go:vuln
       - name: Check formatting
         timeout-minutes: 1
-        run: |
-          unformatted="$(gofmt -l ./src)"
-          if [ -n "$unformatted" ]; then
-            echo "::error::gofmt reports unformatted files. Run 'go fmt ./src/...' and commit the result." >&2
-            echo "$unformatted" >&2
-            exit 1
-          fi
-      # Replaces a bare `go vet`, which golangci-lint runs as one of its
-      # linters alongside the checks vet does not cover: unchecked error
-      # returns, dead assignments, unused code, staticcheck's correctness rules.
-      #
-      # Pinned for the same reason gocyclo below is: a later release must not
-      # change the verdict on a tree that did not change.
-      #
-      # Scoped to src: node_modules ships a stray Go package that ./... would
-      # otherwise build.
-      - run: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.2 run ./src/...
+        run: pnpm run go:format:check
+      # golangci-lint runs go vet as one of its linters, alongside the checks vet
+      # does not cover: unchecked error returns, dead assignments, unused code,
+      # staticcheck's correctness rules.
+      - name: Lint
         timeout-minutes: 5
+        run: pnpm run go:lint
       # The Go counterpart to the `complexity` rule the page scripts are linted
-      # with. Pinned so a later gocyclo release cannot change the verdict on a
-      # tree that did not change.
-      - run: go run github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0 -over 4 ./src
+      # with.
+      - name: Check complexity
         timeout-minutes: 2
+        run: pnpm run go:cyclo
       # Coverage is measured and reported, not gated. A threshold set before the
       # number is known is a guess; this prints it so a later one can be set at
       # what the suite actually reaches.
       - name: Test with coverage
-        timeout-minutes: 3
-        run: |
-          go test -coverprofile=coverage.out ./src/...
-          go tool cover -func=coverage.out | tail -1 | tee -a "$GITHUB_STEP_SUMMARY"
+        timeout-minutes: 5
+        run: pnpm run test:coverage
+      - name: Report coverage
+        timeout-minutes: 1
+        run: go tool cover -func=coverage.out | tail -1 >> "$GITHUB_STEP_SUMMARY"
 
   lint:
     runs-on: ubuntu-latest
@@ -76,8 +76,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         timeout-minutes: 1
-      # Before setup-node, which needs pnpm on PATH to resolve its store for the
-      # cache. The version comes from packageManager in package.json.
       - uses: pnpm/action-setup@v6
         timeout-minutes: 2
       - uses: actions/setup-node@v7
@@ -98,8 +96,16 @@ jobs:
       # silent: CI lints the file, the hook never touched it.
       - name: Check lint-staged globs
         timeout-minutes: 1
-        run: node scripts/check-lint-staged.mjs
-
+        run: pnpm run check:lint-staged
+      - name: Check prose for em dashes
+        timeout-minutes: 1
+        run: pnpm run check:prose
+      # setup-uv publishes no floating major tag, so the release is pinned.
+      - uses: astral-sh/setup-uv@v10.2.0
+        timeout-minutes: 2
+      - name: Check spelling
+        timeout-minutes: 2
+        run: pnpm run check:typos
       - name: Type-check the page scripts and the Playwright suite
         timeout-minutes: 2
         run: pnpm run typecheck
@@ -124,14 +130,9 @@ jobs:
       # committed sheet does not carry, and the running app would be missing it.
       - name: Rebuild stylesheet and check it matches the committed one
         timeout-minutes: 2
-        run: |
-          pnpm run css
-          git diff --exit-code --stat public/app.css \
-            || { echo "::error::public/app.css is stale. Run 'pnpm run css' and commit the result"; exit 1; }
+        run: pnpm run css:check
 
-  # The production build, with the flags the image is built with. The e2e job
-  # builds too, but without -trimpath and -ldflags, so before this job existed a
-  # release-only build failure could not be seen from a pull request.
+  # The production build, with the flags the image uses.
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -142,14 +143,19 @@ jobs:
         timeout-minutes: 2
         with:
           go-version-file: "go.mod"
-      - run: CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /tmp/httphq ./src
+      - uses: pnpm/action-setup@v6
+        timeout-minutes: 2
+      - uses: actions/setup-node@v7
+        timeout-minutes: 2
+        with:
+          node-version-file: ".tool-versions"
+      - run: pnpm run build
         timeout-minutes: 3
 
   # The binary above is built from the checkout; the image is built from the
   # subset of it the Dockerfile copies. Only this catches a build input the
-  # Dockerfile does not know about, and release.yml pushes an image it never
-  # built anywhere else, so the two paths would disagree without it. Nothing is
-  # pushed here: the registry is release.yml's business.
+  # Dockerfile does not know about. Nothing is pushed here: the registry is
+  # release.yml's business.
   image:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -170,9 +176,6 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: e2e
     steps:
       - uses: actions/checkout@v7
         timeout-minutes: 1
@@ -187,22 +190,22 @@ jobs:
         with:
           node-version-file: ".tool-versions"
           cache: pnpm
+      # The suite starts ./bin/httphq itself; see webServer in
+      # e2e/playwright.config.ts.
       - name: Build server
         timeout-minutes: 3
-        run: CGO_ENABLED=0 go build -o ./bin/httphq ./src
-        working-directory: .
+        run: pnpm run build
       # The workspace root is where the lockfile lives, so the install runs
-      # there and links this project's dependencies as part of it.
+      # there and links the suite's dependencies as part of it.
       - name: Install dependencies
         timeout-minutes: 2
         run: pnpm install --frozen-lockfile
-        working-directory: .
       - name: Install Playwright browsers
         timeout-minutes: 5
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm --filter httphq-e2e exec playwright install --with-deps chromium
       - name: Run Playwright tests
         timeout-minutes: 5
-        run: pnpm exec playwright test
+        run: pnpm run test:e2e
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         timeout-minutes: 2

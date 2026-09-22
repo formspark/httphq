@@ -178,7 +178,7 @@ func TestHandleListRequestsCursor(t *testing.T) {
 		assert.Equal(t, int64(1), listRequests(t, id, "", first.Cursor).Total)
 	})
 
-	// Ignoring an unparseable cursor would hand back the whole window, which a
+	// Ignoring an unparsable cursor would hand back the whole window, which a
 	// caller cannot tell from a legitimate reply and would reprocess in full.
 	t.Run("a malformed since is rejected rather than ignored", func(t *testing.T) {
 		response := get(t, "/api/endpoints/"+endpointID(t)+"/requests?since=not-a-timestamp")
