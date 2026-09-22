@@ -1,10 +1,13 @@
 package logging
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"log/slog"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -116,12 +119,89 @@ func TestReplaceAttr(t *testing.T) {
 				"cookie", "session=1",
 				"Token", "t",
 				"password", "hunter2",
+				"bot_token", "123:abc",
 				"url.path", "/to/purple-frog-0691")
 		})
 
-		for _, key := range []string{"Authorization", "cookie", "Token", "password"} {
+		for _, key := range []string{"Authorization", "cookie", "Token", "password", "bot_token"} {
 			assert.Equalf(t, "[redacted]", record[key], "%s must never reach the logs", key)
 		}
 		assert.Equal(t, "/to/purple-frog-0691", record["url.path"], "ordinary fields must survive")
+	})
+}
+
+// initRecords runs Init with stdout pointed at a pipe, runs log, and returns
+// every record written. The process-wide logger and stdout are restored before
+// the next test.
+func initRecords(t *testing.T, env string, log func()) []map[string]any {
+	t.Helper()
+	previousLogger, previousStdout := slog.Default(), os.Stdout
+	t.Cleanup(func() { slog.SetDefault(previousLogger) })
+
+	reader, writer, err := os.Pipe()
+	require.NoError(t, err)
+	os.Stdout = writer
+	Init("httphq-test", env)
+	os.Stdout = previousStdout
+	log()
+	require.NoError(t, writer.Close())
+
+	return readRecords(t, reader)
+}
+
+// readRecords parses one JSON object per line until the reader is drained.
+func readRecords(t *testing.T, reader io.Reader) []map[string]any {
+	t.Helper()
+	var records []map[string]any
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		var record map[string]any
+		require.NoError(t, json.Unmarshal(scanner.Bytes(), &record), "every line is one JSON object")
+		records = append(records, record)
+	}
+	return records
+}
+
+func TestInit(t *testing.T) {
+	t.Run("writes JSON to stdout stamped with the service and environment", func(t *testing.T) {
+		records := initRecords(t, "production", func() { slog.Info("hello") })
+
+		require.Len(t, records, 1)
+		assert.Equal(t, "hello", records[0]["msg"])
+		assert.Equal(t, "info", records[0]["level"])
+		assert.Equal(t, "httphq-test", records[0]["service.name"])
+		assert.Equal(t, "production", records[0]["deployment.environment"])
+	})
+
+	t.Run("drops debug in production and keeps it elsewhere", func(t *testing.T) {
+		production := initRecords(t, "production", func() { slog.Debug("detail") })
+		development := initRecords(t, "development", func() { slog.Debug("detail") })
+
+		assert.Empty(t, production)
+		assert.Len(t, development, 1)
+	})
+
+	t.Run("lets LOG_LEVEL raise the threshold", func(t *testing.T) {
+		t.Setenv("LOG_LEVEL", "warn")
+
+		records := initRecords(t, "production", func() {
+			slog.Info("routine")
+			slog.Warn("attention")
+		})
+
+		require.Len(t, records, 1)
+		assert.Equal(t, "attention", records[0]["msg"])
+	})
+
+	t.Run("redacts a sensitive key and stamps the request ID", func(t *testing.T) {
+		ctx := WithRequestID(context.Background(), "req-1234")
+
+		records := initRecords(t, "production", func() {
+			slog.InfoContext(ctx, "call", "bot_token", "123:abc")
+		})
+
+		require.Len(t, records, 1)
+		assert.Equal(t, "[redacted]", records[0]["bot_token"])
+		assert.Equal(t, "req-1234", records[0]["request_id"])
 	})
 }
