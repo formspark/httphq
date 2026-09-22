@@ -55,6 +55,16 @@ func Connect(dsn string) (*gorm.DB, error) {
 	return DB, nil
 }
 
+// Close closes the connection pool behind DB. The last connection to close
+// checkpoints SQLite's write-ahead log into the database file.
+func Close() error {
+	sqlDB, err := DB.DB()
+	if err != nil {
+		return fmt.Errorf("reach the connection pool: %w", err)
+	}
+	return sqlDB.Close()
+}
+
 func CountRequests(ctx context.Context) int64 {
 	var count int64
 	result := DB.Model(&Request{}).Count(&count)

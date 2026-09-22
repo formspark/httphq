@@ -2,11 +2,15 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/atrox/haikunatorgo/v2"
@@ -33,6 +37,11 @@ const (
 	// WAL lets the retention sweep delete while captures are written, and the
 	// busy timeout rides out the lock one takes rather than failing the other.
 	databaseDSN = "file:local.db?_journal_mode=WAL&_busy_timeout=5000&_synchronous=NORMAL"
+
+	// shutdownTimeout bounds the drain after SIGTERM. Kubernetes sends SIGKILL
+	// 30 seconds after SIGTERM; a request still open after this is cut, which
+	// leaves time to stop the sweep and close the store before the kill.
+	shutdownTimeout = 10 * time.Second
 
 	// Development runs effectively unlimited so a page under test is never
 	// throttled; production bounds one client's share of a shared instance.
@@ -175,6 +184,47 @@ func listenAddress() string {
 	return host + strconv.Itoa(port)
 }
 
+// run opens the store, starts the retention sweep and serves the application on
+// listener until ctx is cancelled. It then drains the server, stops the sweep
+// and closes the store, in that order, so nothing is left writing to a closed
+// store.
+func run(ctx context.Context, listener net.Listener, dsn string, config applicationConfig) error {
+	if _, err := database.Connect(dsn); err != nil {
+		return err
+	}
+	scheduler, err := startRetentionSweep()
+	if err != nil {
+		return errors.Join(err, database.Close())
+	}
+	serveErr := serve(ctx, newApplication(config), listener)
+	// Stop returns a context that is done once a sweep already under way has
+	// finished, so the store is not closed underneath it.
+	<-scheduler.Stop().Done()
+	return errors.Join(serveErr, database.Close())
+}
+
+// serve answers requests until ctx is cancelled, then stops accepting
+// connections and waits up to shutdownTimeout for the requests in flight.
+//
+// The listener is closed after the shutdown as well. A signal that lands before
+// the server has taken the listener finds nothing to shut down, and the server
+// would then serve forever; closing it makes that late start fail at once.
+func serve(ctx context.Context, application *fiber.App, listener net.Listener) error {
+	served := make(chan error, 1)
+	go func() {
+		served <- application.Listener(listener, fiber.ListenConfig{DisableStartupMessage: true})
+	}()
+	select {
+	case err := <-served:
+		return err
+	case <-ctx.Done():
+	}
+	slog.Info("shutting down", "timeout", shutdownTimeout.String())
+	shutdownErr := application.ShutdownWithTimeout(shutdownTimeout)
+	_ = listener.Close()
+	return errors.Join(shutdownErr, <-served)
+}
+
 func main() {
 	logging.Init("httphq", applicationEnv())
 
@@ -182,24 +232,28 @@ func main() {
 	slog.Info("platform resolved",
 		"platform", os.Getenv("PLATFORM"), "ip_header", currentPlatform.ipHeader)
 
-	if _, err := database.Connect(databaseDSN); err != nil {
-		exit("database unavailable", err)
+	// tcp4 is the network Fiber listened on by default before the listener
+	// moved here.
+	address := listenAddress()
+	listener, err := net.Listen("tcp4", address)
+	if err != nil {
+		exit("cannot listen", err)
 	}
-	if _, err := startRetentionSweep(); err != nil {
-		exit("retention sweep unavailable", err)
-	}
+	slog.Info("server listening", "address", address)
 
-	application := newApplication(applicationConfig{
+	// Kubernetes sends SIGTERM before it kills a pod. Without the handler the
+	// process dies on the spot and takes every request in flight with it.
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	err = run(ctx, listener, databaseDSN, applicationConfig{
 		viewsDir:  "./src/views",
 		publicDir: "./public",
 		registry:  newSocketRegistry(),
 	})
-
-	address := listenAddress()
-	slog.Info("server listening", "address", address)
-	if err := application.Listen(address); err != nil {
+	stop()
+	if err != nil {
 		exit("server exited", err)
 	}
+	slog.Info("server stopped")
 }
 
 // exit logs why the process cannot go on and ends it.
