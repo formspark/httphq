@@ -109,6 +109,16 @@ func TestConnect(t *testing.T) {
 	})
 }
 
+func TestClose(t *testing.T) {
+	t.Run("closes the pool, so a later query fails", func(t *testing.T) {
+		freshDB(t)
+
+		require.NoError(t, database.Close())
+
+		assert.Error(t, database.DB.Exec("SELECT 1").Error)
+	})
+}
+
 // Every operation answers with a zero value rather than an error, because the
 // caller is a request handler that still has to respond. That makes a broken
 // store indistinguishable from an empty one at every call site, so the log line

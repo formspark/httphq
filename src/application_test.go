@@ -94,6 +94,55 @@ func TestStartRetentionSweep(t *testing.T) {
 
 		assert.Empty(t, storedUUIDs(t.Context(), endpointID))
 	})
+
+	// The window holds only if the sweep keeps running between restarts.
+	t.Run("schedules the sweep every five minutes", func(t *testing.T) {
+		scheduler, err := startRetentionSweep()
+		require.NoError(t, err)
+		t.Cleanup(func() { scheduler.Stop() })
+
+		entries := scheduler.Entries()
+		require.Len(t, entries, 1)
+		next := entries[0].Schedule.Next(time.Date(2026, 1, 1, 12, 1, 0, 0, time.UTC))
+		assert.Equal(t, time.Date(2026, 1, 1, 12, 5, 0, 0, time.UTC), next)
+	})
+}
+
+func TestApplicationEnv(t *testing.T) {
+	t.Run("is development when APPLICATION_ENV is unset", func(t *testing.T) {
+		t.Setenv("APPLICATION_ENV", "")
+
+		assert.Equal(t, "development", applicationEnv())
+	})
+
+	t.Run("is whatever APPLICATION_ENV names", func(t *testing.T) {
+		t.Setenv("APPLICATION_ENV", "production")
+
+		assert.Equal(t, "production", applicationEnv())
+	})
+}
+
+// isProduction is read once at startup, so the tests set it directly.
+func TestListenAddress(t *testing.T) {
+	t.Run("binds loopback only outside production", func(t *testing.T) {
+		setProduction(t, false)
+
+		assert.Equal(t, "localhost:8080", listenAddress())
+	})
+
+	t.Run("binds every interface in production", func(t *testing.T) {
+		setProduction(t, true)
+
+		assert.Equal(t, ":8080", listenAddress())
+	})
+}
+
+// setProduction sets isProduction for one test and restores it afterwards.
+func setProduction(t *testing.T, production bool) {
+	t.Helper()
+	previous := isProduction
+	isProduction = production
+	t.Cleanup(func() { isProduction = previous })
 }
 
 // startRun runs the whole process on a loopback port against a store of its
