@@ -55,6 +55,40 @@ func TestNewApplication(t *testing.T) {
 	t.Run("an unmatched path is a 404", func(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, get(t, "/no/such/page").StatusCode)
 	})
+
+	// Uptime checks and link checkers ask with HEAD. Each read route answers it
+	// with the status and type GET would, and no body.
+	t.Run("answers HEAD on every read route as GET would, without a body", func(t *testing.T) {
+		id := endpointID(t)
+		paths := []string{
+			"/",
+			"/contact",
+			"/" + id,
+			"/robots.txt",
+			"/api/health",
+			"/api/endpoints/" + id + "/requests",
+		}
+		for _, path := range paths {
+			t.Run(path, func(t *testing.T) {
+				want := get(t, path)
+				head := do(t, testRequest{method: http.MethodHead, path: path})
+
+				assert.Equal(t, want.StatusCode, head.StatusCode)
+				assert.Equal(t, want.Header.Get("Content-Type"), head.Header.Get("Content-Type"))
+				assert.Empty(t, bodyOf(t, head))
+			})
+		}
+	})
+
+	t.Run("answers HEAD on an unmatched path with a 404", func(t *testing.T) {
+		head := do(t, testRequest{method: http.MethodHead, path: "/no/such/page"})
+		assert.Equal(t, http.StatusNotFound, head.StatusCode)
+	})
+
+	t.Run("answers a method no page route takes with a 404", func(t *testing.T) {
+		put := do(t, testRequest{method: http.MethodPut, path: "/"})
+		assert.Equal(t, http.StatusNotFound, put.StatusCode)
+	})
 }
 
 func TestSweepRetention(t *testing.T) {

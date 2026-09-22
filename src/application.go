@@ -51,6 +51,12 @@ const (
 	productionRequestsPerMinute  = 150
 )
 
+// readMethods are the methods a page, a static file or a read-only API route
+// answers. HEAD is registered beside GET rather than left to Fiber's automatic
+// HEAD routes: Fiber appends those when the server starts, behind the catch-all
+// 404 at the end of newApplication, so the catch-all would answer every HEAD.
+var readMethods = []string{fiber.MethodGet, fiber.MethodHead}
+
 // applicationConfig locates the files the app serves and the socket registry it
 // fans captures out to. The paths are arguments rather than constants so the
 // process can be driven from a directory other than the repository root.
@@ -116,19 +122,19 @@ func newApplication(config applicationConfig) *fiber.App {
 	application.Use(compress.New())
 	application.Use(securityHeaders(contentSecurityPolicy(!isProduction)))
 
-	application.Get("/*", static.New(config.publicDir))
+	application.Add(readMethods, "/*", static.New(config.publicDir))
 
 	registerWebSockets(application, config.registry)
 
-	application.Get("/api/health", handleHealth)
-	application.Get("/api/debug", handleDebug(config.registry))
-	application.Get("/api/endpoints/:endpoint/requests", requireValidEndpoint, handleListRequests)
+	application.Add(readMethods, "/api/health", handleHealth)
+	application.Add(readMethods, "/api/debug", handleDebug(config.registry))
+	application.Add(readMethods, "/api/endpoints/:endpoint/requests", requireValidEndpoint, handleListRequests)
 	application.Delete("/api/endpoints/:endpoint/requests", requireValidEndpoint, handleDeleteRequests)
 	application.Delete("/api/endpoints/:endpoint/requests/:request", requireValidEndpoint, handleDeleteRequest)
 
-	application.Get("/", renderIndex(assets))
-	application.Get("/contact", renderContact(assets))
-	application.Get("/:endpoint", requireValidEndpoint, renderEndpoint(assets))
+	application.Add(readMethods, "/", renderIndex(assets))
+	application.Add(readMethods, "/contact", renderContact(assets))
+	application.Add(readMethods, "/:endpoint", requireValidEndpoint, renderEndpoint(assets))
 	application.Post("/endpoint", createEndpoint(haikunator.New()))
 
 	// Prefix-matched so everything after the endpoint ID is captured as the
