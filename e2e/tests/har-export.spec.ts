@@ -73,7 +73,7 @@ test.describe("HAR export", () => {
         capture({ headers: { "X-Trace": ["first", "second"] } }),
       ]);
 
-      expect(har.entries[0].request.headers).toEqual([
+      expect(har.entries[0]?.request.headers).toEqual([
         { name: "X-Trace", value: "first" },
         { name: "X-Trace", value: "second" },
       ]);
@@ -84,7 +84,7 @@ test.describe("HAR export", () => {
         capture({ headers: { "X-Trace": "only" } }),
       ]);
 
-      expect(har.entries[0].request.headers).toEqual([
+      expect(har.entries[0]?.request.headers).toEqual([
         { name: "X-Trace", value: "only" },
       ]);
     });
@@ -94,7 +94,7 @@ test.describe("HAR export", () => {
     }) => {
       const har = await buildHar(page, [capture({ headers: {} })]);
 
-      expect(har.entries[0].request.headers).toEqual([]);
+      expect(har.entries[0]?.request.headers).toEqual([]);
     });
   });
 
@@ -106,7 +106,7 @@ test.describe("HAR export", () => {
         capture({ headers: { Host: "hooks.example.com" } }),
       ]);
 
-      expect(har.entries[0].request.url).toBe(
+      expect(har.entries[0]?.request.url).toBe(
         "http://hooks.example.com/to/e2e-fixture",
       );
     });
@@ -116,7 +116,7 @@ test.describe("HAR export", () => {
     }) => {
       const har = await buildHar(page, [capture()]);
 
-      expect(har.entries[0].request.url).toBe(
+      expect(har.entries[0]?.request.url).toBe(
         `${new URL(page.url()).origin}/to/e2e-fixture`,
       );
     });
@@ -129,7 +129,7 @@ test.describe("HAR export", () => {
         }),
       ]);
 
-      expect(har.entries[0].request.url).toBe(
+      expect(har.entries[0]?.request.url).toBe(
         "http://hooks.example.com/to/e2e-fixture?a=1&b=2",
       );
     });
@@ -139,7 +139,7 @@ test.describe("HAR export", () => {
     test("each parameter becomes a name and a value", async ({ page }) => {
       const har = await buildHar(page, [capture({ queryString: "a=1&b=2" })]);
 
-      expect(har.entries[0].request.queryString).toEqual([
+      expect(har.entries[0]?.request.queryString).toEqual([
         { name: "a", value: "1" },
         { name: "b", value: "2" },
       ]);
@@ -150,7 +150,7 @@ test.describe("HAR export", () => {
     test("a parameter with no value keeps its name", async ({ page }) => {
       const har = await buildHar(page, [capture({ queryString: "debug" })]);
 
-      expect(har.entries[0].request.queryString).toEqual([
+      expect(har.entries[0]?.request.queryString).toEqual([
         { name: "debug", value: "" },
       ]);
     });
@@ -160,7 +160,7 @@ test.describe("HAR export", () => {
         capture({ queryString: "tag=a&tag=b" }),
       ]);
 
-      expect(har.entries[0].request.queryString).toEqual([
+      expect(har.entries[0]?.request.queryString).toEqual([
         { name: "tag", value: "a" },
         { name: "tag", value: "b" },
       ]);
@@ -169,7 +169,7 @@ test.describe("HAR export", () => {
     test("no query string exports an empty list", async ({ page }) => {
       const har = await buildHar(page, [capture()]);
 
-      expect(har.entries[0].request.queryString).toEqual([]);
+      expect(har.entries[0]?.request.queryString).toEqual([]);
     });
   });
 
@@ -184,7 +184,7 @@ test.describe("HAR export", () => {
         }),
       ]);
 
-      expect(har.entries[0].request.postData).toEqual({
+      expect(har.entries[0]?.request.postData).toEqual({
         mimeType: "application/json",
         text: '{"hello":"world"}',
       });
@@ -197,8 +197,8 @@ test.describe("HAR export", () => {
       const body = "naïve 🙂";
       const har = await buildHar(page, [capture({ body })]);
 
-      expect(har.entries[0].request.bodySize).toBe(11);
-      expect(har.entries[0].request.bodySize).not.toBe(body.length);
+      expect(har.entries[0]?.request.bodySize).toBe(11);
+      expect(har.entries[0]?.request.bodySize).not.toBe(body.length);
     });
 
     // HAR leaves postData absent rather than empty when there was no payload,
@@ -206,8 +206,8 @@ test.describe("HAR export", () => {
     test("a bodyless capture omits postData entirely", async ({ page }) => {
       const har = await buildHar(page, [capture({ method: "GET" })]);
 
-      expect(har.entries[0].request).not.toHaveProperty("postData");
-      expect(har.entries[0].request.bodySize).toBe(0);
+      expect(har.entries[0]?.request).not.toHaveProperty("postData");
+      expect(har.entries[0]?.request.bodySize).toBe(0);
     });
 
     // A body that arrived without one still has to export, or a client that
@@ -215,7 +215,7 @@ test.describe("HAR export", () => {
     test("a body with no media type exports an empty one", async ({ page }) => {
       const har = await buildHar(page, [capture({ body: "loose text" })]);
 
-      expect(har.entries[0].request.postData).toEqual({
+      expect(har.entries[0]?.request.postData).toEqual({
         mimeType: "",
         text: "loose text",
       });
@@ -226,8 +226,8 @@ test.describe("HAR export", () => {
     test("the stored timestamp and client IP are carried", async ({ page }) => {
       const har = await buildHar(page, [capture()]);
 
-      expect(har.entries[0].startedDateTime).toBe("2026-08-09T07:20:05.123Z");
-      expect(har.entries[0].clientIPAddress).toBe("203.0.113.7");
+      expect(har.entries[0]?.startedDateTime).toBe("2026-08-09T07:20:05.123Z");
+      expect(har.entries[0]?.clientIPAddress).toBe("203.0.113.7");
     });
 
     // httphq never observes the protocol, so every entry claims the same one
@@ -235,8 +235,8 @@ test.describe("HAR export", () => {
     test("every entry claims HTTP/1.1", async ({ page }) => {
       const har = await buildHar(page, [capture({ method: "PUT" })]);
 
-      expect(har.entries[0].request.httpVersion).toBe("HTTP/1.1");
-      expect(har.entries[0].request.method).toBe("PUT");
+      expect(har.entries[0]?.request.httpVersion).toBe("HTTP/1.1");
+      expect(har.entries[0]?.request.method).toBe("PUT");
     });
   });
 });

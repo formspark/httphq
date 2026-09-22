@@ -1,30 +1,188 @@
 # AGENTS.md
 
-Guidance for agents and contributors working in this repository.
+Guidance for agents and contributors working in this repository. README.md says
+what httphq is and how to configure it, docs/api.md is the JSON API,
+docs/scripts.md is every command, DESIGN.md is the visual system and PRODUCT.md
+is the product. This file is the constraints that are not obvious from the
+source.
+
+## `pnpm verify` is the definition of done
+
+It runs, in order: govulncheck, gofmt, golangci-lint and gocyclo over the Go
+code, the Go tests with the race detector and coverage, ESLint, Prettier, the
+lint-staged glob check, the prose and spelling checks, the type check, the
+stylesheet freshness check, the production build and the Playwright suite. A
+change that has not passed it is not finished. CI runs the same package.json
+scripts, split into jobs in `pipeline.yml`, and also builds the image.
+
+The spelling check runs typos through `uvx`, so it needs uv. The Playwright
+suite needs Chromium once (docs/scripts.md) and loads Alpine and the syntax
+highlighter from public CDNs, so a screen that never hydrates is a network
+failure before it is a code one: run it again before debugging it.
+
+## Comments say what the code does now
+
+A comment explains why, and names the constraint the next person has to
+respect: "excluded by default so new surfaces are safe". Write it so it still
+makes sense in a year.
+
+- No history: not what the code used to do, not the bug that prompted it. That
+  belongs in the commit message, where it is attached to the change.
+- No ticket or issue references.
+- A regression risk is worth stating as a rule rather than a story: "a header
+  set on the way in is discarded by a handler that resets the response".
+- No hyper-specific framing: describe the generic, reusable purpose rather than
+  the one-time scenario, especially in shared helpers and test fixtures.
+
+## Commits say what the change does
+
+- The subject is a sentence in the imperative that says what the change does:
+  "Refuse an oversized body instead of storing a bodyless capture", not
+  `fix: refuse oversized body`. No conventional-commit prefixes.
+- Pull requests are squash-merged, with the pull request number as a `(#N)`
+  suffix on the subject.
+- The body carries facts: why, what was measured, what was checked and how,
+  and what was deliberately left out. Not a summary of the diff, which the
+  reader already has. The comment rules above govern commit bodies and pull
+  request descriptions too.
+- No assistant attribution of any kind: no co-author trailer, no session link,
+  no generated-with footer.
+- One concern per commit. The pre-commit hook formats and lints what is
+  staged, Go files included; do not skip it with `--no-verify`.
+
+## Writing
+
+No em dashes in prose: docs, comments, UI copy and commit messages. Rewrite the
+clause instead. A paired aside becomes commas or parentheses; a dash that
+introduces an explanation becomes a colon or a new sentence. `check:prose`
+fails on one in any tracked file.
+
+User-facing copy names the format or the action, never a consumer such as
+agents or LLMs: `Copy request`, `Copy shown (N)`. The constraint is on product
+copy only; commit messages and docs may mention agents freely.
+
+## Configuration
+
+The runtime variables are in README.md under Configuration, in a
+`Variable | Required | Default | Secret | Notes` table, because the people
+self-hosting httphq read that file. None is required and none is a secret.
+
+`APP_VERSION` is a build argument rather than a runtime variable: the build
+script and the Dockerfile link it in, release.yml passes the image tag, and
+`/api/health` reports it.
+
+The listen port is not configurable. `port` in `src/application.go` is a
+constant, so anything that needs two instances, or to run beside something
+already holding 8080, changes the constant.
+
+## Tests
+
+- Go: a test file covers one subject, is named after it, and names each suite
+  after what it exercises, so a handler's tests are found beside the handler.
+  One `TestSubject` per function or type, with sentence-style `t.Run` names,
+  `t.Helper` in helpers, and `-race`. `harness_test.go` is not a subject: it
+  holds `TestMain` and the fixtures shared by every test that drives a real
+  request.
+- Playwright: see "The Playwright suite covers screens and page scripts
+  separately" below.
+- Fix every instance of a defect, not only the one that was reported.
+- A regression test has to be seen failing without the fix before it is
+  trusted. Take the fix out, watch the test go red, put it back.
+
+## Lint is clean, types are strict, and the caps only go down
+
+- golangci-lint runs its default set, which is `go vet` plus the checks vet
+  does not cover: unchecked error returns, dead assignments, unused code, and
+  staticcheck's correctness rules. `errcheck` is relaxed inside `_test.go`: a
+  test that ignores an error is usually asserting the value beside it.
+- ESLint runs with `--max-warnings 0`. The Playwright suite is linted with type
+  information: no type assertions other than `as const`, no non-null
+  assertions, no `any`, and no `@ts-` comments of any kind. A value that
+  arrives untyped, a JSON body or the clipboard, is parsed with a zod schema in
+  `tests/support/harness.ts`.
+- No `eslint-disable` comments: inline config is switched off, so one has no
+  effect and is reported. A rule that cannot hold for a file gets an entry in
+  `eslint.config.mjs`, scoped to that file and that rule, with the reason
+  beside it.
+- Both tsconfigs add `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`,
+  `noImplicitOverride` and `noFallthroughCasesInSwitch` to `strict`.
+- `gocyclo -over 4` for Go, and `complexity`, `max-params` and `max-depth` in
+  ESLint, are capped at the worst function that exists. They are ratchets: when
+  a new function trips one, split the function rather than raising the cap, and
+  lower a cap when its worst offender is split.
+- `check:lint-staged` fails when the tree holds a file extension Prettier can
+  format that no lint-staged pattern matches. Prettier decides what counts, so
+  the two cannot drift, and a gap would otherwise be silent: CI formats the
+  file, the hook never touches it.
+
+## Reading CI
+
+- `pipeline.yml` is the single definition of what verified means, and both
+  `test.yml` (pull requests and a nightly run) and `release.yml` (pushes to
+  master) call it. A check cannot exist on pull requests yet be skipped on the
+  push that publishes the image. Adding a check means adding a script to
+  package.json, to `verify`, and to `pipeline.yml`, never to one of the two
+  callers.
+- The nightly run exists because the page scripts pull Alpine and highlight.js
+  from public CDNs at runtime, so the suite can fail on a day nobody pushed.
+- Read the checks table, not a watcher's exit code:
+  `gh pr checks <n> --watch --fail-fast` can exit 0 with a failed run in the
+  table.
+- `gh pr merge --auto` does not wait here. Auto-merge is disabled on this
+  repository, so the flag is accepted and the merge happens immediately.
+- A cancelled job is the cap, not a regression. Check with
+  `gh api repos/{owner}/{repo}/actions/jobs/<id> --jq '.steps[]'` before treating
+  a timeout as a code problem.
+- Coverage is printed to the job summary, not gated. A threshold set before the
+  number is known is a guess.
+
+## Traps
+
+- The pins move together: `nodejs` and `pnpm` in `.tool-versions`,
+  `packageManager` and `engines` in package.json, the `go` line in go.mod (the
+  Dockerfile's `GOTOOLCHAIN=auto` fetches it), and the Go tool versions in the
+  package.json scripts. CI reads `.tool-versions` and go.mod.
+- Every Go command is scoped to `./src`: `./...` also walks `node_modules`, which
+  ships a stray Go package once the npm tooling is installed.
+- `public/app.css` is generated and committed, so the binary and the container
+  need no Node. A template or script that gains a class needs `pnpm run css`
+  and the rebuilt sheet in the same commit.
+- On SIGTERM the server stops accepting connections, waits up to
+  `shutdownTimeout` for requests in flight, then stops the retention sweep and
+  closes the store. A new background task that writes to the store has to stop
+  before the store closes; see `run` in `src/application.go`.
+
+## Shared files
+
+These files are kept identical, or in step, with the same files in the
+repositories that deploy to the lab (lab, 8ctave, geobear, postcraft,
+metric-tone and bjornkrols.com). Change them in all of them together.
+
+- `scripts/check-prose.mjs`, `scripts/check-lint-staged.mjs` and
+  `.husky/install.mjs`: identical in every one of them.
+- `src/logging`: in step with `apps/hooks/logging.go` in the lab repository,
+  which carries the same handler, redaction list and level rules.
 
 ## Code layout
 
-`src` is a `main` package split by concern, one file per subject with its
-tests beside it: `application.go` (wiring and entry point), `platform.go`
-(client IP and header stripping), `endpoint.go` (endpoint IDs and URLs),
-`capture.go` (the capture handler), `api.go` (the JSON API), `pages.go` (page
-rendering), `agent.go` (the prompt an endpoint page hands to a coding agent),
-`assets.go` (content-hashed asset URLs), `security.go` (CSP and security
-headers), `sockets.go` (the live feed), `requestlog.go` (correlation IDs and
-the access log).
+`src` is a `main` package split by concern, one file per subject with its tests
+beside it: `application.go` (wiring, the process lifecycle and the entry point),
+`platform.go` (client IP and header stripping), `endpoint.go` (endpoint IDs and
+URLs), `capture.go` (the capture handler), `api.go` (the JSON API and the health
+check), `pages.go` (page rendering), `agent.go` (the prompt an endpoint page
+hands to a coding agent), `assets.go` (content-hashed asset URLs), `security.go`
+(CSP and security headers), `sockets.go` (the live feed), `requestlog.go`
+(correlation IDs and the access log).
 
 Two subpackages sit beneath it: `database` (the SQLite connection) and
 `logging` (the slog handler and its sensitive-key redaction). `styles` and
 `views` hold CSS and HTML templates rather than Go.
 
-A test file covers one subject, is named after it, and names each suite after
-what it exercises, so a handler's tests are found beside the handler. The one
-exception is `harness_test.go`, which is not a subject: it holds `TestMain` and
-the fixtures shared by every test that drives a real request.
-
 `newApplication` builds the entire routing surface from arguments, so tests
 drive real requests through it without a listening socket. Anything that pulls
-configuration out of the environment belongs in `main`, not in a handler.
+configuration out of the environment belongs in `main`, not in a handler. `run`
+is everything `main` does after reading the environment and binding the port,
+so `TestRun` covers the lifecycle on a loopback port.
 
 The live feed is the exception. A WebSocket upgrade needs a real connection
 underneath it, so `sockets_test.go` starts an application of its own on a
@@ -45,92 +203,19 @@ the body limit the server enforces around the handler rather than inside it.
 
 A spec's own fixtures sit at the top of that spec, as the locator and multipart
 helpers do. Fixtures used by more than one spec live in
-`tests/support/harness.ts`, which is also the one place a type is asserted
-rather than proven, at the `JSON.parse` and `response.json()` boundaries. The
-helpers the page scripts publish on `window` are declared once, in
-`types/page-scripts.d.ts`, and the suite reads that declaration rather than
-keeping its own.
+`tests/support/harness.ts`, along with the zod schemas that parse what the
+suite reads at the `JSON.parse` and `response.json()` boundaries. The HAR
+schemas are strict, because the export is what those tests are about; the
+listing schema drops keys it does not know, so a field the API gains does not
+fail an unrelated test. The helpers the page scripts publish on `window` are
+declared once, in `types/page-scripts.d.ts`, and the suite reads that
+declaration rather than keeping its own.
 
 Screens are reached through `getByTestId`. `testIdAttribute` in
 `playwright.config.ts` points it at the `data-test` attribute the templates
 carry, so a test names a hook and never spells an attribute selector. An element
 a test reaches for gets a `data-test`; anything a reader can identify by its
 role or its text is reached that way instead.
-
-## Comments
-
-Comments describe what the code does now and warn about non-obvious constraints
-or regressions. They are not a changelog, bug tracker, or ticket index. Write
-them so they still make sense in a year.
-
-- No ticket or PR references.
-- No bug war stories: don't narrate a specific bug and how it was fixed ("this
-  fixes the flicker when..."). Once fixed, that history is noise.
-- No hyper-specific framing: don't tie comments to one-time scenarios; describe
-  the generic, reusable purpose instead.
-- Explain intent and non-obvious behaviour: why this branch exists, what
-  invariant it protects.
-- Flag regression risks the next dev must respect (e.g. "excluded by default so
-  new surfaces are safe").
-- Keep comments generic and reusable, especially in shared helpers and test
-  fixtures.
-
-## User-facing copy names the format, not the consumer
-
-Button labels, tooltips and empty-state copy name the format or the action
-(`Copy request`, `Copy shown (N)`), never a consumer such as agents or LLMs. The
-constraint is on product copy only; commit messages and docs may mention agents
-freely.
-
-## Commits are squashed, and the subject carries the pull request number
-
-Squash-merge, with the pull request number as a `(#N)` suffix on the subject.
-Subjects are sentences that say what the change does, not conventional-commit
-prefixes: "Refuse an oversized body instead of storing a bodyless capture", not
-`fix: refuse oversized body`. The comment rules above govern commit bodies and
-pull request descriptions too, so a paragraph carries a fact rather than a
-summary of the diff.
-
-No assistant attribution of any kind: no co-author trailer, no session link, no
-generated-with footer.
-
-## Every check runs on both paths
-
-`pipeline.yml` is the single definition of what verified means, and both
-`test.yml` and `release.yml` call it. A check cannot exist on pull requests yet
-be skipped on the push that publishes the image. Adding a check means adding it
-to `pipeline.yml`, never to one of the two callers.
-
-The suite that gates a release is therefore the full one: `gofmt`,
-`golangci-lint`,
-`gocyclo`, the Go tests with coverage, ESLint, Prettier, the Playwright suite,
-the stylesheet freshness check, and the production build with the flags the
-image uses.
-
-Coverage is printed, not gated. A threshold set before the number is known is a
-guess, so the figure goes to the job summary and a ceiling can be set later at
-what the suite actually reaches.
-
-## Lint-staged globs are checked against Prettier
-
-`scripts/check-lint-staged.mjs` fails when the tree contains a file extension
-Prettier can format that no lint-staged pattern matches. Prettier decides what
-counts rather than a list kept anywhere, so the two cannot drift.
-
-The gap it exists for is silent: CI lints and formats the file, the pre-commit
-hook never touches it. It has already been found by hand twice, months apart, in
-two different repositories.
-
-## Reading CI
-
-- Read the checks table, not a watcher's exit code.
-  `gh pr checks <n> --watch --fail-fast` has exited 0 with a failed run sitting
-  in the table.
-- `gh pr merge --auto` does not wait here. Auto-merge is disabled on this
-  repository, so the flag is accepted and the merge happens immediately.
-- A cancelled job is the cap, not a regression. Check with
-  `gh api repos/{owner}/{repo}/actions/jobs/<id> --jq '.steps[]'` before treating
-  a timeout as a code problem.
 
 ## Client IP is a trust decision
 
@@ -140,22 +225,6 @@ one a client forged. Inbound traffic must not be able to reach the process
 bypassing that platform, or a client can spoof its IP and evade rate limiting.
 Leaving it unset behind a proxy is the opposite failure: every request looks
 like it came from the proxy and rate limiting becomes global.
-
-## Go linting
-
-`golangci-lint` at its default set, which is `go vet` plus the checks vet does
-not cover: unchecked error returns, dead assignments, unused code, and
-staticcheck's correctness rules. It replaces the bare `go vet` step.
-
-Pinned in the workflow for the same reason `gocyclo` is: a later release must
-not change the verdict on a tree that did not change.
-
-`errcheck` is relaxed inside `_test.go`. A test that ignores an error is usually
-asserting the value beside it, and a `t.Fatal` on every teardown call reads worse
-than it protects.
-
-The complexity ceiling stays separate. `gocyclo -over 4` is a ratchet rather
-than a correctness check, and it is documented alongside the ESLint one.
 
 ## Database standards
 
@@ -188,9 +257,3 @@ echoed on the response, and stamped onto every line emitted while handling it.
 Headers and bodies are never logged and paths are logged without their query
 string; a denylist masks sensitive keys as a backstop. Probe traffic to
 `/api/health` logs at debug so it stays out of production logs.
-
-## The listen port is a constant
-
-`port` in `src/application.go` is not configurable. Anything that needs to run
-two instances, or to run alongside something already holding 8080, has to
-change the constant.

@@ -60,6 +60,8 @@ func TestSecurityHeaders(t *testing.T) {
 				assert.Equal(t, "nosniff", response.Header.Get("X-Content-Type-Options"))
 				assert.Equal(t, "no-referrer", response.Header.Get("Referrer-Policy"))
 				assert.Equal(t, "DENY", response.Header.Get("X-Frame-Options"))
+				assert.Equal(t, "max-age=31536000; includeSubDomains",
+					response.Header.Get("Strict-Transport-Security"))
 				assert.Contains(t, response.Header.Get(fiber.HeaderContentSecurityPolicy), "frame-ancestors 'none'")
 			})
 		}

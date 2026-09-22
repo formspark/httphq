@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -19,7 +20,8 @@ import (
 // what another one left behind.
 func freshDB(t *testing.T) {
 	t.Helper()
-	database.Connect(":memory:")
+	_, err := database.Connect(":memory:")
+	require.NoError(t, err)
 }
 
 // captureLogs points the process logger at a buffer for one test. Every
@@ -85,6 +87,35 @@ func TestConnect(t *testing.T) {
 		var tables []string
 		database.DB.Raw(`SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name`).Scan(&tables)
 		assert.Equal(t, []string{"requests"}, tables)
+	})
+
+	t.Run("publishes the store it opened and returns it", func(t *testing.T) {
+		db, err := database.Connect("file:" + filepath.Join(t.TempDir(), "store.db"))
+
+		require.NoError(t, err)
+		assert.Same(t, db, database.DB)
+	})
+
+	// The caller decides what an unusable store means for the process, so the
+	// package reports the failure and leaves the store it had in place.
+	t.Run("returns an error and keeps the previous store when the file cannot be opened", func(t *testing.T) {
+		freshDB(t)
+		previous := database.DB
+
+		_, err := database.Connect("file:" + filepath.Join(t.TempDir(), "missing", "store.db"))
+
+		require.Error(t, err)
+		assert.Same(t, previous, database.DB)
+	})
+}
+
+func TestClose(t *testing.T) {
+	t.Run("closes the pool, so a later query fails", func(t *testing.T) {
+		freshDB(t)
+
+		require.NoError(t, database.Close())
+
+		assert.Error(t, database.DB.Exec("SELECT 1").Error)
 	})
 }
 

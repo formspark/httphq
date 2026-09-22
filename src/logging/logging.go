@@ -61,6 +61,7 @@ var sensitiveKeys = map[string]struct{}{
 	"password":      {},
 	"token":         {},
 	"secret":        {},
+	"bot_token":     {},
 }
 
 func replaceAttr(groups []string, a slog.Attr) slog.Attr {

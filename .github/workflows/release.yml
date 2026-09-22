@@ -17,8 +17,7 @@ permissions:
   contents: read
 
 jobs:
-  # The same workflow pull requests run. Before this, release ran only `go vet`
-  # and a build, so a red test suite still published an image.
+  # The same workflow pull requests run, so a red suite cannot publish an image.
   verify:
     uses: ./.github/workflows/pipeline.yml
 
@@ -61,6 +60,8 @@ jobs:
           context: .
           platforms: linux/amd64
           push: true
+          build-args: |
+            APP_VERSION=${{ steps.meta.outputs.tag }}
           tags: |
             ${{ steps.meta.outputs.image }}
             ${{ steps.meta.outputs.image_latest }}

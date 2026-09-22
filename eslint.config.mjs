@@ -1,6 +1,7 @@
-// Lint configuration for the two hand-written JavaScript surfaces: the page
+// Lint configuration for the hand-written JavaScript and TypeScript: the page
 // scripts in public/, which the browser loads as plain scripts with no build
-// step, and the Playwright suite in e2e/, which is type-checked TypeScript.
+// step, the Playwright suite in e2e/, which is type-checked TypeScript, and the
+// Node scripts that run the checks and the build.
 //
 // The Go application is linted by golangci-lint; nothing here touches it.
 
@@ -75,19 +76,52 @@ export default tseslint.config(
         tsconfigRootDir: import.meta.dirname + "/e2e",
       },
     },
+    rules: {
+      // No assertions: a value that arrives untyped, a JSON body or the
+      // clipboard, is parsed with a schema in tests/support/harness.ts, never
+      // declared. `as const` is still allowed, since it narrows only a literal
+      // the code wrote itself.
+      "@typescript-eslint/consistent-type-assertions": [
+        "error",
+        { assertionStyle: "never" },
+      ],
+      "@typescript-eslint/no-non-null-assertion": "error",
+      "@typescript-eslint/no-explicit-any": "error",
+      // Every form of switching the compiler off, not only the default ones.
+      "@typescript-eslint/ban-ts-comment": [
+        "error",
+        {
+          "ts-expect-error": true,
+          "ts-ignore": true,
+          "ts-nocheck": true,
+          "ts-check": false,
+        },
+      ],
+    },
   },
 
-  // This file is the only Node-side script in the repository.
+  // The Node-side scripts: this file, the checks and the social card under
+  // scripts/, and the husky installer.
   {
-    files: ["eslint.config.mjs"],
+    files: ["eslint.config.mjs", "scripts/**/*.mjs", ".husky/*.mjs"],
+    extends: [js.configs.recommended],
     languageOptions: { globals: globals.node },
   },
 
-  // A disable comment that no longer suppresses anything is a claim about the
-  // code that has stopped being true.
+  // The social card hands a function to page.evaluate, which runs it in the
+  // browser, so that script reads browser globals as well as Node's.
+  {
+    files: ["scripts/social-card.mjs"],
+    languageOptions: { globals: globals.browser },
+  },
+
+  // No rule is switched off from inside the code. A comment that disables one
+  // is ignored and reported, so an exception has to be made here, in this
+  // file, where it is listed with its reason and can be seen.
   {
     linterOptions: {
-      reportUnusedDisableDirectives: "error",
+      noInlineConfig: true,
+      reportUnusedInlineConfigs: "error",
     },
   },
 );

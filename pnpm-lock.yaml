@@ -50,6 +50,9 @@ importers:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
 
 packages:
 
@@ -802,6 +805,9 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
+  zod@4.6.5:
+    resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
+
 snapshots:
 
   '@eslint-community/eslint-utils@4.10.1(eslint@10.9.1(jiti@2.7.0))':
@@ -1457,3 +1463,5 @@ snapshots:
     optional: true
 
   yocto-queue@0.1.0: {}
+
+  zod@4.6.5: {}

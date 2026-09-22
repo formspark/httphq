@@ -88,7 +88,7 @@ function headerParam(params, name) {
  */
 function multipartBoundary(contentType) {
   if (!contentType) return null;
-  const [mime, ...params] = contentType.split(";").map((s) => s.trim());
+  const [mime = "", ...params] = contentType.split(";").map((s) => s.trim());
   if (mime.toLowerCase() !== "multipart/form-data") return null;
   return headerParam(params, "boundary");
 }
@@ -118,7 +118,7 @@ function splitPart(segment) {
   const contentMatch = segment.slice(headerEnd).match(/^\r?\n\r?\n([\s\S]*)$/);
   return {
     headerLines: segment.slice(0, headerEnd).split(/\r?\n/),
-    content: contentMatch ? contentMatch[1] : "",
+    content: contentMatch?.[1] ?? "",
   };
 }
 

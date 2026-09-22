@@ -37,6 +37,12 @@ func contentSecurityPolicy(allowDesignTooling bool) string {
 		"frame-ancestors 'none'"
 }
 
+// strictTransportSecurity tells a browser that reached the app over HTTPS to
+// use HTTPS for a year, on this host and every host beneath it. A browser
+// ignores the header on a plain-HTTP response, so it changes nothing for a
+// deployment served over HTTP or for development on localhost.
+const strictTransportSecurity = "max-age=31536000; includeSubDomains"
+
 // securityHeaders stamps the fixed security headers onto every response.
 //
 // They are set on the way out, after the rest of the chain has run. A handler
@@ -51,6 +57,7 @@ func securityHeaders(policy string) fiber.Handler {
 		c.Set(fiber.HeaderXContentTypeOptions, "nosniff")
 		c.Set(fiber.HeaderReferrerPolicy, "no-referrer")
 		c.Set(fiber.HeaderXFrameOptions, "DENY")
+		c.Set(fiber.HeaderStrictTransportSecurity, strictTransportSecurity)
 		c.Set(fiber.HeaderContentSecurityPolicy, policy)
 		return err
 	}

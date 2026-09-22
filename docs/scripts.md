@@ -20,7 +20,36 @@ Upkeep dependencies:
 go mod tidy
 ```
 
-Build the stylesheet:
+## Every check is a script
+
+`pnpm verify` runs every check below in the order CI runs them, and CI calls the
+same scripts, so a tree that passes locally passes in the pipeline.
+
+| Script                   | What it does                                                                |
+| ------------------------ | --------------------------------------------------------------------------- |
+| `pnpm dev`               | `go run ./src`, bound to localhost                                          |
+| `pnpm build`             | The production binary in `bin/httphq`, with the image's flags               |
+| `pnpm test`              | The Go tests, with the race detector                                        |
+| `pnpm test:coverage`     | The same, writing `coverage.out` and printing the total                     |
+| `pnpm test:e2e`          | The Playwright suite, against `bin/httphq`                                  |
+| `pnpm go:vuln`           | govulncheck: advisories whose vulnerable symbol this code actually reaches  |
+| `pnpm go:format:check`   | Fails when `gofmt` would rewrite a file                                     |
+| `pnpm go:lint`           | golangci-lint, which runs `go vet` among its linters                        |
+| `pnpm go:cyclo`          | gocyclo's ceiling for the Go code                                           |
+| `pnpm lint`              | ESLint, with warnings failing like errors                                   |
+| `pnpm format:check`      | Fails when Prettier would rewrite a file                                    |
+| `pnpm check:lint-staged` | Fails when Prettier formats an extension the pre-commit hook does not cover |
+| `pnpm check:prose`       | Fails on an em dash in any tracked file (AGENTS.md, "Writing")              |
+| `pnpm check:typos`       | typos, through `uvx`, so it needs uv installed                              |
+| `pnpm typecheck`         | Type-checks three of the page scripts and the Playwright suite              |
+| `pnpm css:check`         | Rebuilds the stylesheet and fails if the committed one differs              |
+
+Every Go tool is pinned in its script, so a later release cannot change the
+verdict on a tree that did not change. Every Go command is scoped to `./src`:
+`./...` also walks `node_modules`, which ships a stray Go package once the npm
+tooling is installed.
+
+## The stylesheet
 
 ```bash
 pnpm run css
@@ -29,25 +58,10 @@ pnpm run css
 `public/app.css` is generated from `src/styles/app.css` and is committed, so the
 binary, the container, and `go run` never need Node. Rebuild it whenever a
 template or a script gains a class the sheet does not already carry, and commit
-the result; CI fails if the committed file differs from a fresh build. During
-design work, `pnpm run css:watch` regenerates on save.
+the result; `css:check` fails otherwise. During design work,
+`pnpm run css:watch` regenerates on save.
 
-Run project:
-
-```bash
-go run ./src
-```
-
-Lint and type-check the page scripts and the Playwright suite:
-
-```bash
-pnpm run lint
-pnpm run lint:fix
-pnpm run typecheck
-```
-
-The Playwright suite is linted with type information, so `e2e` needs its own
-dependencies installed.
+## Types and lint
 
 The type check covers the Playwright suite and three of the page scripts:
 `index.js`, `render-body.js` and `har.js`, checked as JavaScript against the
@@ -56,91 +70,64 @@ declarations, so a helper and the tests that call it cannot disagree about its
 signature. `endpoint.js` is left out, because its Alpine component reads
 `this.$el`, which only Alpine's own component typing can describe.
 
-Lint the Go application:
+The Playwright suite is linted with type information, so `e2e` needs its own
+dependencies installed.
+
+Both languages carry a complexity ceiling, set at the worst score the tree
+currently holds: `-over 4` for Go, and `complexity` at 4 in `eslint.config.mjs`
+for the page scripts, the Playwright suite and the Node scripts. The JavaScript
+side carries two more set the same way, `max-params` at 3 and `max-depth` at 2.
+To decide what to simplify next:
 
 ```bash
-go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.2 run ./src/...
-```
-
-golangci-lint runs `go vet` as one of its linters, so CI runs it in place of a
-bare `go vet`.
-
-Run unit tests:
-
-```bash
-go vet ./src/...
-go test ./src/...
-```
-
-Every Go package lives under `src`. `./...` also walks `node_modules`, which
-ships a stray Go package once the npm tooling is installed.
-
-Check cyclomatic complexity:
-
-```bash
-go run github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0 -over 4 ./src
 go run github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0 -top 10 ./src
 ```
 
-Both sides carry a ceiling, and both are set at the worst score the tree
-currently holds: `-over 4` for Go, and `complexity` at 4 in `eslint.config.mjs`
-for the page scripts and the Playwright suite. The JavaScript side carries two
-more ratchets set the same way, `max-params` at 3 and `max-depth` at 2. `-top`
-takes no position and is the one to run when deciding what to simplify next.
-No ceiling grandfathers anything, so lower them as hotspots go.
+## The Playwright suite
 
-Run E2E tests (Playwright auto-starts the binary; build it first):
+`pnpm test:e2e` starts `bin/httphq` itself, so build it first with
+`pnpm build`. The suite drives a real browser against a real binary, so it needs
+the port that binary listens on. `port` in `src/application.go` is a constant;
+to run beside something already holding 8080, change it and point the suite at
+the same place:
 
 ```bash
-CGO_ENABLED=0 go build -o ./bin/httphq ./src
-pnpm --filter httphq-e2e exec playwright test
+HTTPHQ_BASE_URL=http://localhost:8099 pnpm test:e2e
 ```
 
-The suite drives a real browser against a real binary, so it needs the port that
-binary listens on. `port` in `src/application.go` is a constant; to run beside
-something already holding 8080, change it and point the suite at the same place:
+## Coverage
 
 ```bash
-HTTPHQ_BASE_URL=http://localhost:8099 pnpm --filter httphq-e2e exec playwright test
-```
-
-View test coverage:
-
-```bash
-go test ./src/... -coverprofile=coverage.out
+pnpm test:coverage
 go tool cover -html=coverage.out
 ```
 
-CI runs the same profile and prints the total to the job summary. It is reported
-rather than gated: a threshold set before the number is known is a guess.
+CI prints the total to the job summary. It is reported rather than gated: a
+threshold set before the number is known is a guess.
 
-Format project:
+## Formatting
 
 ```bash
-go fmt ./src && pnpm run format
+go fmt ./src/... && pnpm run format
 ```
 
-Both sides are enforced. CI runs `gofmt -l ./src` and `prettier --check .` and
-fails on any file either one would rewrite, and a pre-commit hook formats what
-is staged so the gate is rarely what tells you. Prettier is a dependency of this
-package now rather than an ad hoc download, so everyone runs the same version.
+The pre-commit hook formats what is staged, Go files included, so the checks
+above are rarely what tells you. `prettier --write .` is not always a fixed
+point: a single pass can leave a file that `--check` still rejects, and a second
+pass converges it. Anything that scripts a format step should check afterwards
+rather than assume one pass settled it.
 
-Build and run binary:
+## Build and run
 
 ```bash
-CGO_ENABLED=0 go build -o ./bin/httphq ./src
+pnpm build
 ./bin/httphq
 ```
 
-Build and run container:
+`APP_VERSION` names the build at link time, and `/api/health` reports it; a
+build without it reports `dev`.
 
 ```bash
-docker build . -t httphq
+docker build . -t httphq --build-arg APP_VERSION=local
 docker run -dp 8080:8080 httphq
-docker container ls -s
 ```
-
-One thing worth knowing about the formatter: `prettier --write .` is not always a
-fixed point. A single pass has left files that `--check` still rejected, with a
-second pass converging them. Anything that scripts a format step should check
-afterwards rather than assume one pass settled it.

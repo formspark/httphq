@@ -16,8 +16,7 @@ const timeFormatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 
 window.formatTimeAgo = function (date) {
   let duration = (date.getTime() - Date.now()) / 1000;
-  for (let i = 0; i < TIME_DIVISIONS.length; i++) {
-    const division = TIME_DIVISIONS[i];
+  for (const division of TIME_DIVISIONS) {
     if (Math.abs(duration) < division.amount) {
       return timeFormatter.format(Math.round(duration), division.name);
     }

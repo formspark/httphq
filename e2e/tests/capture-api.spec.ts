@@ -48,7 +48,7 @@ test.describe("Capture API", () => {
       expect(response.status()).toBe(200);
 
       const listing = await listRequests(request, endpointId);
-      expect(listing.requests[0].body).toHaveLength(oneMebibyte.length);
+      expect(listing.requests[0]?.body).toHaveLength(oneMebibyte.length);
     });
   });
 });

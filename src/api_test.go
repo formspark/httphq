@@ -17,6 +17,10 @@ func TestHandleHealth(t *testing.T) {
 	t.Run("answers 200 so a platform probe can reach it", func(t *testing.T) {
 		assert.Equal(t, http.StatusOK, get(t, "/api/health").StatusCode)
 	})
+
+	t.Run("names the build it is running", func(t *testing.T) {
+		assert.JSONEq(t, `{"ok":true,"version":"dev"}`, bodyOf(t, get(t, "/api/health")))
+	})
 }
 
 func TestHandleDebug(t *testing.T) {
@@ -178,7 +182,7 @@ func TestHandleListRequestsCursor(t *testing.T) {
 		assert.Equal(t, int64(1), listRequests(t, id, "", first.Cursor).Total)
 	})
 
-	// Ignoring an unparseable cursor would hand back the whole window, which a
+	// Ignoring an unparsable cursor would hand back the whole window, which a
 	// caller cannot tell from a legitimate reply and would reprocess in full.
 	t.Run("a malformed since is rejected rather than ignored", func(t *testing.T) {
 		response := get(t, "/api/endpoints/"+endpointID(t)+"/requests?since=not-a-timestamp")
