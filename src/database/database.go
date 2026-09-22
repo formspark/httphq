@@ -2,8 +2,8 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
-	"os"
 	"time"
 
 	"github.com/glebarez/sqlite"
@@ -38,22 +38,21 @@ func logQueryError(ctx context.Context, result *gorm.DB, message string, attrs .
 }
 
 // Connect opens the store and brings the schema up to date, publishing it as DB
-// only once both have succeeded. Either failure ends the process: there is
-// nothing to serve without somewhere to write captures.
-func Connect(dsn string) *gorm.DB {
+// only once both have succeeded. There is nothing to serve without somewhere
+// to write captures, so the caller treats an error here as fatal; the package
+// returns it rather than ending the process, so the failure can be tested.
+func Connect(dsn string) (*gorm.DB, error) {
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	if err != nil {
-		slog.Error("database connection failed", "err", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("open the database: %w", err)
 	}
 	if err := db.AutoMigrate(&Request{}); err != nil {
-		slog.Error("database migration failed", "err", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("migrate the database: %w", err)
 	}
 
 	DB = db
 	slog.Info("database connected and migrated")
-	return DB
+	return DB, nil
 }
 
 func CountRequests(ctx context.Context) int64 {

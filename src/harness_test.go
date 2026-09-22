@@ -35,7 +35,9 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
-	database.Connect("file:" + filepath.Join(dir, "test.db"))
+	if _, err := database.Connect("file:" + filepath.Join(dir, "test.db")); err != nil {
+		panic(err)
+	}
 	code := m.Run()
 	_ = os.RemoveAll(dir)
 	os.Exit(code)

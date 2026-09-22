@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -28,6 +29,10 @@ const (
 	// page and on every endpoint page; changing it here changes a promise.
 	retentionWindow = 4 * time.Hour
 	retentionSweep  = "*/5 * * * *"
+
+	// WAL lets the retention sweep delete while captures are written, and the
+	// busy timeout rides out the lock one takes rather than failing the other.
+	databaseDSN = "file:local.db?_journal_mode=WAL&_busy_timeout=5000&_synchronous=NORMAL"
 
 	// Development runs effectively unlimited so a page under test is never
 	// throttled; production bounds one client's share of a shared instance.
@@ -133,39 +138,56 @@ func sweepRetention() {
 	database.DeleteOldRequests(context.Background(), time.Now().Add(-retentionWindow))
 }
 
-// startRetentionSweep sweeps once and then on a schedule. The returned
-// scheduler runs for the life of the process; there is no shutdown path that
-// stops it.
+// startRetentionSweep sweeps once and then on a schedule, until the returned
+// scheduler is stopped.
 //
 // The sweep at startup is what makes the window hold: cron's first tick is a
 // full interval away, so a process that restarts more often than the interval
 // would otherwise never sweep at all and captures would outlive the window for
 // as long as the database file does.
-func startRetentionSweep() *cron.Cron {
+func startRetentionSweep() (*cron.Cron, error) {
 	sweepRetention()
 	scheduler := cron.New()
 	if _, err := scheduler.AddFunc(retentionSweep, sweepRetention); err != nil {
-		slog.Error("cron job registration failed", "err", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("schedule the retention sweep: %w", err)
 	}
 	scheduler.Start()
-	return scheduler
+	return scheduler, nil
+}
+
+// applicationEnv is the environment the process runs in. Unset means a
+// developer's machine, never production.
+func applicationEnv() string {
+	if env := os.Getenv("APPLICATION_ENV"); env != "" {
+		return env
+	}
+	return "development"
+}
+
+// listenAddress is where the server binds. Development binds loopback only, so
+// a work-in-progress capture surface is not reachable from the network the
+// machine happens to be on.
+func listenAddress() string {
+	host := "localhost:"
+	if isProduction {
+		host = ":"
+	}
+	return host + strconv.Itoa(port)
 }
 
 func main() {
-	env := os.Getenv("APPLICATION_ENV")
-	if env == "" {
-		env = "development"
-	}
-	logging.Init("httphq", env)
+	logging.Init("httphq", applicationEnv())
 
 	currentPlatform = resolvePlatform(os.Getenv("PLATFORM"))
 	slog.Info("platform resolved",
 		"platform", os.Getenv("PLATFORM"), "ip_header", currentPlatform.ipHeader)
 
-	database.Connect("file:local.db?_journal_mode=WAL&_busy_timeout=5000&_synchronous=NORMAL")
-
-	startRetentionSweep()
+	if _, err := database.Connect(databaseDSN); err != nil {
+		exit("database unavailable", err)
+	}
+	if _, err := startRetentionSweep(); err != nil {
+		exit("retention sweep unavailable", err)
+	}
 
 	application := newApplication(applicationConfig{
 		viewsDir:  "./src/views",
@@ -173,16 +195,15 @@ func main() {
 		registry:  newSocketRegistry(),
 	})
 
-	// Development binds loopback only, so a work-in-progress capture surface is
-	// not reachable from the network the machine happens to be on.
-	host := "localhost:"
-	if isProduction {
-		host = ":"
-	}
-	address := host + strconv.Itoa(port)
+	address := listenAddress()
 	slog.Info("server listening", "address", address)
 	if err := application.Listen(address); err != nil {
-		slog.Error("server exited", "err", err)
-		os.Exit(1)
+		exit("server exited", err)
 	}
+}
+
+// exit logs why the process cannot go on and ends it.
+func exit(message string, err error) {
+	slog.Error(message, "err", err)
+	os.Exit(1)
 }

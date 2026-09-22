@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"httphq/src/database"
 )
@@ -83,7 +84,8 @@ func TestStartRetentionSweep(t *testing.T) {
 		storeCapture(t, endpointID, "sweep-boot-expired",
 			time.Now().Add(-retentionWindow).Add(-time.Minute))
 
-		scheduler := startRetentionSweep()
+		scheduler, err := startRetentionSweep()
+		require.NoError(t, err)
 		t.Cleanup(func() { scheduler.Stop() })
 
 		assert.Empty(t, storedUUIDs(t.Context(), endpointID))
