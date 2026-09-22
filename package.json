@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "go run ./src",
-    "build": "CGO_ENABLED=0 go build -trimpath -ldflags=\"-s -w\" -o ./bin/httphq ./src",
+    "build": "CGO_ENABLED=0 go build -trimpath -ldflags=\"-s -w -X main.version=${APP_VERSION:-dev}\" -o ./bin/httphq ./src",
     "test": "go test -race ./src/...",
     "test:coverage": "go test -race -coverprofile=coverage.out ./src/... && go tool cover -func=coverage.out | tail -1",
     "test:e2e": "pnpm --filter httphq-e2e test",

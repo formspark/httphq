@@ -17,6 +17,10 @@ func TestHandleHealth(t *testing.T) {
 	t.Run("answers 200 so a platform probe can reach it", func(t *testing.T) {
 		assert.Equal(t, http.StatusOK, get(t, "/api/health").StatusCode)
 	})
+
+	t.Run("names the build it is running", func(t *testing.T) {
+		assert.JSONEq(t, `{"ok":true,"version":"dev"}`, bodyOf(t, get(t, "/api/health")))
+	})
 }
 
 func TestHandleDebug(t *testing.T) {

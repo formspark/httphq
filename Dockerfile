@@ -13,7 +13,9 @@ RUN go mod download
 
 COPY ./src ./src
 
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o ./bin/httphq ./src
+# The image tag release.yml publishes, reported by /api/health.
+ARG APP_VERSION=dev
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=${APP_VERSION}" -o ./bin/httphq ./src
 
 FROM alpine:3.24
 

@@ -14,8 +14,16 @@ import (
 // return a payload no reader can use.
 const requestPageSize = 128
 
+// version is the build the binary came from, set at link time from APP_VERSION
+// (see the build script and the Dockerfile). A binary built without it reports
+// "dev".
+var version = "dev"
+
+// handleHealth is the platform's probe. It touches nothing, so it answers while
+// the store is busy, and it names the build so a deploy can be confirmed from
+// outside.
 func handleHealth(c fiber.Ctx) error {
-	return c.SendStatus(http.StatusOK)
+	return c.JSON(fiber.Map{"ok": true, "version": version})
 }
 
 // handleDebug reports coarse process state. It carries no captured data: the

@@ -15,6 +15,7 @@ deployment answers on its own host.
 | `GET`    | `/api/endpoints/:endpoint/requests`          | List captures                 |
 | `DELETE` | `/api/endpoints/:endpoint/requests`          | Delete an endpoint's captures |
 | `DELETE` | `/api/endpoints/:endpoint/requests/:request` | Delete one capture by UUID    |
+| `GET`    | `/api/health`                                | Liveness, and the build       |
 
 An endpoint ID is lowercase words and digits joined by hyphens, up to 64
 characters. Anything else is a 404.
