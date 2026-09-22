@@ -6,10 +6,12 @@ import {
   newestBodyText,
   pruneExpiredCaptures,
   readClipboard,
+  captureHeadersSchema,
+  harDocumentSchema,
   readClipboardJson,
   requestsUrl,
   send,
-  type HarDocument,
+  soleEntry,
 } from "./support/harness";
 
 /**
@@ -78,8 +80,14 @@ const submitSendPanel = async (
  * through the UUID rather than through position is what lets a test assert
  * about its own request while the stream carries others.
  */
-const capturedUuid = (response: APIResponse) =>
-  response.headers()["httphq-request-uuid"];
+/** The UUID the server stamped on a capture, failing the test without one. */
+const capturedUuid = (response: APIResponse): string => {
+  const uuid = response.headers()["httphq-request-uuid"];
+  if (uuid === undefined) {
+    throw new Error("The capture response carries no httphq-request-uuid");
+  }
+  return uuid;
+};
 
 const cardFor = (page: Page, uuid: string) => page.locator(`#request-${uuid}`);
 
@@ -753,7 +761,7 @@ test.describe("Endpoint screen", () => {
       });
       const card = newestCard(page);
       await card.getByTestId("copy-headers").click();
-      const parsed = await readClipboardJson<Record<string, string>>(page);
+      const parsed = await readClipboardJson(page, captureHeadersSchema);
       expect(parsed["X-Sample"]).toBe("value");
     });
 
@@ -781,11 +789,11 @@ test.describe("Endpoint screen", () => {
       await expect(card).toBeAttached();
 
       await card.getByTestId("copy-request-har").click();
-      const har = await readClipboardJson<HarDocument>(page);
+      const har = await readClipboardJson(page, harDocumentSchema);
 
       expect(har.creator.name).toBe("httphq");
       expect(har.entries).toHaveLength(1);
-      const entry = har.entries[0];
+      const entry = soleEntry(har);
       expect(entry.id).toBe(uuid);
       expect(entry.request.method).toBe("POST");
       expect(entry.request.url).toBe(`${endpointUrl}?a=1&b=2`);
@@ -814,7 +822,7 @@ test.describe("Endpoint screen", () => {
       await send(request, endpointUrl, { data: "x" });
       const card = newestCard(page);
       await card.getByTestId("copy-request-har").click();
-      const har = await readClipboardJson<HarDocument>(page);
+      const har = await readClipboardJson(page, harDocumentSchema);
 
       expect(har.entries[0]).not.toHaveProperty("response");
       expect(har.entries[0]).not.toHaveProperty("timings");
@@ -825,10 +833,10 @@ test.describe("Endpoint screen", () => {
       await send(request, endpointUrl, { method: "GET" });
       const card = newestCard(page);
       await card.getByTestId("copy-request-har").click();
-      const har = await readClipboardJson<HarDocument>(page);
+      const har = await readClipboardJson(page, harDocumentSchema);
 
-      expect(har.entries[0].request).not.toHaveProperty("postData");
-      expect(har.entries[0].request.bodySize).toBe(0);
+      expect(har.entries[0]?.request).not.toHaveProperty("postData");
+      expect(har.entries[0]?.request.bodySize).toBe(0);
     });
 
     test("the request copy button label flips to Copied!", async ({
@@ -853,7 +861,7 @@ test.describe("Endpoint screen", () => {
       await expect(requestCards(page)).toHaveCount(2);
 
       await page.getByTestId("copy-all-har").click();
-      const har = await readClipboardJson<HarDocument>(page);
+      const har = await readClipboardJson(page, harDocumentSchema);
 
       expect(har.entries).toHaveLength(2);
       expect(har.entries.map((e) => e.request.postData?.text)).toEqual([
@@ -876,10 +884,10 @@ test.describe("Endpoint screen", () => {
       );
 
       await page.getByTestId("copy-all-har").click();
-      const har = await readClipboardJson<HarDocument>(page);
+      const har = await readClipboardJson(page, harDocumentSchema);
 
       expect(har.entries).toHaveLength(1);
-      expect(har.entries[0].request.method).toBe("PUT");
+      expect(har.entries[0]?.request.method).toBe("PUT");
     });
 
     // Copying nothing produces an empty document, which reads as a failed

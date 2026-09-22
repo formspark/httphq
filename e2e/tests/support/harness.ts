@@ -1,4 +1,5 @@
 import type { APIRequestContext, Page } from "@playwright/test";
+import { z } from "zod";
 
 /**
  * Where the server under test is reachable. Spelled once: the Playwright config
@@ -87,40 +88,55 @@ export const send = (
 ) => request.fetch(url, { method, ...init });
 
 /**
- * One capture, as the JSON API hands it over. Headers are scalar-or-array
- * because a header may repeat; see flattenHeaders in src/capture.go.
+ * A capture's headers. Scalar-or-array because a header may repeat; see
+ * flattenHeaders in src/capture.go. `satisfies` holds the schema to the
+ * declaration the page scripts are checked against.
  */
-export type CapturedRequest = {
-  uuid: string;
-  endpointId: string;
-  ip: string;
-  method: string;
-  path: string;
-  queryString: string;
-  body: string;
-  createdAt: string;
-  headers: CaptureHeaders;
-};
+export const captureHeadersSchema = z.record(
+  z.string(),
+  z.union([z.string(), z.array(z.string())]),
+) satisfies z.ZodType<CaptureHeaders>;
 
-/** The listing response, as the page and any poller read it. */
-export type RequestListing = {
-  requests: CapturedRequest[];
-  total: number;
-  cursor: string;
-  hasMore: boolean;
-};
+/** One capture, as the JSON API hands it over. */
+const capturedRequestSchema = z.object({
+  uuid: z.string(),
+  endpointId: z.string(),
+  ip: z.string(),
+  method: z.string(),
+  path: z.string(),
+  queryString: z.string(),
+  body: z.string(),
+  createdAt: z.string(),
+  headers: captureHeadersSchema,
+});
+
+export type CapturedRequest = z.infer<typeof capturedRequestSchema>;
 
 /**
- * Reads back what an endpoint has captured. `APIResponse.json` cannot know the
- * shape it returns, so this is the one place the listing's is declared rather
- * than proven, confined here so no test has to declare its own.
+ * The listing response, as the page and any poller read it. Keys the suite
+ * does not read are dropped rather than refused, so a field the API gains
+ * does not fail a test about something else.
+ */
+const requestListingSchema = z.object({
+  requests: z.array(capturedRequestSchema),
+  total: z.number(),
+  cursor: z.string(),
+  hasMore: z.boolean(),
+});
+
+export type RequestListing = z.infer<typeof requestListingSchema>;
+
+/**
+ * Reads back what an endpoint has captured, parsed against the listing's
+ * shape, so a response that changed fails here rather than as an undefined
+ * deep inside an assertion.
  */
 export const listRequests = async (
   request: APIRequestContext,
   endpointId: string,
 ): Promise<RequestListing> => {
   const response = await request.get(requestsUrl(endpointId));
-  return (await response.json()) as RequestListing;
+  return requestListingSchema.parse(await response.json());
 };
 
 /**
@@ -138,38 +154,54 @@ export const newestBodyText = (page: Page) =>
 export const readClipboard = (page: Page) =>
   page.evaluate(() => navigator.clipboard.readText());
 
-/**
- * Reads the clipboard as JSON of an expected shape. Confined here for the same
- * reason as listRequests: `JSON.parse` cannot know the shape it returns, so the
- * one declaration of it lives in the harness rather than in each test.
- */
-export const readClipboardJson = async <T>(page: Page): Promise<T> =>
-  JSON.parse(await readClipboard(page)) as T;
+/** Reads the clipboard as JSON, parsed against the shape the test expects. */
+export const readClipboardJson = async <Schema extends z.ZodType>(
+  page: Page,
+  schema: Schema,
+): Promise<z.infer<Schema>> =>
+  schema.parse(JSON.parse(await readClipboard(page)));
 
 /**
- * The clipboard export shape. HAR 1.2 field names, but entries carry only a
- * `request`: httphq never observes a response.
+ * The clipboard export. HAR 1.2 field names, but entries carry only a
+ * `request`: httphq never observes a response. Strict objects, because this is
+ * the document the exporter is tested on: a key it should not emit fails.
  */
-export type HarNameValue = { name: string; value: string };
+const harNameValueSchema = z.strictObject({
+  name: z.string(),
+  value: z.string(),
+});
 
-export type HarEntry = {
-  id: string;
-  startedDateTime: string;
-  clientIPAddress: string;
-  request: {
-    method: string;
-    url: string;
-    httpVersion: string;
-    headers: HarNameValue[];
-    queryString: HarNameValue[];
-    postData?: { mimeType: string; text: string };
-    bodySize: number;
-  };
-};
+const harEntrySchema = z.strictObject({
+  id: z.string(),
+  startedDateTime: z.string(),
+  clientIPAddress: z.string(),
+  request: z.strictObject({
+    method: z.string(),
+    url: z.string(),
+    httpVersion: z.string(),
+    headers: z.array(harNameValueSchema),
+    queryString: z.array(harNameValueSchema),
+    postData: z
+      .strictObject({ mimeType: z.string(), text: z.string() })
+      .optional(),
+    bodySize: z.number(),
+  }),
+});
 
-export type HarDocument = {
-  creator: { name: string; version: string };
-  entries: HarEntry[];
+export const harDocumentSchema = z.strictObject({
+  creator: z.strictObject({ name: z.string(), version: z.string() }),
+  entries: z.array(harEntrySchema),
+});
+
+export type HarDocument = z.infer<typeof harDocumentSchema>;
+
+/** The one entry of a single-request export, failing the test otherwise. */
+export const soleEntry = (har: HarDocument) => {
+  const [entry, ...rest] = har.entries;
+  if (entry === undefined || rest.length > 0) {
+    throw new Error(`Expected one HAR entry, found ${har.entries.length}`);
+  }
+  return entry;
 };
 
 /**
@@ -178,15 +210,13 @@ export type HarDocument = {
  * real client, but neither survives the round trip through Playwright's request
  * API and the server's own normalising, so driving it here is what holds it to
  * its whole contract.
- *
- * The parse is asserted for the same reason as listRequests: `JSON.parse`
- * cannot know the shape it returns, so the one declaration of it stays in the
- * harness rather than in each test.
  */
 export const buildHar = async (
   page: Page,
   requests: CapturedRequest[] | null,
 ): Promise<HarDocument> =>
-  JSON.parse(
-    await page.evaluate((list) => window.buildHarExport(list), requests),
-  ) as HarDocument;
+  harDocumentSchema.parse(
+    JSON.parse(
+      await page.evaluate((list) => window.buildHarExport(list), requests),
+    ),
+  );
