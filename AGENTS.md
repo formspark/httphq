@@ -142,6 +142,10 @@ already holding 8080, changes the constant.
   ESLint, are capped at the worst function that exists. They are ratchets: when
   a new function trips one, split the function rather than raising the cap, and
   lower a cap when its worst offender is split.
+- `check:package-json` fails when `package.json` is not in the order
+  `sort-package-json` puts it in. lint-staged sorts it on commit; this is what
+  catches a commit made with `--no-verify`, the same pairing `format` and
+  `format:check` use.
 - `check:lint-staged` fails when the tree holds a file extension Prettier can
   format that no lint-staged pattern matches. Prettier decides what counts, so
   the two cannot drift, and a gap would otherwise be silent: CI formats the

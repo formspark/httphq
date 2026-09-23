@@ -30,6 +30,11 @@ const BRACES = /^\*\.\{([^}]+)\}$/;
 const SINGLE = /^\*\.([a-z0-9]+)$/;
 const covered = new Set();
 for (const pattern of patterns) {
+  // A pattern naming one file rather than a class of them, `package.json` for
+  // instance, covers only itself and claims no extension. It cannot leave a
+  // gap, so it is skipped rather than failed on.
+  if (!pattern.includes("*")) continue;
+
   const match = BRACES.exec(pattern) ?? SINGLE.exec(pattern);
   if (!match) {
     console.error("Cannot read extensions from lint-staged pattern:");
