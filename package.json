@@ -25,10 +25,11 @@
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit -p . && pnpm --filter httphq-e2e exec tsc --noEmit",
+    "check:audit": "pnpm audit --prod --audit-level high",
     "check:lint-staged": "node scripts/check-lint-staged.mjs",
     "check:prose": "node scripts/check-prose.mjs",
     "check:typos": "uvx typos@1.50.2",
-    "verify": "pnpm go:vuln && pnpm go:format:check && pnpm go:lint && pnpm go:cyclo && pnpm test:coverage && pnpm lint && pnpm format:check && pnpm check:lint-staged && pnpm check:prose && pnpm check:typos && pnpm typecheck && pnpm css:check && pnpm build && pnpm test:e2e",
+    "verify": "pnpm go:vuln && pnpm go:format:check && pnpm go:lint && pnpm go:cyclo && pnpm test:coverage && pnpm lint && pnpm format:check && pnpm check:lint-staged && pnpm check:prose && pnpm check:typos && pnpm check:audit && pnpm typecheck && pnpm css:check && pnpm build && pnpm test:e2e",
     "prepare": "node .husky/install.mjs",
     "social-card": "node ./scripts/social-card.mjs"
   },

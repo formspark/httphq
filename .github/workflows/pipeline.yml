@@ -106,6 +106,9 @@ jobs:
       - name: Check spelling
         timeout-minutes: 2
         run: pnpm run check:typos
+      - name: Check dependencies for known vulnerabilities
+        timeout-minutes: 2
+        run: pnpm run check:audit
       - name: Type-check the page scripts and the Playwright suite
         timeout-minutes: 2
         run: pnpm run typecheck

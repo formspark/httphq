@@ -10,12 +10,28 @@ source.
 
 It runs, in order: govulncheck, gofmt, golangci-lint and gocyclo over the Go
 code, the Go tests with the race detector and coverage, ESLint, Prettier, the
-lint-staged glob check, the prose and spelling checks, the type check, the
-stylesheet freshness check, the production build and the Playwright suite. A
+lint-staged glob check, the prose and spelling checks, the advisory check, the
+type check, the stylesheet freshness check, the production build and the
+Playwright suite. A
 change that has not passed it is not finished. CI runs the same package.json
 scripts, split into jobs in `pipeline.yml`, and also builds the image.
 
-The spelling check runs typos through `uvx`, so it needs uv. The Playwright
+`check:audit` is `pnpm audit --prod --audit-level high`, over the Node
+periphery. The Go side has govulncheck, which gates on reachability rather
+than presence, and is the stricter of the two: it is why `gofiber/fiber` and
+`golang.org/x/crypto` carry advisories at module level while verify stays
+green. The npm scan has no such filter, so it is scoped to what ships and to
+what is worth stopping for. An advisory that has no fix, or one that cannot be
+reached from this code, goes in `auditConfig.ignoreCves` with the reason
+beside it.
+
+The pipeline only answers whether a change introduces an advisory. `audit.yml`
+asks the other question once a week, against whatever is on master, because a
+repository nobody pushes to runs nothing. The nightly `test.yml` already
+covers the Go side the same way.
+
+The spelling check runs typos through `uvx`, so it needs uv, and `check:audit`
+reaches the registry. The Playwright
 suite needs Chromium once (docs/scripts.md) and loads Alpine and the syntax
 highlighter from public CDNs, so a screen that never hydrates is a network
 failure before it is a code one: run it again before debugging it.
