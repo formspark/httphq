@@ -60,6 +60,12 @@ jobs:
           context: .
           platforms: linux/amd64
           push: true
+          # Reads the cache `pipeline.yml` writes on every pull request. It was
+          # writing one that nothing read, which costs the write and buys
+          # nothing. The release build is 40s cold, so this is a small saving;
+          # the reason to do it is that a cache with no reader is waste in
+          # either direction.
+          cache-from: type=gha
           build-args: |
             APP_VERSION=${{ steps.meta.outputs.tag }}
           tags: |
