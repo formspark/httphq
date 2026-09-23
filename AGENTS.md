@@ -109,6 +109,14 @@ already holding 8080, changes the constant.
   request.
 - Playwright: see "The Playwright suite covers screens and page scripts
   separately" below.
+- `design_test.go` is the one test that reads documentation rather than code.
+  DESIGN.md's frontmatter lists the palette and `src/styles/theme.css` renders
+  it, and nothing generates one from the other, so a colour changed in the
+  sheet alone would leave the document quietly wrong. It resolves one level of
+  `var(--color-x)`, which is what lets the sheet say the mark is brand-600
+  while the document states the colour itself, and it treats `#fff` and
+  `#ffffff` as the same. Both directions are checked, and both parsers refuse
+  to pass when they match implausibly few colours.
 - Fix every instance of a defect, not only the one that was reported.
 - A regression test has to be seen failing without the fix before it is
   trusted. Take the fix out, watch the test go red, put it back.
