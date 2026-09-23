@@ -13,3 +13,10 @@ packages:
 # non-watch build and fails if the committed sheet differs.
 allowBuilds:
   "@parcel/watcher": false
+
+# A package published minutes ago is the shape a compromised release takes:
+# published, installed by whoever runs `pnpm update` next, and yanked once
+# somebody notices. A day of distance is enough for that to happen without
+# holding a genuine security fix back longer than one day. Anything urgent
+# enough to need sooner goes in `minimumReleaseAgeExclude` with its reason.
+minimumReleaseAge: 1440

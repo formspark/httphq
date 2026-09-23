@@ -70,6 +70,10 @@ jobs:
         timeout-minutes: 1
         run: go tool cover -func=coverage.out | tail -1 >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Check coverage against its floor
+        timeout-minutes: 1
+        run: pnpm run go:coverage:check
+
   lint:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -106,6 +110,9 @@ jobs:
       - name: Check spelling
         timeout-minutes: 2
         run: pnpm run check:typos
+      - name: Check dependencies for known vulnerabilities
+        timeout-minutes: 2
+        run: pnpm run check:audit
       - name: Type-check the page scripts and the Playwright suite
         timeout-minutes: 2
         run: pnpm run typecheck
