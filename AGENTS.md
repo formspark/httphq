@@ -9,12 +9,20 @@ source.
 ## `pnpm verify` is the definition of done
 
 It runs, in order: govulncheck, gofmt, golangci-lint and gocyclo over the Go
-code, the Go tests with the race detector and coverage, ESLint, Prettier, the
+code, the Go tests with the race detector and coverage, the coverage floor,
+ESLint, Prettier, the
 lint-staged glob check, the prose and spelling checks, the advisory check, the
 type check, the stylesheet freshness check, the production build and the
 Playwright suite. A
 change that has not passed it is not finished. CI runs the same package.json
 scripts, split into jobs in `pipeline.yml`, and also builds the image.
+
+`go:coverage:check` reads the total out of `coverage.out` and fails under 93%,
+which is where the suite stands. It is a ratchet, like the complexity caps and
+`gocyclo -over 4`: when a change pushes the number up, raise the floor, and
+never lower it to make a change pass. The Go and the npm sides are measured
+differently and the npm side has no suite to speak of, so there is one floor
+here rather than the four `thresholds` the TypeScript repositories carry.
 
 `check:audit` is `pnpm audit --prod --audit-level high`, over the Node
 periphery. The Go side has govulncheck, which gates on reachability rather
