@@ -177,8 +177,35 @@ jobs:
           context: .
           platforms: linux/amd64
           push: false
+          # Loaded into the local daemon so the scan below has something to
+          # read. Without it the build stays in buildx's cache and there is no
+          # image to point at.
+          load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          tags: httphq:scan
+
+      # The image half of `check:audit`. A base image pinned to a branch that
+      # has stopped receiving patches keeps building, and nothing says so: one
+      # repository in this fleet was publishing 38 fixable high and critical
+      # advisories that no change in it could have fixed.
+      #
+      # `os` packages only, because the application's own dependencies are
+      # already gated by `check:audit`, and scanning everything reports the npm
+      # that ships inside a base image, which is neither reachable at runtime
+      # nor fixable here. `ignore-unfixed` is the same scoping `check:audit`
+      # uses: an advisory with no released fix is not something a build can act
+      # on, and failing on one teaches everyone to skip the step.
+      - name: Scan the image for known vulnerabilities
+        uses: aquasecurity/trivy-action@0.36.0
+        timeout-minutes: 5
+        with:
+          image-ref: httphq:scan
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          scanners: vuln
+          vuln-type: os
+          exit-code: "1"
 
   e2e:
     runs-on: ubuntu-latest
