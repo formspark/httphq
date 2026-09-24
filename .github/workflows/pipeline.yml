@@ -106,8 +106,8 @@ jobs:
       - name: Check lint-staged globs
         timeout-minutes: 1
         run: pnpm run check:lint-staged
-      # In verify since the beginning and never here, so a commit made with
-      # --no-verify landed an unsorted manifest and nothing said so.
+      # verify runs this too. This copy is what catches a commit that skipped
+      # the hook.
       - name: Check package.json is sorted
         timeout-minutes: 1
         run: pnpm run check:package-json

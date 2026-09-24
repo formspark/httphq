@@ -174,10 +174,9 @@ tempting mistake is to read a passing knip run as coverage of the application.
 The `entry` patterns there are mostly `<script>` tags in the Go templates under
 `src/views`, which no module graph can see.
 
-One exception is worth knowing: `playwright` is in `ignoreDependencies` because
-`scripts/social-card.mjs` resolves it through a `createRequire` rooted at
-`../e2e/package.json`, deliberately, so it is not installed twice. That is a real
-use no static resolver can follow.
+One dependency is exempt, `playwright`, which a script resolves through a
+`createRequire` rooted at another workspace so it is not installed twice.
+`knip.ts` carries that reason beside the entry.
 
 Neither runs from the pre-commit hook. lint-staged hands a task the staged paths,
 and a whole-graph analysis over a subset reports almost everything as unused.
