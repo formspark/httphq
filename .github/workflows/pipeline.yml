@@ -55,6 +55,11 @@ jobs:
       - name: Lint
         timeout-minutes: 5
         run: pnpm run go:lint
+      # golangci-lint's `unused` works a package at a time, so it cannot see an
+      # exported function that no entry point reaches. This can.
+      - name: Check for unreachable Go code
+        timeout-minutes: 3
+        run: pnpm run go:deadcode
       # The Go counterpart to the `complexity` rule the page scripts are linted
       # with.
       - name: Check complexity
@@ -101,6 +106,11 @@ jobs:
       - name: Check lint-staged globs
         timeout-minutes: 1
         run: pnpm run check:lint-staged
+      # In verify since the beginning and never here, so a commit made with
+      # --no-verify landed an unsorted manifest and nothing said so.
+      - name: Check package.json is sorted
+        timeout-minutes: 1
+        run: pnpm run check:package-json
       - name: Check prose for em dashes
         timeout-minutes: 1
         run: pnpm run check:prose
@@ -110,6 +120,11 @@ jobs:
       - name: Check spelling
         timeout-minutes: 2
         run: pnpm run check:typos
+      # Unused files, exports and dependencies in the JavaScript periphery. The
+      # Go application is covered by go:deadcode and golangci-lint instead.
+      - name: Check for dead code
+        timeout-minutes: 2
+        run: pnpm run check:dead-code
       - name: Check dependencies for known vulnerabilities
         timeout-minutes: 2
         run: pnpm run check:audit
