@@ -8,12 +8,11 @@ source.
 
 ## `pnpm verify` is the definition of done
 
-It runs, in order: govulncheck, gofmt, golangci-lint and gocyclo over the Go
-code, the Go tests with the race detector and coverage, the coverage floor,
-ESLint, Prettier, the
-lint-staged glob check, the prose and spelling checks, the advisory check, the
-type check, the stylesheet freshness check, the production build and the
-Playwright suite. A
+It runs, in order: govulncheck, gofmt, golangci-lint, the Go reachability check
+and gocyclo over the Go code, the Go tests with the race detector and coverage,
+the coverage floor, ESLint, Prettier, the lint-staged glob check, the prose and
+spelling checks, the dead-code check, the advisory check, the type check, the
+stylesheet freshness check, the production build and the Playwright suite. A
 change that has not passed it is not finished. CI runs the same package.json
 scripts, split into jobs in `pipeline.yml`, and also builds the image.
 
@@ -151,6 +150,38 @@ already holding 8080, changes the constant.
   the two cannot drift, and a gap would otherwise be silent: CI formats the
   file, the hook never touches it.
 
+## Dead code is checked on both sides, separately
+
+This repository is a Go application with a small JavaScript periphery, and the
+two need different tools. Neither covers the other, so a quiet run of one says
+nothing about the other.
+
+`go:deadcode` runs `deadcode` from `golang.org/x/tools`, pinned the way
+govulncheck, golangci-lint and gocyclo are. It builds the whole call graph from
+`main` and reports every function nothing reaches. golangci-lint's `unused` is
+already in the standard set `go:lint` runs, but it works a package at a time: it
+catches an unexported helper nobody calls and cannot see an exported function
+that no entry point reaches. This closes that. It prints findings and exits zero
+on its own, so the script is the same shape `go:format:check` uses, failing on
+non-empty output.
+
+`check:dead-code` is [knip](https://knip.dev), over the JavaScript only: the
+browser scripts under `public/`, the two build scripts, and the Playwright suite
+in the `e2e` workspace. Both hold at zero.
+
+`knip.ts` says in its own header that it does not cover `src/`, because the
+tempting mistake is to read a passing knip run as coverage of the application.
+The `entry` patterns there are mostly `<script>` tags in the Go templates under
+`src/views`, which no module graph can see.
+
+One exception is worth knowing: `playwright` is in `ignoreDependencies` because
+`scripts/social-card.mjs` resolves it through a `createRequire` rooted at
+`../e2e/package.json`, deliberately, so it is not installed twice. That is a real
+use no static resolver can follow.
+
+Neither runs from the pre-commit hook. lint-staged hands a task the staged paths,
+and a whole-graph analysis over a subset reports almost everything as unused.
+
 ## Reading CI
 
 - `pipeline.yml` is the single definition of what verified means, and both
@@ -198,6 +229,9 @@ metric-tone and bjornkrols.com). Change them in all of them together.
   `.husky/install.mjs`: identical in every one of them.
 - `src/logging`: in step with `apps/hooks/logging.go` in the lab repository,
   which carries the same handler, redaction list and level rules.
+
+`knip.ts` is deliberately not shared, though every repository has one. It is
+almost entirely entry points, and no two repositories here have the same ones.
 
 ## Code layout
 

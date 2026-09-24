@@ -24,6 +24,7 @@
     "public/index.js",
     "public/render-body.js",
     "public/har.js",
-    "types/page-scripts.d.ts"
+    "types/page-scripts.d.ts",
+    "knip.ts"
   ]
 }

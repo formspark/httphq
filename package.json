@@ -5,6 +5,7 @@
   "scripts": {
     "build": "CGO_ENABLED=0 go build -trimpath -ldflags=\"-s -w -X main.version=${APP_VERSION:-dev}\" -o ./bin/httphq ./src",
     "check:audit": "pnpm audit --prod --audit-level high",
+    "check:dead-code": "knip --cache",
     "check:lint-staged": "node scripts/check-lint-staged.mjs",
     "check:package-json": "sort-package-json --check",
     "check:prose": "node scripts/check-prose.mjs",
@@ -17,6 +18,7 @@
     "format:check": "prettier --check .",
     "go:coverage:check": "total=$(go tool cover -func=coverage.out | tail -1 | grep -oE '[0-9.]+%' | tr -d '%'); awk -v t=\"$total\" -v f=93 'BEGIN { if (t+0 < f+0) { printf \"Go coverage %.1f%% is under the %d%% floor.\\n\", t, f > \"/dev/stderr\"; exit 1 } printf \"Go coverage %.1f%% (floor %d%%).\\n\", t, f }'",
     "go:cyclo": "go run github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0 -over 4 ./src",
+    "go:deadcode": "found=\"$(go run golang.org/x/tools/cmd/deadcode@v0.50.0 ./src/...)\"; [ -z \"$found\" ] || { echo \"unreachable from any entry point:\" >&2; echo \"$found\" >&2; exit 1; }",
     "go:format:check": "files=\"$(gofmt -l ./src)\"; [ -z \"$files\" ] || { echo \"gofmt disagrees with: $files. Run 'go fmt ./src/...'.\" >&2; exit 1; }",
     "go:lint": "go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.2 run ./src/...",
     "go:vuln": "go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./src/...",
@@ -28,7 +30,7 @@
     "test:coverage": "go test -race -coverprofile=coverage.out ./src/... && go tool cover -func=coverage.out | tail -1",
     "test:e2e": "pnpm --filter httphq-e2e test",
     "typecheck": "tsc --noEmit -p . && pnpm --filter httphq-e2e exec tsc --noEmit",
-    "verify": "pnpm go:vuln && pnpm go:format:check && pnpm go:lint && pnpm go:cyclo && pnpm test:coverage && pnpm go:coverage:check && pnpm lint && pnpm format:check && pnpm check:lint-staged && pnpm check:package-json && pnpm check:prose && pnpm check:typos && pnpm check:audit && pnpm typecheck && pnpm css:check && pnpm build && pnpm test:e2e"
+    "verify": "pnpm go:vuln && pnpm go:format:check && pnpm go:lint && pnpm go:deadcode && pnpm go:cyclo && pnpm test:coverage && pnpm go:coverage:check && pnpm lint && pnpm format:check && pnpm check:lint-staged && pnpm check:package-json && pnpm check:prose && pnpm check:typos && pnpm check:dead-code && pnpm check:audit && pnpm typecheck && pnpm css:check && pnpm build && pnpm test:e2e"
   },
   "lint-staged": {
     "package.json": "sort-package-json",
@@ -42,6 +44,7 @@
     "eslint": "^10.8.1",
     "globals": "^17.9.0",
     "husky": "^9.1.7",
+    "knip": "^6.38.0",
     "lint-staged": "^17.2.0",
     "prettier": "^3.9.6",
     "sort-package-json": "^4.0.0",

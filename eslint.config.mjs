@@ -65,6 +65,21 @@ export default tseslint.config(
     },
   },
 
+  // The knip config. Nothing else at the root is TypeScript, and a file that
+  // matches no configuration here is not linted at all rather than linted
+  // loosely, which is the quieter half of the same trap as leaving it out of
+  // tsconfig's `files`.
+  {
+    files: ["knip.ts"],
+    extends: [js.configs.recommended, tseslint.configs.recommendedTypeChecked],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+
   // Playwright suite. Type-aware linting, so an implicit `any` reaching an
   // assertion is an error rather than a silently weaker test.
   {
