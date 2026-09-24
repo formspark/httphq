@@ -76,7 +76,7 @@ jobs:
           tags: httphq:audit
 
       - name: Scan the image for known vulnerabilities
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         timeout-minutes: 5
         with:
           image-ref: httphq:audit

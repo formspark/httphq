@@ -197,7 +197,7 @@ jobs:
       # uses: an advisory with no released fix is not something a build can act
       # on, and failing on one teaches everyone to skip the step.
       - name: Scan the image for known vulnerabilities
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         timeout-minutes: 5
         with:
           image-ref: httphq:scan
