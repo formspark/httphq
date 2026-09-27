@@ -115,8 +115,15 @@ jobs:
         timeout-minutes: 1
         run: pnpm run check:prose
       # setup-uv publishes no floating major tag, so the release is pinned.
+      #
+      # Caching is off because there is nothing here to cache against. The
+      # action's default hunts the whole tree for Python manifests, reports
+      # that it matched none, and says the key can never invalidate. uv itself
+      # installs in about a second.
       - uses: astral-sh/setup-uv@v10.2.0
         timeout-minutes: 2
+        with:
+          enable-cache: false
       - name: Check spelling
         timeout-minutes: 2
         run: pnpm run check:typos
