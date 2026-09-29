@@ -208,9 +208,9 @@ jobs:
           tags: httphq:scan
 
       # The image half of `check:audit`. A base image pinned to a branch that
-      # has stopped receiving patches keeps building, and nothing says so: one
-      # repository in this fleet was publishing 38 fixable high and critical
-      # advisories that no change in it could have fixed.
+      # has stopped receiving patches keeps building, and nothing says so. The
+      # image then ships fixable high and critical advisories that no change
+      # here could fix.
       #
       # `os` packages only, because the application's own dependencies are
       # already gated by `check:audit`, and scanning everything reports the npm

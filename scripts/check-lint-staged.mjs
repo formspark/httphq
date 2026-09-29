@@ -8,7 +8,7 @@
 // cannot drift.
 //
 // Every statement fits in 80 columns, so Prettier prints this file the same at
-// any print width and the copies in the sibling repositories stay identical.
+// any print width.
 
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";

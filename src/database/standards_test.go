@@ -10,13 +10,11 @@ import (
 )
 
 // The database standards, asked of the schema AutoMigrate actually produces
-// rather than of the struct tags that ask for it. The sibling repositories run
-// the equivalent as SQL against Postgres after applying their migrations; there
-// are no migration files here and no information_schema to query, so the same
-// questions are asked of sqlite_schema and the pragmas instead.
+// rather than of the struct tags that ask for it. There are no migration files
+// here and no information_schema to query, so the questions are asked of
+// sqlite_schema and the pragmas.
 //
-// Two of their four checks do not apply. There is no email column anywhere, and
-// nothing carries updated_at: a capture is written once and never edited, which
+// Nothing carries updated_at: a capture is written once and never edited, which
 // is the whole shape of this product, so a column nothing writes would be
 // overhead on the only table there is.
 
