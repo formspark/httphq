@@ -10,8 +10,7 @@
 # base image. The pipeline scans what a pull request builds, which catches a
 # change that introduces a vulnerable base. It cannot catch a base image tag
 # that stops receiving patches while nothing here changes, because nothing
-# runs. That is how a sibling repository came to publish 38 fixable high and
-# critical advisories.
+# runs, so an image can carry fixable high and critical advisories for weeks.
 name: audit
 
 on:

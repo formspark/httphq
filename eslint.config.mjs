@@ -36,9 +36,7 @@ export default tseslint.config(
   // first of these.
   //
   // The modified variant scores a whole switch as one decision rather than one
-  // per case. It changes no number here, because none of these files switch,
-  // and it is stated so the rule reads the same as it does in the sibling
-  // repositories rather than differing in a way that looks deliberate.
+  // per case. It changes no number here, because none of these files switch.
   {
     rules: {
       complexity: ["error", { max: 4, variant: "modified" }],

@@ -218,20 +218,6 @@ and a whole-graph analysis over a subset reports almost everything as unused.
   closes the store. A new background task that writes to the store has to stop
   before the store closes; see `run` in `src/application.go`.
 
-## Shared files
-
-These files are kept identical, or in step, with the same files in the
-repositories that deploy to the lab (lab, 8ctave, geobear, postcraft,
-metric-tone and bjornkrols.com). Change them in all of them together.
-
-- `scripts/check-prose.mjs`, `scripts/check-lint-staged.mjs` and
-  `.husky/install.mjs`: identical in every one of them.
-- `src/logging`: in step with `apps/hooks/logging.go` in the lab repository,
-  which carries the same handler, redaction list and level rules.
-
-`knip.ts` is deliberately not shared, though every repository has one. It is
-almost entirely entry points, and no two repositories here have the same ones.
-
 ## Code layout
 
 `src` is a `main` package split by concern, one file per subject with its tests
@@ -303,12 +289,11 @@ columns, a `created_at`, and an index on every column a query filters or orders
 by. A `gorm:"column:..."` tag naming something else satisfies the struct and
 fails the test, which is the point.
 
-The sibling repositories run the same questions as SQL against Postgres after
-applying their migrations. There are no migration files here and no
-information_schema to query, so these go through `sqlite_schema` and the pragmas.
+There are no migration files here and no information_schema to query, so these
+questions go through `sqlite_schema` and the pragmas.
 
-Two of their checks do not apply. Nothing carries `updated_at`, because a
-capture is written once and never edited, and there is no email column anywhere.
+Nothing carries `updated_at`, because a capture is written once and never
+edited, so the test does not ask for one.
 
 ## Captured data is ephemeral
 

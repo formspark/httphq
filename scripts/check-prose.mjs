@@ -9,9 +9,8 @@
 // `path` is a file, or a directory ending in "/". `pattern` is a regular
 // expression; its matches on that path are ignored.
 //
-// The same file lives in every repository that deploys to the lab. Change it
-// in all of them together. Every statement fits in 80 columns, so Prettier
-// prints it the same at any print width and the copies stay identical.
+// Every statement fits in 80 columns, so Prettier prints it the same at any
+// print width.
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 
