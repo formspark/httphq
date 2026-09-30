@@ -63,7 +63,7 @@
         <h2 id="send-heading" class="text-sm font-medium">
           Send a test request
         </h2>
-        {{template "partials/icons/disclosure-chevron" .}}
+        {{template "partials/icons/expand" .}}
       </summary>
 
       <form @submit.prevent="sendCustom()" class="panel-body space-y-4">
@@ -156,19 +156,9 @@
   <section class="mb-6" aria-labelledby="agent-heading">
     <details class="group panel">
       <summary data-test="agent-toggle" class="panel-summary">
-        <svg
-          viewBox="0 0 24 24"
-          class="icon"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          aria-hidden="true"
-        >
-          <polyline points="4 17 10 11 4 5" />
-          <line x1="12" y1="19" x2="20" y2="19" />
-        </svg>
+        {{template "partials/icons/terminal" .}}
         <h2 id="agent-heading" class="text-sm font-medium">Connect an agent</h2>
-        {{template "partials/icons/disclosure-chevron" .}}
+        {{template "partials/icons/expand" .}}
       </summary>
 
       <div class="panel-body">
@@ -240,7 +230,7 @@
         title="Copy every request shown as HAR-shaped JSON"
         class="btn btn-secondary"
       >
-        {{template "partials/icons/clipboard" .}}
+        {{template "partials/icons/copy" .}}
         <!-- Server-rendered fallback so the button carries a label before Alpine
              hydrates and if it never does. Without it the control renders as a
              bare icon, shorter than its neighbour and unreadable. -->
@@ -256,19 +246,7 @@
         @click="confirmDeleteAll()"
         class="btn btn-secondary"
       >
-        <svg
-          viewBox="0 0 24 24"
-          class="icon"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          aria-hidden="true"
-        >
-          <polyline points="3 6 5 6 21 6" />
-          <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
-          <path d="M10 11v6" />
-          <path d="M14 11v6" />
-        </svg>
+        {{template "partials/icons/delete" .}}
         <!-- Names the scope explicitly: this clears the endpoint, not the
              filtered view its neighbour copies. -->
         <span
@@ -426,7 +404,7 @@
               title="Copy the full request (method, URL, headers, query string, body) as HAR-shaped JSON"
               class="btn-inline"
             >
-              {{template "partials/icons/clipboard" .}}
+              {{template "partials/icons/copy" .}}
               <span
                 data-test="copy-request-har-label"
                 x-text="copyLabel(request.uuid, 'Copy request')"
@@ -438,17 +416,7 @@
               @click="$store.main.deleteRequest(request.uuid)"
               class="btn-inline btn-inline-danger"
             >
-              <svg
-                viewBox="0 0 24 24"
-                class="icon"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                aria-hidden="true"
-              >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+              {{template "partials/icons/delete" .}}
               <span>Delete</span>
             </button>
           </div>
