@@ -463,15 +463,29 @@ Borders are 1px and always present on a surface that has an edge; there are no
 borderless cards. Request articles clip their contents so the header's bottom
 rule meets the panel's rounded corner cleanly.
 
-Iconography is a single family: 24×24 viewBox, `fill="none"`,
-`stroke="currentColor"`, `stroke-width="2"`, rendered at 1rem inside controls
-and 1.25rem inside icon tiles. Icons inherit their colour from the control and
-are always `aria-hidden`, because every icon in this system sits beside a text
-label rather than replacing one.
+Every icon is drawn from Lucide, unchanged: its 24×24 grid, `fill="none"`,
+`stroke="currentColor"`, `stroke-width="2"` and round caps and joins. There is
+one partial per concept under `src/views/partials/icons/`, named for what it
+means rather than what it depicts (`copy`, `delete`, `expand`, `send`), and a
+view includes the partial instead of drawing an SVG of its own. One concept has
+one glyph and one glyph has one concept: copying is `Copy` whether it is one
+value or requests serialised as HAR, deleting is `Trash2` whether it removes one
+request or all of them, and an `X` never stands in for delete. A glyph that is
+not in the set is a new partial, chosen from Lucide, not a path drawn by hand.
+
+An icon is drawn at the size of the label it sits beside: `.icon` is 1em, so it
+is 1rem beside 1rem text and 0.875rem beside the 0.875rem controls. The icon
+tiles on the home page are the one place an icon stands in a box of its own
+rather than inline with a label, and they draw it at 1.25rem inside the 2.25rem
+tile. Icons inherit their colour from the control and are always `aria-hidden`,
+because every icon in this system sits beside a text label rather than
+replacing one. `icons_test.go` holds the rule: it fails on an SVG in any view
+outside the icon and brand partials, on an icon partial that is not drawn the
+Lucide way, and on a partial nothing includes.
 
 There is no emoji anywhere in the product, and there is exactly one exception to
-the stroke rule: the GitHub glyph in the footer is a filled path in
-`currentColor`, because a brand mark is drawn the way its owner draws it and a
+the stroke rule: the GitHub glyph in the footer, a filled path in
+`currentColor` kept in `src/views/partials/brands/`, because a brand mark is drawn the way its owner draws it and a
 stroked approximation of a wordmark reads as a copy. That exception does not
 generalise. Every icon that is not somebody else's logo is stroked, and an emoji
 is never either one: it brings its own colour and its own per-platform
@@ -579,7 +593,7 @@ third summary row above the stream.
 - **Style:** white fill, 1px neutral-300 stroke, control radius, 0.5rem/0.75rem padding, 0.875rem type. That is `.field`, and it is the whole control: textareas, selects and text inputs are the same class. Fields that take captured-shaped text add `.field-mono` with `spellcheck="false"`; ordinary text fields use sans. `.field-mono` swaps the family and nothing else, so a mono field keeps the 0.875rem control size rather than dropping to the 0.75rem evidence size: it is a control being typed into, not a captured value being read.
 - **Focus:** `outline: none` paired with a 1px **brand-400** ring and a **brand-500** border. That is a tighter, quieter treatment than the 2px ring on buttons, because a focused field is already unambiguous. Note the three-way split: fields ring in brand-400, buttons ring in brand-500, and only fills use brand-600. Every control uses `:focus-visible`, so a mouse click never paints a ring on a button.
 - **Labels:** one label component everywhere, uppercase at 0.75rem, 0.5rem above its field, with 1rem between field groups. A label may carry a parenthetical qualifier set back to normal case and normal weight inside it (_(optional)_, _(one per line, `Key: Value`)_): the uppercase names the field, the parenthetical is an aside to the reader, and uppercasing an aside makes it compete with the name it qualifies. The label belongs to its field, so it sits closer to it than the group does to the next one. There is no second label style for public forms: a contact field and a header field are the same control doing the same job, and two spellings of one control is drift, not intent.
-- **Select:** `.field app-select`. Native `appearance: none` with a neutral chevron inlined as a data-URI background, 1.1em, positioned 0.5rem from the right with 2rem of padding reserved. The chevron is the single literal hex in the stylesheet (`#6b7189`), because a data URI cannot read a CSS variable; it approximates neutral-500 and must be kept in step with it. It is not the only such mirror in the codebase: see Liveness Indicator for the two in `endpoint.js`.
+- **Select:** `.field app-select`. Native `appearance: none` with Lucide's `ChevronDown` inlined as a data-URI background, 1em, positioned 0.5rem from the right with 2rem of padding reserved. A data URI cannot read a CSS variable, so its stroke spells out neutral-500's own OKLCH value rather than a variable; `icons_test.go` compares the two, so the caret cannot drift from the token unnoticed.
 
 ### Navigation
 
@@ -664,9 +678,8 @@ title and icon together. This is where the board announces itself: the page body
 never flashes, animates, or auto-scrolls to claim attention.
 
 The canvas cannot read a CSS custom property, so this function carries
-`#525cc1` and `#c63144` as literal hexes. With the select chevron's `#6b7189`
-that makes three literal mirrors of a token in the codebase, and all three move
-by hand when their token moves.
+`#525cc1` and `#c63144` as literal hexes. They are the two literal mirrors of a
+token in the codebase, and both move by hand when their token moves.
 
 ## Do's and Don'ts
 
@@ -678,7 +691,7 @@ by hand when their token moves.
 - **Do** pair `outline: none` with a visible `focus-visible` ring every single time: 2px brand-500 on controls, plus a white offset ring on the two filled buttons, and 1px brand-400 plus a border shift on fields. On anything that is neither a button nor a field, reach for `.focus-ring` rather than respelling those two declarations at the call site.
 - **Do** take the radius from the category: 0.25rem for data, 0.375rem for controls, 0.5rem for panels.
 - **Do** design to the 40rem breakpoint alone, stacking below it and going horizontal above it.
-- **Do** keep icons at 24×24 viewBox, `stroke-width="2"`, `fill="none"`, `aria-hidden`, beside a text label.
+- **Do** draw every icon from Lucide through its named partial under `src/views/partials/icons/`, at the size of the text label it sits beside, `aria-hidden`. Brand marks are the exception, and they live under `src/views/partials/brands/`.
 - **Do** state connection and background activity plainly: an indicator on the page, a count in the tab title, a dot on the favicon. Never by animating the body.
 
 ### Don't:

@@ -9,16 +9,17 @@
    1px brand-400 plus a border shift on fields. */
 
 @layer components {
-  /* Native select with the chevron drawn in, anchored right after the value.
-     The fill is a literal hex because a data URI cannot read a CSS variable;
-     it is the neutral-500 equivalent and must be kept in step with it. */
+  /* Native select with Lucide's ChevronDown drawn in, anchored right after the
+     value and sized to it like every other icon. A data URI cannot read a CSS
+     variable, so the stroke spells out the neutral-500 value itself (with its
+     % escaped); icons_test.go fails when the two stop matching. */
   .app-select {
     appearance: none;
     -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236b7189'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.083l3.71-3.853a.75.75 0 111.08 1.04l-4.25 4.41a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='oklch(55.2%25 0.038 274)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.5rem center;
-    background-size: 1.1em;
+    background-size: 1em;
     padding-right: 2rem;
   }
 
@@ -121,7 +122,7 @@
      seam below meets the panel edge rather than crossing a radius. */
   .panel-summary {
     @apply list-none flex items-center gap-2 px-4 sm:px-5 py-3;
-    @apply font-medium text-neutral-700 hover:bg-neutral-100;
+    @apply text-sm font-medium text-neutral-700 hover:bg-neutral-100;
     @apply rounded-lg group-open:rounded-b-none;
     @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset;
   }
@@ -148,8 +149,10 @@
     @apply min-w-0;
   }
 
+  /* 1em, so an icon is drawn at the size of the label it sits beside: 16px
+     beside 1rem text, 14px beside the 0.875rem controls. */
   .icon {
-    @apply w-4 h-4 shrink-0;
+    @apply size-[1em] shrink-0;
   }
 
   .badge {
