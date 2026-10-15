@@ -8,7 +8,7 @@ module httphq
 // advisories this code reaches, and govulncheck in the pipeline fails. Above
 // 1.26 the pinned golangci-lint refuses the module, because it will not read a
 // language version newer than the one it was built with.
-go 1.26.6
+go 1.26.9
 
 require (
 	github.com/atrox/haikunatorgo/v2 v2.0.1
