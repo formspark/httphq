@@ -110,10 +110,7 @@ func resolveClientIP(c fiber.Ctx) string {
 	if ip := net.ParseIP(platformClientIP(c)); ip != nil {
 		return ip.String()
 	}
-	if ip := c.RequestCtx().RemoteIP(); ip != nil {
-		return ip.String()
-	}
-	return ""
+	return c.RequestCtx().RemoteIP().String()
 }
 
 // platformClientIP returns the raw client IP the configured PLATFORM's header
