@@ -195,14 +195,16 @@ func TestResolveClientIPFromForwardedFor(t *testing.T) {
 func TestResolveClientIPFromEdgeHeader(t *testing.T) {
 	app := fiber.New()
 
-	for platform, header := range map[string]string{
-		"cloudflare": "Cf-Connecting-Ip",
-		"fly":        "Fly-Client-Ip",
-		"render":     "Cf-Connecting-Ip",
+	// foreign is the client-IP header of an edge this platform does not sit
+	// behind, so a client can write it.
+	for _, edge := range []struct{ platform, header, foreign string }{
+		{"cloudflare", "Cf-Connecting-Ip", "Fly-Client-Ip"},
+		{"fly", "Fly-Client-Ip", "Cf-Connecting-Ip"},
+		{"render", "Cf-Connecting-Ip", "Fly-Client-Ip"},
 	} {
-		t.Run(platform, func(t *testing.T) {
+		t.Run(edge.platform, func(t *testing.T) {
 			single := func(values ...string) string {
-				return clientIPFor(t, app, platform, map[string][]string{header: values})
+				return clientIPFor(t, app, edge.platform, map[string][]string{edge.header: values})
 			}
 
 			t.Run("reads its header", func(t *testing.T) {
@@ -211,12 +213,18 @@ func TestResolveClientIPFromEdgeHeader(t *testing.T) {
 			})
 
 			t.Run("ignores X-Forwarded-For, which the client can write", func(t *testing.T) {
-				assert.Equal(t, peerIP, clientIPFor(t, app, platform, map[string][]string{
+				assert.Equal(t, peerIP, clientIPFor(t, app, edge.platform, map[string][]string{
 					fiber.HeaderXForwardedFor: {forgedIP},
 				}))
-				assert.Equal(t, "198.51.100.1", clientIPFor(t, app, platform, map[string][]string{
-					header:                    {"198.51.100.1"},
+				assert.Equal(t, "198.51.100.1", clientIPFor(t, app, edge.platform, map[string][]string{
+					edge.header:               {"198.51.100.1"},
 					fiber.HeaderXForwardedFor: {forgedIP},
+				}))
+			})
+
+			t.Run("ignores the header belonging to another edge", func(t *testing.T) {
+				assert.Equal(t, peerIP, clientIPFor(t, app, edge.platform, map[string][]string{
+					edge.foreign: {forgedIP},
 				}))
 			})
 
