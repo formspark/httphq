@@ -40,20 +40,28 @@ httphq derives the client IP (used for rate limiting and shown on captured
 requests) from the header your hosting platform sets. Declare your platform
 and httphq picks the right strategy:
 
-| `PLATFORM`       | Client IP source                                                             |
-| ---------------- | ---------------------------------------------------------------------------- |
-| unset / `direct` | The TCP connection peer (no proxy).                                          |
-| `cloudflare`     | `CF-Connecting-IP` header.                                                   |
-| `fly`            | `Fly-Client-IP` header.                                                      |
-| `heroku`         | `X-Forwarded-For` (leftmost).                                                |
-| `render`         | `X-Forwarded-For` (leftmost).                                                |
-| `proxy`          | `X-Forwarded-For` (leftmost), for a generic nginx / Traefik / load balancer. |
+| `PLATFORM`       | Client IP source                                                         |
+| ---------------- | ------------------------------------------------------------------------ |
+| unset / `direct` | The TCP connection peer (no proxy).                                      |
+| `cloudflare`     | `CF-Connecting-IP` header.                                               |
+| `fly`            | `Fly-Client-IP` header.                                                  |
+| `heroku`         | Rightmost `X-Forwarded-For`, the entry the Heroku router appends.        |
+| `render`         | `CF-Connecting-IP` header: Render serves through Cloudflare.             |
+| `proxy`          | Rightmost `X-Forwarded-For`, for exactly one reverse proxy that appends. |
+
+The client writes any `X-Forwarded-For` it likes and each hop appends to it, so
+the leftmost entry is never read. `proxy` assumes exactly one hop in front of
+httphq, such as nginx with `$proxy_add_x_forwarded_for`, Traefik or
+ingress-nginx: a second one makes its own address the rightmost entry, and
+every visitor shares it. A header value that is not an address falls back to
+the TCP connection peer.
 
 An unrecognised value falls back to `direct`.
 
 Declaring the platform also strips its vendor-specific headers (e.g.
-Cloudflare's `Cf-*`) from captured requests, so users inspect their own traffic
-without the noise of whatever provider sits in front of httphq.
+Cloudflare's `Cf-*`, for `cloudflare` and `render`) from captured requests, so
+users inspect their own traffic without the noise of whatever provider sits in
+front of httphq.
 
 > **Security note.** Setting `PLATFORM` trusts that platform's client-IP
 > header unconditionally: httphq cannot tell a real platform header from one
