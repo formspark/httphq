@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/gofiber/fiber/v3"
@@ -58,88 +59,69 @@ func TestResolvePlatform(t *testing.T) {
 // The table itself, rather than the lookup into it. A platform entry that
 // disagrees with the header it names is wrong however it was resolved.
 func TestPlatforms(t *testing.T) {
-	t.Run("list-valued platforms are the ones reading X-Forwarded-For", func(t *testing.T) {
+	t.Run("X-Forwarded-For is read from the right and only from the right", func(t *testing.T) {
 		for name, config := range platforms {
-			if config.ipHeader == fiber.HeaderXForwardedFor {
-				assert.Truef(t, config.ipList, "%s reads a list header and must take the leftmost entry", name)
-			}
+			assert.Equalf(t, config.ipHeader == fiber.HeaderXForwardedFor, config.ipRightmost,
+				"%s: the client writes the left of X-Forwarded-For, so only that list is read from the right", name)
 		}
 	})
+
+	t.Run("render reads the header its Cloudflare edge overwrites", func(t *testing.T) {
+		assert.Equal(t, "Cf-Connecting-Ip", platforms["render"].ipHeader)
+	})
+}
+
+// peerIP is the TCP peer the client-IP cases connect from, and forgedIP what a
+// client writes into a header to pose as someone else.
+const (
+	peerIP   = "203.0.113.7"
+	forgedIP = "192.0.2.66"
+)
+
+// clientIPFor resolves the client IP under platform for a request from peerIP
+// carrying headers, each value of a header sent as a separate header line.
+func clientIPFor(t *testing.T, app *fiber.App, platform string, headers map[string][]string) string {
+	t.Helper()
+	withPlatform(t, platform)
+
+	c := contextWith(t, app, peerIP, nil)
+	for name, values := range headers {
+		for _, value := range values {
+			c.Request().Header.Add(name, value)
+		}
+	}
+	return resolveClientIP(c)
 }
 
 func TestResolveClientIP(t *testing.T) {
 	app := fiber.New()
 
 	t.Run("direct mode reads the connection peer", func(t *testing.T) {
+		assert.Equal(t, peerIP, clientIPFor(t, app, "direct", map[string][]string{
+			"Cf-Connecting-Ip": {"198.51.100.1"},
+			"Fly-Client-Ip":    {"198.51.100.1"},
+			"X-Forwarded-For":  {"198.51.100.2"},
+		}))
+	})
+
+	t.Run("an IPv6 peer is kept and an IPv4-mapped one is reported as IPv4", func(t *testing.T) {
 		withPlatform(t, "direct")
 
-		c := contextWith(t, app, "203.0.113.7", map[string]string{
-			"Cf-Connecting-Ip": "198.51.100.1",
-			"X-Forwarded-For":  "198.51.100.2",
-		})
-
-		assert.Equal(t, "203.0.113.7", resolveClientIP(c))
+		assert.Equal(t, "2001:db8::7", resolveClientIP(contextWith(t, app, "2001:db8::7", nil)))
+		assert.Equal(t, "198.51.100.7", resolveClientIP(contextWith(t, app, "::ffff:198.51.100.7", nil)))
 	})
 
-	t.Run("a configured platform reads its own header", func(t *testing.T) {
+	// Behind a trusted proxy, Fiber's own c.IP() reads the leftmost
+	// X-Forwarded-For entry, which the client wrote. The fallback must be the
+	// socket peer instead.
+	t.Run("the fallback behind a trusted proxy is the socket peer, not X-Forwarded-For", func(t *testing.T) {
 		withPlatform(t, "cloudflare")
-
-		c := contextWith(t, app, "203.0.113.7", map[string]string{
-			"Cf-Connecting-Ip": "198.51.100.1",
-		})
-
-		assert.Equal(t, "198.51.100.1", resolveClientIP(c))
-	})
-
-	t.Run("a list header yields the leftmost entry", func(t *testing.T) {
-		withPlatform(t, "proxy")
-
-		c := contextWith(t, app, "203.0.113.7", map[string]string{
-			"X-Forwarded-For": " 198.51.100.1 , 10.0.0.1, 172.16.0.1",
-		})
-
-		assert.Equal(t, "198.51.100.1", resolveClientIP(c))
-	})
-
-	// Falling back rather than trusting the header keeps a garbage value from
-	// becoming its own rate-limit bucket.
-	t.Run("a missing or malformed platform header falls back to the peer", func(t *testing.T) {
-		withPlatform(t, "cloudflare")
-
-		for name, header := range map[string]string{
-			"missing":     "",
-			"not an IP":   "not-an-ip",
-			"empty entry": "   ",
-		} {
-			t.Run(name, func(t *testing.T) {
-				c := contextWith(t, app, "203.0.113.7", map[string]string{"Cf-Connecting-Ip": header})
-				assert.Equal(t, "203.0.113.7", resolveClientIP(c))
-			})
-		}
-	})
-
-	// The rate limiter buckets on whatever this returns, so a value that is not
-	// an address must not become a bucket of its own. Behind a trusted proxy
-	// there is no second opinion to fall back to: Fiber reads the peer from the
-	// same forwarded header, so a garbage entry is all either source has.
-	t.Run("an address none of the sources can parse yields nothing", func(t *testing.T) {
-		withPlatform(t, "proxy")
 
 		c := contextWith(t, proxyTrustApp(), "10.0.0.1", map[string]string{
-			fiber.HeaderXForwardedFor: "not-an-ip",
+			fiber.HeaderXForwardedFor: forgedIP,
 		})
 
-		assert.Empty(t, resolveClientIP(c))
-	})
-
-	t.Run("IPv6 survives round-tripping", func(t *testing.T) {
-		withPlatform(t, "fly")
-
-		c := contextWith(t, app, "203.0.113.7", map[string]string{
-			"Fly-Client-Ip": "2001:db8::1",
-		})
-
-		assert.Equal(t, "2001:db8::1", resolveClientIP(c))
+		assert.Equal(t, "10.0.0.1", resolveClientIP(c))
 	})
 
 	// A connection with no readable peer reports 0.0.0.0 rather than nothing,
@@ -152,6 +134,116 @@ func TestResolveClientIP(t *testing.T) {
 
 		assert.Equal(t, "0.0.0.0", resolveClientIP(c))
 	})
+}
+
+// One trusted hop appends the address that connected to it, and the client
+// writes everything to its left.
+func TestResolveClientIPFromForwardedFor(t *testing.T) {
+	app := fiber.New()
+
+	for _, platform := range []string{"heroku", "proxy"} {
+		t.Run(platform, func(t *testing.T) {
+			xff := func(values ...string) string {
+				return clientIPFor(t, app, platform, map[string][]string{fiber.HeaderXForwardedFor: values})
+			}
+
+			t.Run("reads a lone entry", func(t *testing.T) {
+				assert.Equal(t, "198.51.100.1", xff("198.51.100.1"))
+			})
+
+			t.Run("takes the rightmost entry of a multi-hop chain", func(t *testing.T) {
+				assert.Equal(t, "198.51.100.1", xff("10.0.0.2, 10.0.0.1, 198.51.100.1"))
+			})
+
+			t.Run("ignores a leftmost entry the client forged", func(t *testing.T) {
+				assert.Equal(t, "198.51.100.1", xff(forgedIP+", 198.51.100.1"))
+				assert.Equal(t, "198.51.100.1", xff("192.0.2.67, 198.51.100.1"))
+			})
+
+			t.Run("reads the last entry across repeated headers", func(t *testing.T) {
+				assert.Equal(t, "198.51.100.1", xff(forgedIP, "10.0.0.1, 198.51.100.1"))
+			})
+
+			t.Run("trims surrounding whitespace", func(t *testing.T) {
+				assert.Equal(t, "198.51.100.1", xff("10.0.0.1 ,  198.51.100.1  "))
+			})
+
+			t.Run("reads IPv6 and unwraps an IPv4-mapped entry", func(t *testing.T) {
+				assert.Equal(t, "2001:db8::1", xff(forgedIP+", 2001:db8::1"))
+				assert.Equal(t, "198.51.100.1", xff(forgedIP+", ::ffff:198.51.100.1"))
+			})
+
+			t.Run("ignores the headers belonging to other platforms", func(t *testing.T) {
+				assert.Equal(t, peerIP, clientIPFor(t, app, platform, map[string][]string{
+					"Cf-Connecting-Ip": {"198.51.100.1"},
+					"Fly-Client-Ip":    {"198.51.100.1"},
+				}))
+			})
+
+			// Falling back rather than trusting the header keeps a garbage value
+			// from becoming its own rate-limit bucket.
+			for _, value := range []string{"", " , ", "198.51.100.1, ", "198.51.100.1, garbage", "198.51.100.1:443", "[::1]"} {
+				t.Run("falls back to the peer for "+strconv.Quote(value), func(t *testing.T) {
+					assert.Equal(t, peerIP, xff(value))
+				})
+			}
+		})
+	}
+}
+
+// The edge sets one address itself, whatever the client sent.
+func TestResolveClientIPFromEdgeHeader(t *testing.T) {
+	app := fiber.New()
+
+	// foreign is the client-IP header of an edge this platform does not sit
+	// behind, so a client can write it.
+	for _, edge := range []struct{ platform, header, foreign string }{
+		{"cloudflare", "Cf-Connecting-Ip", "Fly-Client-Ip"},
+		{"fly", "Fly-Client-Ip", "Cf-Connecting-Ip"},
+		{"render", "Cf-Connecting-Ip", "Fly-Client-Ip"},
+	} {
+		t.Run(edge.platform, func(t *testing.T) {
+			single := func(values ...string) string {
+				return clientIPFor(t, app, edge.platform, map[string][]string{edge.header: values})
+			}
+
+			t.Run("reads its header", func(t *testing.T) {
+				assert.Equal(t, "198.51.100.1", single("198.51.100.1"))
+				assert.Equal(t, "198.51.100.1", single(" 198.51.100.1 "))
+			})
+
+			t.Run("ignores X-Forwarded-For, which the client can write", func(t *testing.T) {
+				assert.Equal(t, peerIP, clientIPFor(t, app, edge.platform, map[string][]string{
+					fiber.HeaderXForwardedFor: {forgedIP},
+				}))
+				assert.Equal(t, "198.51.100.1", clientIPFor(t, app, edge.platform, map[string][]string{
+					edge.header:               {"198.51.100.1"},
+					fiber.HeaderXForwardedFor: {forgedIP},
+				}))
+			})
+
+			t.Run("ignores the header belonging to another edge", func(t *testing.T) {
+				assert.Equal(t, peerIP, clientIPFor(t, app, edge.platform, map[string][]string{
+					edge.foreign: {forgedIP},
+				}))
+			})
+
+			t.Run("reads IPv6 and unwraps an IPv4-mapped address", func(t *testing.T) {
+				assert.Equal(t, "2001:db8::1", single("2001:db8::1"))
+				assert.Equal(t, "198.51.100.1", single("::ffff:198.51.100.1"))
+			})
+
+			t.Run("falls back to the peer for a repeated header", func(t *testing.T) {
+				assert.Equal(t, peerIP, single(forgedIP, "198.51.100.1"))
+			})
+
+			for _, value := range []string{"", "   ", "not-an-ip", "999.0.0.1", "198.51.100.1, " + forgedIP} {
+				t.Run("falls back to the peer for "+strconv.Quote(value), func(t *testing.T) {
+					assert.Equal(t, peerIP, single(value))
+				})
+			}
+		})
+	}
 }
 
 func TestOmitHeader(t *testing.T) {
@@ -180,6 +272,10 @@ func TestOmitHeader(t *testing.T) {
 		withPlatform(t, "fly")
 		assert.True(t, omitHeader("Fly-Region"))
 		assert.False(t, omitHeader("CF-Ray"))
+
+		withPlatform(t, "render")
+		assert.True(t, omitHeader("CF-Ray"))
+		assert.False(t, omitHeader("Fly-Region"))
 	})
 
 	t.Run("a header shorter than a vendor prefix is not mistaken for one", func(t *testing.T) {
