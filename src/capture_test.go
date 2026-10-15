@@ -80,6 +80,22 @@ func TestCaptureRequest(t *testing.T) {
 		assert.NotContains(t, headers, "Via")
 	})
 
+	t.Run("stores the client IP the platform resolves", func(t *testing.T) {
+		withPlatform(t, "heroku")
+		id := endpointID(t)
+
+		do(t, testRequest{
+			method:  http.MethodPost,
+			path:    "/to/" + id,
+			body:    "x",
+			headers: map[string]string{"X-Forwarded-For": "192.0.2.66, 198.51.100.1"},
+		})
+
+		captured := capturedRequests(t, id, "")
+		require.Len(t, captured, 1)
+		assert.Equal(t, "198.51.100.1", captured[0].IP)
+	})
+
 	// flattenHeaders decides the stored shape, and every consumer downstream
 	// reads it: the request panel, the search index and the HAR export all
 	// expect a scalar or a list. This drives a real request through the wire so
