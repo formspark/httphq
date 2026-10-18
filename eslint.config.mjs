@@ -1,7 +1,8 @@
 // Lint configuration for the hand-written JavaScript and TypeScript: the page
 // scripts in public/, which the browser loads as plain scripts with no build
 // step, the Playwright suite in e2e/, which is type-checked TypeScript, and the
-// Node scripts that run the checks and the build.
+// Node scripts that run the checks and the build, with the Vitest suites for
+// those checks under tests/.
 //
 // The Go application is linted by golangci-lint; nothing here touches it.
 
@@ -91,8 +92,8 @@ export default tseslint.config(
     },
     rules: {
       // No assertions: a value that arrives untyped, a JSON body or the
-      // clipboard, is parsed with a schema in tests/support/harness.ts, never
-      // declared. `as const` is still allowed, since it narrows only a literal
+      // clipboard, is parsed with a schema in e2e/tests/support/harness.ts,
+      // never declared. `as const` is still allowed, since it narrows only a literal
       // the code wrote itself.
       "@typescript-eslint/consistent-type-assertions": [
         "error",
@@ -113,12 +114,33 @@ export default tseslint.config(
     },
   },
 
+  // The Vitest suites for the checks under scripts/. Type-aware for the same
+  // reason as the Playwright suite.
+  {
+    files: ["tests/**/*.ts"],
+    extends: [js.configs.recommended, tseslint.configs.recommendedTypeChecked],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname + "/tests",
+      },
+    },
+  },
+
   // The Node-side scripts: this file, the checks and the social card under
   // scripts/, and the husky installer.
   {
     files: ["eslint.config.mjs", "scripts/**/*.mjs", ".husky/*.mjs"],
     extends: [js.configs.recommended],
     languageOptions: { globals: globals.node },
+  },
+
+  // check-doc-refs.mjs is vendored and kept identical to its canonical copy,
+  // so that an update is a plain file replacement. Splitting its classifiers
+  // to meet the caps would fork it, so the three ratchets do not apply to it.
+  {
+    files: ["scripts/check-doc-refs.mjs"],
+    rules: { complexity: "off", "max-params": "off", "max-depth": "off" },
   },
 
   // The social card hands a function to page.evaluate, which runs it in the

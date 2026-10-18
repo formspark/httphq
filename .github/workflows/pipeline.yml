@@ -65,9 +65,8 @@ jobs:
       - name: Check complexity
         timeout-minutes: 2
         run: pnpm run go:cyclo
-      # Coverage is measured and reported, not gated. A threshold set before the
-      # number is known is a guess; this prints it so a later one can be set at
-      # what the suite actually reaches.
+      # Coverage is printed to the job summary and gated by its floor in
+      # go:coverage:check, which only ever moves up.
       - name: Test with coverage
         timeout-minutes: 5
         run: pnpm run test:coverage
@@ -114,6 +113,17 @@ jobs:
       - name: Check prose for em dashes
         timeout-minutes: 1
         run: pnpm run check:prose
+      - name: Check references in the docs
+        timeout-minutes: 1
+        run: pnpm run check:doc-refs
+      # Offline: relative links and their anchors only, never the network, so
+      # a remote host that is down cannot fail a pull request.
+      - name: Check links in the docs
+        uses: lycheeverse/lychee-action@v2.9.0
+        timeout-minutes: 2
+        with:
+          args: --offline --include-fragments --no-progress '*.md' 'docs/*.md' 'agents/*.md'
+          fail: true
       # setup-uv publishes no floating major tag, so the release is pinned.
       #
       # Caching is off because there is nothing here to cache against. The
@@ -135,9 +145,12 @@ jobs:
       - name: Check dependencies for known vulnerabilities
         timeout-minutes: 2
         run: pnpm run check:audit
-      - name: Type-check the page scripts and the Playwright suite
+      - name: Type-check the page scripts and the test suites
         timeout-minutes: 2
         run: pnpm run typecheck
+      - name: Test the Node scripts
+        timeout-minutes: 2
+        run: pnpm run test:scripts
 
   styles:
     runs-on: ubuntu-latest

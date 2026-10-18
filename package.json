@@ -6,6 +6,7 @@
     "build": "CGO_ENABLED=0 go build -trimpath -ldflags=\"-s -w -X main.version=${APP_VERSION:-dev}\" -o ./bin/httphq ./src",
     "check:audit": "pnpm audit --prod --audit-level high",
     "check:dead-code": "knip --cache",
+    "check:doc-refs": "node scripts/check-doc-refs.mjs",
     "check:lint-staged": "node scripts/check-lint-staged.mjs",
     "check:package-json": "sort-package-json --check",
     "check:prose": "node scripts/check-prose.mjs",
@@ -29,8 +30,9 @@
     "test": "go test -race ./src/...",
     "test:coverage": "go test -race -coverprofile=coverage.out ./src/... && go tool cover -func=coverage.out | tail -1",
     "test:e2e": "pnpm --filter httphq-e2e test",
-    "typecheck": "tsc --noEmit -p . && pnpm --filter httphq-e2e exec tsc --noEmit",
-    "verify": "pnpm go:vuln && pnpm go:format:check && pnpm go:lint && pnpm go:deadcode && pnpm go:cyclo && pnpm test:coverage && pnpm go:coverage:check && pnpm lint && pnpm format:check && pnpm check:lint-staged && pnpm check:package-json && pnpm check:prose && pnpm check:typos && pnpm check:dead-code && pnpm check:audit && pnpm typecheck && pnpm css:check && pnpm build && pnpm test:e2e"
+    "test:scripts": "vitest run --dir tests/scripts",
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p tests && pnpm --filter httphq-e2e exec tsc --noEmit",
+    "verify": "pnpm go:vuln && pnpm go:format:check && pnpm go:lint && pnpm go:deadcode && pnpm go:cyclo && pnpm test:coverage && pnpm go:coverage:check && pnpm lint && pnpm format:check && pnpm check:lint-staged && pnpm check:package-json && pnpm check:prose && pnpm check:doc-refs && pnpm check:typos && pnpm check:dead-code && pnpm check:audit && pnpm typecheck && pnpm test:scripts && pnpm css:check && pnpm build && pnpm test:e2e"
   },
   "lint-staged": {
     "package.json": "sort-package-json",
@@ -41,6 +43,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@tailwindcss/cli": "4.2.4",
+    "@types/node": "^22.20.1",
     "eslint": "^10.11.0",
     "globals": "^17.9.0",
     "husky": "^9.1.7",
@@ -50,7 +53,8 @@
     "sort-package-json": "^4.0.0",
     "tailwindcss": "4.2.4",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.66.0"
+    "typescript-eslint": "^8.66.0",
+    "vitest": "^5.0.5"
   },
   "packageManager": "pnpm@11.17.0",
   "engines": {

@@ -7,8 +7,9 @@
  * the `go:lint` step and by `go:deadcode`. Do not read a quiet knip run as
  * coverage of the application.
  *
- * What is left for knip is the browser scripts under `public/`, the two build
- * scripts, and the Playwright suite in the `e2e` workspace.
+ * What is left for knip is the page scripts under `public/`, the Node scripts
+ * under `scripts/` with their Vitest suites under `tests/`, and the Playwright
+ * suite in the `e2e` workspace.
  *
  * Every `entry` line is a claim that something outside the import graph loads
  * that file. Here that is mostly a `<script>` tag in a Go template, which no
