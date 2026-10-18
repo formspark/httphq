@@ -75,11 +75,6 @@ const submitSendPanel = async (
   await page.getByTestId("send-submit").click();
 };
 
-/**
- * The capture a send produced, found by the UUID the server echoes back. Going
- * through the UUID rather than through position is what lets a test assert
- * about its own request while the stream carries others.
- */
 /** The UUID the server stamped on a capture, failing the test without one. */
 const capturedUuid = (response: APIResponse): string => {
   const uuid = response.headers()["httphq-request-uuid"];
@@ -89,6 +84,11 @@ const capturedUuid = (response: APIResponse): string => {
   return uuid;
 };
 
+/**
+ * The capture a send produced, found by the UUID the server echoes back. Going
+ * through the UUID rather than through position is what lets a test assert
+ * about its own request while the stream carries others.
+ */
 const cardFor = (page: Page, uuid: string) => page.locator(`#request-${uuid}`);
 
 test.describe("Endpoint screen", () => {

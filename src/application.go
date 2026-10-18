@@ -238,8 +238,7 @@ func main() {
 	slog.Info("platform resolved",
 		"platform", os.Getenv("PLATFORM"), "ip_header", currentPlatform.ipHeader)
 
-	// tcp4 is the network Fiber listened on by default before the listener
-	// moved here.
+	// tcp4 is the network Fiber's own listener defaults to.
 	address := listenAddress()
 	listener, err := net.Listen("tcp4", address)
 	if err != nil {

@@ -5,7 +5,7 @@
 // A markdown table cell holding nothing but a dash marks a missing value and
 // passes. Anything else that has to keep a dash, such as a code or a format
 // taken from outside, goes in scripts/prose-allowlist.json with its reason:
-//   [{ "path": "src/pages/Foundations.tsx", "pattern": "MT—\\d{3}", "reason": "…" }]
+//   [{ "path": "src/data/", "pattern": "ID—\\d{3}", "reason": "…" }]
 // `path` is a file, or a directory ending in "/". `pattern` is a regular
 // expression; its matches on that path are ignored.
 //

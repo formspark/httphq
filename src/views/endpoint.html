@@ -20,7 +20,6 @@
     x-text="announcement"
   ></p>
 
-  <!-- Endpoint URL panel -->
   <section class="mt-2 mb-6" aria-labelledby="endpoint-url-heading">
     <!-- Explicit spacing rather than space-y: a label belongs to its field, so
          the gap above the field is smaller than the gap to the note below it.
@@ -55,7 +54,6 @@
     </div>
   </section>
 
-  <!-- Send custom request panel -->
   <section class="mb-6" aria-labelledby="send-heading">
     <details class="group panel">
       <summary data-test="send-toggle" class="panel-summary">
@@ -198,7 +196,6 @@
     </details>
   </section>
 
-  <!-- Stream controls -->
   <div
     class="mb-4 flex items-center justify-between gap-4 text-sm text-neutral-500"
   >
@@ -290,7 +287,6 @@
     </div>
   </div>
 
-  <!-- Filter bar -->
   <div
     class="sticky top-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-neutral-50/95 backdrop-blur border-y border-neutral-200 mb-4 flex flex-col sm:flex-row gap-3 sm:items-center"
   >
@@ -324,7 +320,6 @@
     ></span>
   </div>
 
-  <!-- Requests list -->
   <section
     data-test="requests"
     class="space-y-4"
@@ -372,7 +367,6 @@
       </div>
     </template>
 
-    <!-- Cards -->
     <template x-for="request in renderedRequests" :key="request.uuid">
       <article
         :id="`request-${request.uuid}`"
