@@ -36,8 +36,9 @@
     {{end}}
 
     <!-- Built from src/styles/app.css by `pnpm run css`. The only stylesheet on
-         the marketing and contact pages, and the only render-blocking resource
-         anywhere: no page waits on a third party to have a layout. -->
+         the home and contact pages, so neither waits on a third party for its
+         first paint. The endpoint page also blocks on the highlight.js theme
+         below, the one third-party stylesheet (DESIGN.md, Typography). -->
     <link rel="stylesheet" href="{{asset `/app.css`}}" />
 
     {{if .AppScripts}}

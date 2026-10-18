@@ -1,53 +1,51 @@
 # AGENTS.md
 
-Guidance for agents and contributors working in this repository. README.md says
-what httphq is and how to configure it, docs/api.md is the JSON API,
-docs/scripts.md is every command, DESIGN.md is the visual system and PRODUCT.md
-is the product. This file is the constraints that are not obvious from the
-source.
+Guidance for agents and contributors working in this repository. This file is
+the constraints that are not obvious from the source. The other docs each own
+one thing:
+
+- README.md: what httphq is, and its configuration for self-hosters.
+- docs/scripts.md: setup, every script, the stylesheet, the build and running
+  the image.
+- docs/api.md: the JSON API.
+- DESIGN.md: the visual system. PRODUCT.md: the product and its principles.
+- `agents/`: a recipe per area, listed at the end of this file.
 
 ## `pnpm verify` is the definition of done
 
-It runs, in order: govulncheck, gofmt, golangci-lint, the Go reachability check
-and gocyclo over the Go code, the Go tests with the race detector and coverage,
-the coverage floor, ESLint, Prettier, the lint-staged glob check, the prose and
-spelling checks, the dead-code check, the advisory check, the type check, the
-stylesheet freshness check, the production build and the Playwright suite. A
-change that has not passed it is not finished. CI runs the same package.json
-scripts, split into jobs in `pipeline.yml`, and also builds the image.
-
-`go:coverage:check` reads the total out of `coverage.out` and fails under 93%,
-which is where the suite stands. It is a ratchet, like the complexity caps and
-`gocyclo -over 4`: when a change pushes the number up, raise the floor, and
-never lower it to make a change pass. The Go and the npm sides are measured
-differently and the npm side has no suite to speak of, so there is one floor
-here rather than the four `thresholds` the TypeScript repositories carry.
-
-`check:audit` is `pnpm audit --prod --audit-level high`, over the Node
-periphery. The Go side has govulncheck, which gates on reachability rather
-than presence, and is the stricter of the two: it is why `gofiber/fiber` and
-`golang.org/x/crypto` carry advisories at module level while verify stays
-green. The npm scan has no such filter, so it is scoped to what ships and to
-what is worth stopping for. An advisory that has no fix, or one that cannot be
-reached from this code, goes in `auditConfig.ignoreCves` with the reason
-beside it.
-
-The pipeline only answers whether a change introduces an advisory. `audit.yml`
-asks the other question once a week, against whatever is on master, because a
-repository nobody pushes to runs nothing. The nightly `test.yml` already
-covers the Go side the same way.
+It runs every step of `scripts.verify` in package.json. A change that has not
+passed it is not finished. CI runs the same package.json scripts, split into
+jobs in `pipeline.yml`, and also builds and scans the image and checks the
+Markdown links offline.
 
 The spelling check runs typos through `uvx`, so it needs uv, and `check:audit`
-reaches the registry. The Playwright
-suite needs Chromium once (docs/scripts.md) and loads Alpine and the syntax
-highlighter from public CDNs, so a screen that never hydrates is a network
-failure before it is a code one: run it again before debugging it.
+reaches the registry. The Playwright suite needs Chromium once
+(docs/scripts.md) and loads Alpine and the syntax highlighter from public CDNs,
+so a screen that never hydrates is a network failure before it is a code one:
+run it again before debugging it.
+
+## Boundaries
+
+- Always: run `pnpm verify` before calling a change done. Fix every instance
+  of a defect, not only the one that was reported. See a regression test fail
+  without the fix before trusting it: take the fix out, watch the test go
+  red, put it back. Unenforced: reviewer's call.
+- Always: rebuild `public/app.css` with `pnpm run css` when a template or a
+  script gains a class, and commit it with the change. `pnpm css:check`
+  enforces it.
+- Ask first: a new third-party origin on any page, or anything that moves one
+  onto the home page (DESIGN.md, Typography); anything that makes captures
+  durable or adds accounts (PRODUCT.md, Product Principles); editing a vendored
+  check under `scripts/` (agents/testing.md).
+- Never: skip the pre-commit hook with `--no-verify`; lower the coverage floor
+  or raise a complexity cap to make a change pass; add a check to `test.yml`
+  or `release.yml` instead of `pipeline.yml`.
 
 ## Comments say what the code does now
 
 A comment explains why, and names the constraint the next person has to
 respect: "excluded by default so new surfaces are safe". Write it so it still
-makes sense in a year.
+makes sense in a year. Unenforced: reviewer's call.
 
 - No history: not what the code used to do, not the bug that prompted it. That
   belongs in the commit message, where it is attached to the change.
@@ -58,6 +56,8 @@ makes sense in a year.
   the one-time scenario, especially in shared helpers and test fixtures.
 
 ## Commits say what the change does
+
+Unenforced: reviewer's call, apart from the hook.
 
 - The subject is a sentence in the imperative that says what the change does:
   "Refuse an oversized body instead of storing a bodyless capture", not
@@ -71,243 +71,98 @@ makes sense in a year.
 - No assistant attribution of any kind: no co-author trailer, no session link,
   no generated-with footer.
 - One concern per commit. The pre-commit hook formats and lints what is
-  staged, Go files included; do not skip it with `--no-verify`.
+  staged, Go files included.
 
 ## Writing
 
 No em dashes in prose: docs, comments, UI copy and commit messages. Rewrite the
 clause instead. A paired aside becomes commas or parentheses; a dash that
 introduces an explanation becomes a colon or a new sentence. `check:prose`
-fails on one in any tracked file.
+fails on one in any tracked file; commit messages are the reviewer's call.
 
 User-facing copy names the format or the action, never a consumer such as
 agents or LLMs: `Copy request`, `Copy shown (N)`. The constraint is on product
-copy only; commit messages and docs may mention agents freely.
+copy only; commit messages and docs may mention agents freely. Unenforced:
+reviewer's call.
 
-## Configuration
+A doc that names a path, an anchor, a `pnpm` script or a `pnpm-workspace.yaml`
+key names one that exists. `pnpm check:doc-refs` enforces it
+(agents/checks.md).
 
-The runtime variables are in README.md under Configuration, in a
-`Variable | Required | Default | Secret | Notes` table, because the people
-self-hosting httphq read that file. None is required and none is a secret.
+## Tooling policy
 
-`APP_VERSION` is a build argument rather than a runtime variable: the build
-script and the Dockerfile link it in, release.yml passes the image tag, and
-`/api/health` reports it.
+- Lint is clean and types are strict: `pnpm lint` runs with
+  `--max-warnings 0`, and what each linter bans is explained in its own config
+  (`.golangci.yml`, `eslint.config.mjs`, the tsconfigs).
+- An exception goes in the tool's config, scoped to the file and the rule,
+  with the reason beside it: `eslint.config.mjs` for lint, where inline
+  `eslint-disable` is switched off and reported, `.golangci.yml` for Go, and
+  `knip.ts` for dead code.
+- The caps only go down. `gocyclo -over 4` for Go, and `complexity`,
+  `max-params` and `max-depth` in ESLint, sit at the worst function that
+  exists, and the 93% coverage floor in `go:coverage:check` sits where the
+  suite stands. When a new function trips a cap, split the function; lower a
+  cap when its worst offender is split, and raise the floor when coverage
+  rises. `pnpm go:cyclo`, `pnpm lint` and `pnpm go:coverage:check` enforce the
+  current values; moving them only one way is the reviewer's call.
+- Dead code is checked on both sides, separately: `go:deadcode` and
+  golangci-lint for Go, knip for the JavaScript. A quiet run of one says
+  nothing about the other (agents/checks.md).
+- An advisory that has no fix, or cannot be reached from this code, goes in
+  `audit.ignore` in `pnpm-workspace.yaml` with its reason
+  (agents/dependencies.md).
 
-The listen port is not configurable. `port` in `src/application.go` is a
-constant, so anything that needs two instances, or to run beside something
-already holding 8080, changes the constant.
+## Invariants and traps
 
-## Tests
-
-- Go: a test file covers one subject, is named after it, and names each suite
-  after what it exercises, so a handler's tests are found beside the handler.
-  One `TestSubject` per function or type, with sentence-style `t.Run` names,
-  `t.Helper` in helpers, and `-race`. `harness_test.go` is not a subject: it
-  holds `TestMain` and the fixtures shared by every test that drives a real
-  request.
-- Playwright: see "The Playwright suite covers screens and page scripts
-  separately" below.
-- `design_test.go` is the one test that reads documentation rather than code.
-  DESIGN.md's frontmatter lists the palette and `src/styles/theme.css` renders
-  it, and nothing generates one from the other, so a colour changed in the
-  sheet alone would leave the document quietly wrong. It resolves one level of
-  `var(--color-x)`, which is what lets the sheet say the mark is brand-600
-  while the document states the colour itself, and it treats `#fff` and
-  `#ffffff` as the same. Both directions are checked, and both parsers refuse
-  to pass when they match implausibly few colours.
-- Fix every instance of a defect, not only the one that was reported.
-- A regression test has to be seen failing without the fix before it is
-  trusted. Take the fix out, watch the test go red, put it back.
-
-## Lint is clean, types are strict, and the caps only go down
-
-- golangci-lint runs its default set, which is `go vet` plus the checks vet
-  does not cover: unchecked error returns, dead assignments, unused code, and
-  staticcheck's correctness rules. `errcheck` is relaxed inside `_test.go`: a
-  test that ignores an error is usually asserting the value beside it.
-- ESLint runs with `--max-warnings 0`. The Playwright suite is linted with type
-  information: no type assertions other than `as const`, no non-null
-  assertions, no `any`, and no `@ts-` comments of any kind. A value that
-  arrives untyped, a JSON body or the clipboard, is parsed with a zod schema in
-  `tests/support/harness.ts`.
-- No `eslint-disable` comments: inline config is switched off, so one has no
-  effect and is reported. A rule that cannot hold for a file gets an entry in
-  `eslint.config.mjs`, scoped to that file and that rule, with the reason
-  beside it.
-- Both tsconfigs add `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`,
-  `noImplicitOverride` and `noFallthroughCasesInSwitch` to `strict`.
-- `gocyclo -over 4` for Go, and `complexity`, `max-params` and `max-depth` in
-  ESLint, are capped at the worst function that exists. They are ratchets: when
-  a new function trips one, split the function rather than raising the cap, and
-  lower a cap when its worst offender is split.
-- `check:package-json` fails when `package.json` is not in the order
-  `sort-package-json` puts it in. lint-staged sorts it on commit; this is what
-  catches a commit made with `--no-verify`, the same pairing `format` and
-  `format:check` use.
-- `check:lint-staged` fails when the tree holds a file extension Prettier can
-  format that no lint-staged pattern matches. Prettier decides what counts, so
-  the two cannot drift, and a gap would otherwise be silent: CI formats the
-  file, the hook never touches it.
-
-## Dead code is checked on both sides, separately
-
-This repository is a Go application with a small JavaScript periphery, and the
-two need different tools. Neither covers the other, so a quiet run of one says
-nothing about the other.
-
-`go:deadcode` runs `deadcode` from `golang.org/x/tools`, pinned the way
-govulncheck, golangci-lint and gocyclo are. It builds the whole call graph from
-`main` and reports every function nothing reaches. golangci-lint's `unused` is
-already in the standard set `go:lint` runs, but it works a package at a time: it
-catches an unexported helper nobody calls and cannot see an exported function
-that no entry point reaches. This closes that. It prints findings and exits zero
-on its own, so the script is the same shape `go:format:check` uses, failing on
-non-empty output.
-
-`check:dead-code` is [knip](https://knip.dev), over the JavaScript only: the
-browser scripts under `public/`, the two build scripts, and the Playwright suite
-in the `e2e` workspace. Both hold at zero.
-
-`knip.ts` says in its own header that it does not cover `src/`, because the
-tempting mistake is to read a passing knip run as coverage of the application.
-The `entry` patterns there are mostly `<script>` tags in the Go templates under
-`src/views`, which no module graph can see.
-
-One dependency is exempt, `playwright`, which a script resolves through a
-`createRequire` rooted at another workspace so it is not installed twice.
-`knip.ts` carries that reason beside the entry.
-
-Neither runs from the pre-commit hook. lint-staged hands a task the staged paths,
-and a whole-graph analysis over a subset reports almost everything as unused.
+- The toolchain pins move together; agents/dependencies.md lists them.
+  Unenforced: reviewer's call.
+- Every Go command is scoped to `./src`, never `./...`; docs/scripts.md says
+  why. Unenforced: reviewer's call.
+- `public/app.css` is generated and committed, so the binary and the container
+  need no Node. `pnpm css:check` enforces its freshness.
+- A new background task that writes to the store has to stop before the store
+  closes on SIGTERM (agents/go-application.md). Unenforced: reviewer's call.
+- `newApplication` builds the routing surface from arguments; anything that
+  reads the environment belongs in `main`, not in a handler. Unenforced:
+  reviewer's call.
+- `PLATFORM` trusts its platform's client-IP header unconditionally
+  ([README.md](README.md#platform)). `platform_test.go` holds each strategy.
+- Headers and bodies are never logged, and paths are logged without their
+  query string (agents/go-application.md). The tests in `src/logging` hold
+  the redaction backstop; the rest is unenforced: reviewer's call.
+- DESIGN.md's palette and `src/styles/theme.css` are held together by
+  `src/design_test.go` (agents/testing.md).
 
 ## Reading CI
 
 - `pipeline.yml` is the single definition of what verified means, and both
   `test.yml` (pull requests and a nightly run) and `release.yml` (pushes to
-  master) call it. A check cannot exist on pull requests yet be skipped on the
-  push that publishes the image. Adding a check means adding a script to
-  package.json, to `verify`, and to `pipeline.yml`, never to one of the two
-  callers.
+  master) call it. Adding a check means adding a script to package.json, to
+  `verify`, and to `pipeline.yml`.
 - The nightly run exists because the page scripts pull Alpine and highlight.js
   from public CDNs at runtime, so the suite can fail on a day nobody pushed.
+  `audit.yml` asks the same of the dependencies and the base image once a
+  week.
 - Read the checks table, not a watcher's exit code:
   `gh pr checks <n> --watch --fail-fast` can exit 0 with a failed run in the
   table.
 - `gh pr merge --auto` does not wait here. Auto-merge is disabled on this
   repository, so the flag is accepted and the merge happens immediately.
-- A cancelled job is the cap, not a regression. Check with
-  `gh api repos/{owner}/{repo}/actions/jobs/<id> --jq '.steps[]'` before treating
-  a timeout as a code problem.
-- Coverage is printed to the job summary, not gated. A threshold set before the
-  number is known is a guess.
+- A cancelled job hit its `timeout-minutes` cap, which is not a regression.
+  Check with `gh api repos/{owner}/{repo}/actions/jobs/<id> --jq '.steps[]'`
+  before treating a timeout as a code problem.
 
-## Traps
+## Recipes
 
-- The pins move together: `nodejs` and `pnpm` in `.tool-versions`,
-  `packageManager` and `engines` in package.json, the `go` line in go.mod (the
-  Dockerfile's `GOTOOLCHAIN=auto` fetches it), and the Go tool versions in the
-  package.json scripts. CI reads `.tool-versions` and go.mod.
-- Every Go command is scoped to `./src`: `./...` also walks `node_modules`, which
-  ships a stray Go package once the npm tooling is installed.
-- `public/app.css` is generated and committed, so the binary and the container
-  need no Node. A template or script that gains a class needs `pnpm run css`
-  and the rebuilt sheet in the same commit.
-- On SIGTERM the server stops accepting connections, waits up to
-  `shutdownTimeout` for requests in flight, then stops the retention sweep and
-  closes the store. A new background task that writes to the store has to stop
-  before the store closes; see `run` in `src/application.go`.
-
-## Code layout
-
-`src` is a `main` package split by concern, one file per subject with its tests
-beside it: `application.go` (wiring, the process lifecycle and the entry point),
-`platform.go` (client IP and header stripping), `endpoint.go` (endpoint IDs and
-URLs), `capture.go` (the capture handler), `api.go` (the JSON API and the health
-check), `pages.go` (page rendering), `agent.go` (the prompt an endpoint page
-hands to a coding agent), `assets.go` (content-hashed asset URLs), `security.go`
-(CSP and security headers), `sockets.go` (the live feed), `requestlog.go`
-(correlation IDs and the access log).
-
-Two subpackages sit beneath it: `database` (the SQLite connection) and
-`logging` (the slog handler and its sensitive-key redaction). `styles` and
-`views` hold CSS and HTML templates rather than Go.
-
-`newApplication` builds the entire routing surface from arguments, so tests
-drive real requests through it without a listening socket. Anything that pulls
-configuration out of the environment belongs in `main`, not in a handler. `run`
-is everything `main` does after reading the environment and binding the port,
-so `TestRun` covers the lifecycle on a loopback port.
-
-The live feed is the exception. A WebSocket upgrade needs a real connection
-underneath it, so `sockets_test.go` starts an application of its own on a
-loopback port and dials it. Everything else stays on the in-memory transport.
-
-## The Playwright suite covers screens and page scripts separately
-
-`e2e/tests` holds one spec per subject. A `*-screen.spec.ts` drives a screen
-through captured traffic and asserts what a reader ends up seeing.
-`render-body.spec.ts`, `page-helpers.spec.ts` and `har-export.spec.ts` drive the
-browser scripts directly through `loadPageScripts`, because traffic cannot
-express everything those scripts handle: the server parses and re-serialises a
-multipart body before storing it, so several part shapes a client can put on the
-wire never reach the page intact, and neither a repeated header nor a body that
-is not ASCII survives the round trip through the test client.
-`capture-api.spec.ts` covers what only a client on the wire can observe, such as
-the body limit the server enforces around the handler rather than inside it.
-
-A spec's own fixtures sit at the top of that spec, as the locator and multipart
-helpers do. Fixtures used by more than one spec live in
-`tests/support/harness.ts`, along with the zod schemas that parse what the
-suite reads at the `JSON.parse` and `response.json()` boundaries. The HAR
-schemas are strict, because the export is what those tests are about; the
-listing schema drops keys it does not know, so a field the API gains does not
-fail an unrelated test. The helpers the page scripts publish on `window` are
-declared once, in `types/page-scripts.d.ts`, and the suite reads that
-declaration rather than keeping its own.
-
-Screens are reached through `getByTestId`. `testIdAttribute` in
-`playwright.config.ts` points it at the `data-test` attribute the templates
-carry, so a test names a hook and never spells an attribute selector. An element
-a test reaches for gets a `data-test`; anything a reader can identify by its
-role or its text is reached that way instead.
-
-## Client IP is a trust decision
-
-`PLATFORM` selects which header the real client IP is read from, and setting it
-trusts that header unconditionally: httphq cannot tell a platform's header from
-one a client forged. Inbound traffic must not be able to reach the process
-bypassing that platform, or a client can spoof its IP and evade rate limiting.
-Leaving it unset behind a proxy is the opposite failure: every request looks
-like it came from the proxy and rate limiting becomes global.
-
-## Database standards
-
-`TestDatabaseStandards` in `src/database` asks the schema AutoMigrate actually
-produces, rather than the struct tags that ask for it: snake_case tables and
-columns, a `created_at`, and an index on every column a query filters or orders
-by. A `gorm:"column:..."` tag naming something else satisfies the struct and
-fails the test, which is the point.
-
-There are no migration files here and no information_schema to query, so these
-questions go through `sqlite_schema` and the pragmas.
-
-Nothing carries `updated_at`, because a capture is written once and never
-edited, so the test does not ask for one.
-
-## Captured data is ephemeral
-
-SQLite writes to the container's writable layer. Capture history is lost on
-restart, by design. Nothing here is a durable store, and no migration path
-exists for it.
-
-## Logging
-
-Structured JSON to stdout via `log/slog`, with OpenTelemetry field names
-(`service.name`, `http.request.method`, `url.path`, ...). Every request carries
-a `request_id` that is reused from a valid inbound `X-Request-Id` or minted,
-echoed on the response, and stamped onto every line emitted while handling it.
-
-Headers and bodies are never logged and paths are logged without their query
-string; a denylist masks sensitive keys as a backstop. Probe traffic to
-`/api/health` logs at debug so it stays out of production logs.
+- [agents/go-application.md](agents/go-application.md): Open when you touch
+  `src/*.go`: the code layout, configuration, shutdown, client IP and logging.
+- [agents/database.md](agents/database.md): Open when you touch
+  `src/database/`: the schema standards test and why captures are ephemeral.
+- [agents/testing.md](agents/testing.md): Open when you touch `*_test.go`,
+  `e2e/` or `tests/`: how the Go, Playwright and script suites are laid out.
+- [agents/checks.md](agents/checks.md): Open when you touch `eslint.config.mjs`,
+  `.golangci.yml`, `knip.ts` or `scripts/check-*.mjs`: coverage, lint, dead
+  code and doc references.
+- [agents/dependencies.md](agents/dependencies.md): Open when you touch
+  `package.json`, `pnpm-workspace.yaml`, `go.mod` or `.tool-versions`:
+  advisories, pins and release age.

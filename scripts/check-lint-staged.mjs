@@ -57,8 +57,15 @@ const ignored = new Set(
     .filter((line) => line && !line.startsWith("#")),
 );
 
+// An entry covers the path it names and everything under it as a directory,
+// never a sibling that only shares its prefix. A leading slash anchors an
+// entry to the root, which is where every entry here is read from anyway.
 function isIgnored(file) {
-  return [...ignored].some((path) => file === path || file.startsWith(path));
+  return [...ignored].some((entry) => {
+    const path = entry.replace(/^\//, "").replace(/\/$/, "");
+    const directory = `${path}/`;
+    return file === path || file.startsWith(directory);
+  });
 }
 
 const missing = new Map();

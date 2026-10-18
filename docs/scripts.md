@@ -22,27 +22,35 @@ go mod tidy
 
 ## Every check is a script
 
-`pnpm verify` runs every check below in the order CI runs them, and CI calls the
-same scripts, so a tree that passes locally passes in the pipeline.
+`pnpm verify` runs every step of `scripts.verify` in package.json, and CI calls
+the same scripts, split into jobs, so a tree that passes locally passes in the
+pipeline.
 
-| Script                   | What it does                                                                |
-| ------------------------ | --------------------------------------------------------------------------- |
-| `pnpm dev`               | `go run ./src`, bound to localhost                                          |
-| `pnpm build`             | The production binary in `bin/httphq`, with the image's flags               |
-| `pnpm test`              | The Go tests, with the race detector                                        |
-| `pnpm test:coverage`     | The same, writing `coverage.out` and printing the total                     |
-| `pnpm test:e2e`          | The Playwright suite, against `bin/httphq`                                  |
-| `pnpm go:vuln`           | govulncheck: advisories whose vulnerable symbol this code actually reaches  |
-| `pnpm go:format:check`   | Fails when `gofmt` would rewrite a file                                     |
-| `pnpm go:lint`           | golangci-lint, which runs `go vet` among its linters                        |
-| `pnpm go:cyclo`          | gocyclo's ceiling for the Go code                                           |
-| `pnpm lint`              | ESLint, with warnings failing like errors                                   |
-| `pnpm format:check`      | Fails when Prettier would rewrite a file                                    |
-| `pnpm check:lint-staged` | Fails when Prettier formats an extension the pre-commit hook does not cover |
-| `pnpm check:prose`       | Fails on an em dash in any tracked file (AGENTS.md, "Writing")              |
-| `pnpm check:typos`       | typos, through `uvx`, so it needs uv installed                              |
-| `pnpm typecheck`         | Type-checks three of the page scripts and the Playwright suite              |
-| `pnpm css:check`         | Rebuilds the stylesheet and fails if the committed one differs              |
+| Script                    | What it does                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------ |
+| `pnpm dev`                | `go run ./src`, bound to localhost                                                   |
+| `pnpm build`              | The production binary in `bin/httphq`, with the image's flags                        |
+| `pnpm test`               | The Go tests, with the race detector                                                 |
+| `pnpm test:coverage`      | The same, writing `coverage.out` and printing the total                              |
+| `pnpm test:e2e`           | The Playwright suite, against `bin/httphq`                                           |
+| `pnpm test:scripts`       | The Vitest suites for the checks under `scripts/`                                    |
+| `pnpm go:vuln`            | govulncheck: advisories whose vulnerable symbol this code actually reaches           |
+| `pnpm go:format:check`    | Fails when `gofmt` would rewrite a file                                              |
+| `pnpm go:lint`            | golangci-lint, which runs `go vet` among its linters                                 |
+| `pnpm go:deadcode`        | Fails on a Go function that no entry point reaches                                   |
+| `pnpm go:cyclo`           | gocyclo's ceiling for the Go code                                                    |
+| `pnpm go:coverage:check`  | Fails when the total in `coverage.out` is under the 93% floor                        |
+| `pnpm lint`               | ESLint, with warnings failing like errors                                            |
+| `pnpm format:check`       | Fails when Prettier would rewrite a file                                             |
+| `pnpm check:lint-staged`  | Fails when Prettier formats an extension the pre-commit hook does not cover          |
+| `pnpm check:package-json` | Fails when `package.json` is not in `sort-package-json` order                        |
+| `pnpm check:prose`        | Fails on an em dash in any tracked file (AGENTS.md, "Writing")                       |
+| `pnpm check:typos`        | typos, through `uvx`, so it needs uv installed                                       |
+| `pnpm check:doc-refs`     | Fails on a doc reference to a path, anchor, script or config key that does not exist |
+| `pnpm check:dead-code`    | knip: unused files, exports and dependencies in the JavaScript                       |
+| `pnpm check:audit`        | `pnpm audit` over production dependencies, failing at high severity                  |
+| `pnpm typecheck`          | Type-checks three of the page scripts and the two test suites written in TypeScript  |
+| `pnpm css:check`          | Rebuilds the stylesheet and fails if the committed one differs                       |
 
 Every Go tool is pinned in its script, so a later release cannot change the
 verdict on a tree that did not change. Every Go command is scoped to `./src`:
@@ -63,10 +71,11 @@ the result; `css:check` fails otherwise. During design work,
 
 ## Types and lint
 
-The type check covers the Playwright suite and three of the page scripts:
+The type check covers the Playwright suite, the Vitest suites under
+`tests/scripts`, and three of the page scripts:
 `index.js`, `render-body.js` and `har.js`, checked as JavaScript against the
-globals declared in `types/page-scripts.d.ts`. The suite reads the same
-declarations, so a helper and the tests that call it cannot disagree about its
+globals declared in `types/page-scripts.d.ts`. The Playwright suite reads the
+same declarations, so a helper and the tests that call it cannot disagree about its
 signature. `endpoint.js` is left out, because its Alpine component reads
 `this.$el`, which only Alpine's own component typing can describe.
 
@@ -102,8 +111,8 @@ pnpm test:coverage
 go tool cover -html=coverage.out
 ```
 
-CI prints the total to the job summary. It is reported rather than gated: a
-threshold set before the number is known is a guess.
+CI prints the total to the job summary, and `go:coverage:check` fails when it
+drops under the 93% floor.
 
 ## Formatting
 

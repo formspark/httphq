@@ -1,0 +1,19 @@
+// Type-checks the Vitest suites for the Node scripts under scripts/. They run
+// under Node, so they see Node's types and none of the browser's.
+{
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "target": "ES2022",
+    "types": ["node"]
+  },
+  "include": ["scripts/**/*.ts"]
+}
