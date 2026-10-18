@@ -27,8 +27,8 @@ around.
 ## Product Purpose
 
 httphq generates a unique, disposable HTTP endpoint and shows every request
-sent to it in real time: method, path, client IP, headers, query string, and
-body: so a developer can see exactly what a client, provider, or device puts
+sent to it in real time (method, path, client IP, headers, query string, and
+body), so a developer can see exactly what a client, provider, or device puts
 on the wire.
 
 Success is a developer answering "what did it actually send?" in the shortest
@@ -55,8 +55,8 @@ positioned as a marketing surface for Formspark.
 
 ## Operating Context
 
-- The user is mid-task in another tool: a provider dashboard, a terminal, an
-  HTML form, a device, a scheduler: and httphq is the second window they keep
+- The user is mid-task in another tool (a provider dashboard, a terminal, an
+  HTML form, a device, a scheduler), and httphq is the second window they keep
   open beside it.
 - The capture URL is pasted into somewhere else entirely (Stripe/GitHub/Slack
   webhook settings, a form `action`, a curl command, firmware config) and then

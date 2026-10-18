@@ -71,7 +71,7 @@ Echo `cursor` back as `since` and you are handed each capture exactly once.
 curl -s "https://httphq.com/api/endpoints/purple-frog-0691/requests?since=2026-08-09T07:20:05Z"
 ```
 
-Three things are worth knowing:
+About the cursor:
 
 - **The cursor is opaque.** It is a timestamp today. Echo it back rather than
   parsing one or building your own, or a change of format will break you.

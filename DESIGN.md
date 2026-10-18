@@ -127,7 +127,7 @@ components:
   btn-lg:
     backgroundColor: "{colors.brand-600}"
     textColor: "{colors.white}"
-    typography: "{typography.lede}"
+    typography: "{typography.title}"
     rounded: "{rounded.md}"
     padding: "0.75rem 1.5rem"
   btn-secondary:
@@ -343,8 +343,7 @@ speaks in mono.
 
 That first-party commitment holds completely on the home and contact pages, and
 the home page ships no JavaScript at all. The endpoint page is the one
-exception, and it is worth stating plainly rather than leaving as a footnote: it
-also pulls the pinned highlight.js theme from a CDN, and a stylesheet is
+exception: it also pulls the pinned highlight.js theme from a CDN, and a stylesheet is
 render-blocking wherever it comes from. So the page a user lands on first waits
 on nobody, and the page they watch waits on one third party for its first paint.
 Anything that would extend that list, or move it onto the landing path, is a
@@ -520,8 +519,8 @@ file:
 a field: the header wordmark and the three footer links wear it. The button and
 field classes spell the same two declarations out again rather than applying it,
 so each reads as a complete control on its own, but a template that spells the
-ring as a utility string is drift, not a shortcut. Every page uses them: a template that re-spells
-a component as a utility string is the bug, not a shortcut. Utilities stay the default for one-off composition; anything whose
+ring as a utility string is drift, not a shortcut. Every page uses the
+component classes. Utilities stay the default for one-off composition; anything whose
 tokens must not drift between call sites belongs in that file. Before adding a
 variant, check whether an existing class should absorb it. Several spellings of
 one component is how two nominally identical controls come to sit a few pixels
@@ -591,7 +590,7 @@ third summary row above the stream.
 - **Label spacing:** 0.5rem from label to field, 1rem between field groups. Four pixels is a collision, not a relationship.
 
 - **Style:** white fill, 1px neutral-300 stroke, control radius, 0.5rem/0.75rem padding, 0.875rem type. That is `.field`, and it is the whole control: textareas, selects and text inputs are the same class. Fields that take captured-shaped text add `.field-mono` with `spellcheck="false"`; ordinary text fields use sans. `.field-mono` swaps the family and nothing else, so a mono field keeps the 0.875rem control size rather than dropping to the 0.75rem evidence size: it is a control being typed into, not a captured value being read.
-- **Focus:** `outline: none` paired with a 1px **brand-400** ring and a **brand-500** border. That is a tighter, quieter treatment than the 2px ring on buttons, because a focused field is already unambiguous. Note the three-way split: fields ring in brand-400, buttons ring in brand-500, and only fills use brand-600. Every control uses `:focus-visible`, so a mouse click never paints a ring on a button.
+- **Focus:** `outline: none` paired with a 1px **brand-400** ring and a **brand-500** border. That is a tighter, quieter treatment than the 2px ring on buttons, because a focused field is already unambiguous. The split is three-way: fields ring in brand-400, buttons ring in brand-500, and only fills use brand-600. Every control uses `:focus-visible`, so a mouse click never paints a ring on a button.
 - **Labels:** one label component everywhere, uppercase at 0.75rem, 0.5rem above its field, with 1rem between field groups. A label may carry a parenthetical qualifier set back to normal case and normal weight inside it (_(optional)_, _(one per line, `Key: Value`)_): the uppercase names the field, the parenthetical is an aside to the reader, and uppercasing an aside makes it compete with the name it qualifies. The label belongs to its field, so it sits closer to it than the group does to the next one. There is no second label style for public forms: a contact field and a header field are the same control doing the same job, and two spellings of one control is drift, not intent.
 - **Select:** `.field app-select`. Native `appearance: none` with Lucide's `ChevronDown` inlined as a data-URI background, 1em, positioned 0.5rem from the right with 2rem of padding reserved. A data URI cannot read a CSS variable, so its stroke spells out neutral-500's own OKLCH value rather than a variable; `icons_test.go` compares the two, so the caret cannot drift from the token unnoticed.
 
@@ -600,8 +599,8 @@ third summary row above the stream.
 There is none, and that is deliberate: the header is the indigo mark beside
 a centred wordmark linking home, at 1.875rem bold with tight tracking in control
 ink. The link wraps only the mark and wordmark, never the full header band.
-Every other route is reachable from the footer: feedback, the GitHub repository
-with an inline brand glyph, and the Formspark credit: set at 0.875rem neutral-500,
+Every other route is reachable from the footer (feedback, the GitHub repository
+with an inline brand glyph, and the Formspark credit), set at 0.875rem neutral-500,
 centred, hovering to brand-600.
 
 Every link carries its own padding and a 2.75rem minimum height. Bare inline
@@ -623,7 +622,7 @@ new method is a one-line addition in one place.
 
 A captured body is displayed through one of four paths, chosen by its
 `Content-Type`. All four land in the same code well: board-field fill, hairline
-border, data radius, 0.75rem mono, scrolling internally at 24rem: so the
+border, data radius, 0.75rem mono, scrolling internally at 24rem, so the
 container never signals which path ran; only the content does.
 
 - **JSON**: reparsed, pretty-printed at two-space indent, then highlighted.
@@ -646,7 +645,7 @@ light, so form controls and scrollbars render in the world the system actually
 commits to rather than inverting under a dark OS preference.
 
 Motion respects `prefers-reduced-motion`: transitions and the waiting ellipsis
-collapse to a resting state. Every animation in this product is decorative, none carries meaning that is lost when it is removed, so reducing it is a clean
+collapse to a resting state. Every animation in this product is decorative: none carries meaning that is lost when it is removed, so reducing it is a clean
 substitution, not a degradation.
 
 ### Render Window
