@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -220,6 +221,59 @@ func TestHandleListRequestsCursor(t *testing.T) {
 	})
 }
 
+// postCaptures stores n identical captures for a fresh endpoint and returns it.
+func postCaptures(t *testing.T, n int, body string) string {
+	t.Helper()
+	id := endpointID(t)
+	for range n {
+		require.Equal(t, http.StatusOK, post(t, "/to/"+id, body).StatusCode)
+	}
+	return id
+}
+
+// drainCursor reads an endpoint whole the way a poller does, following the
+// cursor until nothing more is promised, and returns how many it was handed.
+func drainCursor(t *testing.T, id string) int {
+	t.Helper()
+	seen, cursor := 0, time.Unix(0, 0).UTC().Format(time.RFC3339Nano)
+	for range 10 {
+		page := listRequests(t, id, "", cursor)
+		seen += len(page.Requests)
+		cursor = page.Cursor
+		if !page.HasMore {
+			break
+		}
+	}
+	return seen
+}
+
+func TestHandleListRequestsBudget(t *testing.T) {
+	// A page counts rows, and a row escaped into JSON can be several times its
+	// stored size. A page of large captures stops at the byte budget.
+	largeBody := strings.Repeat("<", bodyLimit)
+
+	t.Run("a page stops at the byte budget and reports more to come", func(t *testing.T) {
+		listing := listRequests(t, postCaptures(t, 3, largeBody), "", "")
+
+		assert.Len(t, listing.Requests, 1, "one escaped megabyte already fills the budget")
+		assert.True(t, listing.HasMore)
+		assert.Equal(t, int64(3), listing.Total)
+	})
+
+	// A capture larger than the budget is still handed over, or a cursored
+	// poller would be stuck behind it forever.
+	t.Run("a cursored poller drains captures larger than the budget", func(t *testing.T) {
+		assert.Equal(t, 3, drainCursor(t, postCaptures(t, 3, largeBody)))
+	})
+
+	t.Run("small captures fill a page as before", func(t *testing.T) {
+		listing := listRequests(t, postCaptures(t, 3, "small"), "", "")
+
+		assert.Len(t, listing.Requests, 3)
+		assert.False(t, listing.HasMore)
+	})
+}
+
 func TestHandleDeleteRequests(t *testing.T) {
 	t.Run("deleting an endpoint's captures clears only that endpoint", func(t *testing.T) {
 		id, other := endpointID(t), endpointID(t)+"-other"
@@ -253,5 +307,25 @@ func TestHandleDeleteRequest(t *testing.T) {
 		captured := capturedRequests(t, id, "")
 		require.Len(t, captured, 1)
 		assert.Equal(t, "keep", captured[0].Body)
+	})
+}
+
+// A viewer deletes captures to withdraw them, so a delete the store did not
+// carry out must not be reported as done.
+func TestHandleDeleteFailure(t *testing.T) {
+	t.Run("deleting an endpoint's captures answers 503 when the store refuses", func(t *testing.T) {
+		brokenStore(t)
+
+		response := do(t, testRequest{method: http.MethodDelete, path: "/api/endpoints/" + endpointID(t) + "/requests"})
+
+		assert.Equal(t, http.StatusServiceUnavailable, response.StatusCode)
+	})
+
+	t.Run("deleting one capture answers 503 when the store refuses", func(t *testing.T) {
+		brokenStore(t)
+
+		response := do(t, testRequest{method: http.MethodDelete, path: "/api/endpoints/" + endpointID(t) + "/requests/some-uuid"})
+
+		assert.Equal(t, http.StatusServiceUnavailable, response.StatusCode)
 	})
 }

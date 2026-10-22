@@ -147,6 +147,18 @@ func soleValue(values [][]byte) string {
 	return strings.TrimSpace(string(values[0]))
 }
 
+// rateLimitKey is the limiter bucket a client IP falls into. An IPv4 address
+// is its own bucket. An IPv6 host is routinely handed a whole /64, so keying on
+// the full address would give it a fresh budget for every address it picks;
+// the /64 is the smallest prefix one client can be held to.
+func rateLimitKey(ip string) string {
+	parsed := net.ParseIP(ip)
+	if parsed == nil || parsed.To4() != nil {
+		return ip
+	}
+	return parsed.Mask(net.CIDRMask(64, 128)).String() + "/64"
+}
+
 // omitHeader reports whether a captured-request header is infrastructure
 // noise, meaning a generic forwarding header or a vendor header added by the
 // configured PLATFORM, and so should be hidden from the user.

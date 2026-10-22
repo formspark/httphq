@@ -246,6 +246,32 @@ func TestResolveClientIPFromEdgeHeader(t *testing.T) {
 	}
 }
 
+func TestRateLimitKey(t *testing.T) {
+	t.Run("an IPv4 address is its own bucket", func(t *testing.T) {
+		assert.Equal(t, "203.0.113.7", rateLimitKey("203.0.113.7"))
+		assert.NotEqual(t, rateLimitKey("203.0.113.7"), rateLimitKey("203.0.113.8"))
+	})
+
+	// One host is routinely handed a whole /64, so rotating addresses inside it
+	// must not mint a fresh budget.
+	t.Run("IPv6 addresses in one /64 share a bucket", func(t *testing.T) {
+		assert.Equal(t, rateLimitKey("2001:db8:1:2::1"), rateLimitKey("2001:db8:1:2:ffff::9"))
+		assert.Equal(t, "2001:db8:1:2::/64", rateLimitKey("2001:db8:1:2::1"))
+	})
+
+	t.Run("IPv6 addresses in different /64s do not", func(t *testing.T) {
+		assert.NotEqual(t, rateLimitKey("2001:db8:1:2::1"), rateLimitKey("2001:db8:1:3::1"))
+	})
+
+	t.Run("an IPv4-mapped address is keyed as IPv4", func(t *testing.T) {
+		assert.Equal(t, "::ffff:203.0.113.7", rateLimitKey("::ffff:203.0.113.7"))
+	})
+
+	t.Run("a value that is not an address is kept as given", func(t *testing.T) {
+		assert.Equal(t, "not-an-ip", rateLimitKey("not-an-ip"))
+	})
+}
+
 func TestOmitHeader(t *testing.T) {
 	t.Run("generic forwarding headers are hidden whatever the platform", func(t *testing.T) {
 		withPlatform(t, "direct")

@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log/slog"
 	"maps"
+	"sync"
 
 	"github.com/atrox/haikunatorgo/v2"
 	"github.com/gofiber/fiber/v3"
@@ -113,12 +114,27 @@ func renderEndpoint(assets *assetIndex) fiber.Handler {
 	}
 }
 
+// idMaker hands out endpoint IDs from one generator to concurrent requests. A
+// Haikunator's random source is not safe for concurrent use: two requests
+// minting at once can corrupt its state and panic, so every draw holds the lock.
+type idMaker struct {
+	mu         sync.Mutex
+	haikunator *haikunator.Haikunator
+}
+
+func (m *idMaker) next() string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.haikunator.Haikunate()
+}
+
 // createEndpoint mints an endpoint ID and sends the caller to its page. The ID
 // is the only thing protecting a stream, so it comes from a generator with
 // enough room that guessing one is not a search worth running.
 func createEndpoint(haikuMaker *haikunator.Haikunator) fiber.Handler {
+	ids := &idMaker{haikunator: haikuMaker}
 	return func(c fiber.Ctx) error {
-		endpointID := haikuMaker.Haikunate()
+		endpointID := ids.next()
 		slog.InfoContext(c.Context(), "endpoint created", "endpoint_id", endpointID)
 		return c.Redirect().To("/" + endpointID)
 	}

@@ -115,18 +115,27 @@
         this.total += 1;
       },
 
+      // Clear the list only once the server confirms the delete. A refused
+      // delete (the store was unavailable) would otherwise tell the viewer the
+      // captures are gone while anyone with the URL can still read them.
       deleteRequests() {
         return fetch(this.requestsUrl(), { method: "DELETE" })
-          .then(() => {
+          .then((res) => {
+            if (!res.ok) throw new Error(`delete failed: ${res.status}`);
             this.requests = [];
             this.total = 0;
+            return true;
           })
-          .catch((err) => console.error(err));
+          .catch((err) => {
+            console.error(err);
+            return false;
+          });
       },
 
       deleteRequest(uuid) {
         return fetch(this.requestsUrl(`/${uuid}`), { method: "DELETE" })
-          .then(() => {
+          .then((res) => {
+            if (!res.ok) throw new Error(`delete failed: ${res.status}`);
             this.requests = this.requests.filter((r) => r.uuid !== uuid);
             this.total = Math.max(0, this.total - 1);
           })
@@ -380,8 +389,12 @@
       async deleteAllConfirmed() {
         const count = this.store.total;
         this.pendingDeleteAll = false;
-        await this.store.deleteRequests();
-        this.announce(`Deleted ${window.pluralize(count, "request")}`);
+        const deleted = await this.store.deleteRequests();
+        this.announce(
+          deleted
+            ? `Deleted ${window.pluralize(count, "request")}`
+            : "Delete failed, nothing was removed",
+        );
       },
 
       // Every send outcome reaches the user the same way: the status line, the

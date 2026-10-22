@@ -43,6 +43,25 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+// brokenStore swaps the process-wide store for one whose table is gone, so every
+// query against it fails, and puts the shared store back afterwards. A handler
+// that reports a store failure can only be shown doing so against a store
+// that fails.
+func brokenStore(t *testing.T) {
+	t.Helper()
+	shared := database.DB
+	broken, err := database.Connect("file:" + filepath.Join(t.TempDir(), "broken.db"))
+	require.NoError(t, err)
+	require.NoError(t, broken.Migrator().DropTable(&database.Request{}))
+	captureLogs(t)
+	t.Cleanup(func() {
+		database.DB = shared
+		if pool, err := broken.DB(); err == nil {
+			_ = pool.Close()
+		}
+	})
+}
+
 var (
 	testApplicationOnce sync.Once
 	testApplication     *fiber.App

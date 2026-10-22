@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -13,6 +14,14 @@ import (
 // stream rather than its history, and an endpoint under load would otherwise
 // return a payload no reader can use.
 const requestPageSize = 128
+
+// listingByteBudget bounds the encoded size of one listing response.
+// requestPageSize counts rows, and one row can carry a body of up to bodyLimit
+// that JSON escaping grows several times over, so a page of large captures
+// would otherwise be built whole in memory on every poll. A page stops at the
+// budget and reports more to come; it always holds at least one capture, so a
+// cursored poller can never stall behind a capture larger than the budget.
+const listingByteBudget = 4 << 20
 
 // version is the build the binary came from, set at link time from APP_VERSION
 // (see the build script and the Dockerfile). A binary built without it reports
@@ -71,6 +80,26 @@ func nextCursor(requests []database.Request, queryStart, since time.Time) time.T
 	return cursor
 }
 
+// withinBudget is the longest prefix of a page whose encoded captures fit the
+// listing budget, and never less than the first capture.
+func withinBudget(requests []database.Request) []database.Request {
+	used := 0
+	for i, request := range requests {
+		used += encodedSize(request)
+		if i > 0 && used > listingByteBudget {
+			return requests[:i]
+		}
+	}
+	return requests
+}
+
+// encodedSize is how many bytes a capture adds to a listing. A capture that
+// will not encode adds nothing here; the response encoder reports it.
+func encodedSize(request database.Request) int {
+	encoded, _ := json.Marshal(request)
+	return len(encoded)
+}
+
 // handleListRequests returns a window of an endpoint's captures, narrowed by
 // the search and by an optional `since` cursor. `total` is what the endpoint
 // holds regardless of search, cursor or window, so the page can say what a
@@ -101,21 +130,28 @@ func handleListRequests(c fiber.Ctx) error {
 		since = parsed.UTC()
 	}
 
-	requests := database.GetRequestsForEndpointID(
+	stored := database.GetRequestsForEndpointID(
 		c.Context(), endpointID, c.Query("search"), since, requestPageSize)
+	requests := withinBudget(stored)
 
 	return c.JSON(fiber.Map{
 		"requests": requests,
 		"total":    database.CountRequestsForEndpointID(c.Context(), endpointID),
 		"cursor":   nextCursor(requests, queryStart, since).Format(time.RFC3339Nano),
-		// A full page means a burst is still draining, so the caller should
-		// come straight back rather than sleeping through the backlog.
-		"hasMore": len(requests) == requestPageSize,
+		// A full page, or one cut short by the byte budget, means a burst is
+		// still draining, so the caller should come straight back rather than
+		// sleeping through the backlog.
+		"hasMore": len(stored) == requestPageSize || len(requests) < len(stored),
 	})
 }
 
+// handleDeleteRequests deletes every capture an endpoint holds. A delete the
+// store did not carry out is answered 503, so the page does not tell a viewer
+// their captures are gone while anyone with the URL can still read them.
 func handleDeleteRequests(c fiber.Ctx) error {
-	database.DeleteRequestsForEndpointID(c.Context(), c.Params("endpoint"))
+	if err := database.DeleteRequestsForEndpointID(c.Context(), c.Params("endpoint")); err != nil {
+		return fiber.ErrServiceUnavailable
+	}
 	return c.SendStatus(http.StatusOK)
 }
 
@@ -123,6 +159,8 @@ func handleDeleteRequests(c fiber.Ctx) error {
 // upstream but the UUID is not scoped to it, so this is a delete-by-key on a
 // value the caller already had to read from that endpoint's stream.
 func handleDeleteRequest(c fiber.Ctx) error {
-	database.DeleteRequestForUUID(c.Context(), c.Params("request"))
+	if err := database.DeleteRequestForUUID(c.Context(), c.Params("request")); err != nil {
+		return fiber.ErrServiceUnavailable
+	}
 	return c.SendStatus(http.StatusOK)
 }
