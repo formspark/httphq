@@ -1,13 +1,15 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
+	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/datatypes"
@@ -185,6 +187,97 @@ func TestCaptureRequest(t *testing.T) {
 	})
 }
 
+// A sender is told its capture was stored, with the UUID to find it by, so a
+// capture the store refused must not be answered as one it kept.
+func TestCaptureRequestStoreFailure(t *testing.T) {
+	t.Run("a capture the store refuses is answered 503 without a UUID", func(t *testing.T) {
+		brokenStore(t)
+
+		response := post(t, "/to/"+endpointID(t), "payload")
+
+		assert.Equal(t, http.StatusServiceUnavailable, response.StatusCode)
+		assert.Empty(t, response.Header.Get(captureUUIDHeader))
+	})
+}
+
+func gzipped(t *testing.T, payload []byte) []byte {
+	t.Helper()
+	var out bytes.Buffer
+	writer := gzip.NewWriter(&out)
+	_, err := writer.Write(payload)
+	require.NoError(t, err)
+	require.NoError(t, writer.Close())
+	return out.Bytes()
+}
+
+// zstdEncoded compresses payload with the encoder's defaults.
+func zstdEncoded(t *testing.T, payload []byte) []byte {
+	t.Helper()
+	var out bytes.Buffer
+	encoder, err := zstd.NewWriter(&out)
+	require.NoError(t, err)
+	_, err = encoder.Write(payload)
+	require.NoError(t, err)
+	require.NoError(t, encoder.Close())
+	return out.Bytes()
+}
+
+// Bodies are stored as the sender meant them, decoded, and decoding is held to
+// the same limit as the body itself.
+func TestCaptureBody(t *testing.T) {
+	t.Run("a gzip body is stored decoded", func(t *testing.T) {
+		id := endpointID(t)
+		response := do(t, testRequest{method: http.MethodPost, path: "/to/" + id,
+			body: string(gzipped(t, []byte("hello"))), headers: map[string]string{"Content-Encoding": "gzip"}})
+
+		require.Equal(t, http.StatusOK, response.StatusCode)
+		assert.Equal(t, "hello", capturedRequests(t, id, "")[0].Body)
+	})
+
+	t.Run("a zstd body is stored decoded", func(t *testing.T) {
+		id := endpointID(t)
+		response := do(t, testRequest{method: http.MethodPost, path: "/to/" + id,
+			body: string(zstdEncoded(t, []byte("hello"))), headers: map[string]string{"Content-Encoding": "zstd"}})
+
+		require.Equal(t, http.StatusOK, response.StatusCode)
+		assert.Equal(t, "hello", capturedRequests(t, id, "")[0].Body)
+	})
+
+	// A frame can declare a huge decode window regardless of how little it
+	// carries, which is what the default decoder would allocate up front. This
+	// one declares 512 MiB around a single byte; the capped decoder refuses it.
+	t.Run("a zstd body that declares a window beyond the body limit is refused", func(t *testing.T) {
+		id := endpointID(t)
+		frame := []byte{0x28, 0xb5, 0x2f, 0xfd, 0x00, 0x98, 0x0a, 0x00, 0x00, 'A'}
+		response := do(t, testRequest{method: http.MethodPost, path: "/to/" + id,
+			body: string(frame), headers: map[string]string{"Content-Encoding": "zstd"}})
+
+		assert.Equal(t, http.StatusRequestEntityTooLarge, response.StatusCode)
+		assert.Empty(t, capturedRequests(t, id, ""))
+	})
+
+	t.Run("a body that is not valid zstd is refused", func(t *testing.T) {
+		id := endpointID(t)
+		response := do(t, testRequest{method: http.MethodPost, path: "/to/" + id,
+			body: "not zstd", headers: map[string]string{"Content-Encoding": "zstd"}})
+
+		assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+		assert.Empty(t, capturedRequests(t, id, ""))
+	})
+
+	// Each stage is bounded by the body limit but the number of stages is not,
+	// so a chain is refused rather than decoded stage after stage.
+	t.Run("a chain of encodings is refused", func(t *testing.T) {
+		id := endpointID(t)
+		body := gzipped(t, gzipped(t, []byte("hello")))
+		response := do(t, testRequest{method: http.MethodPost, path: "/to/" + id,
+			body: string(body), headers: map[string]string{"Content-Encoding": "gzip, gzip"}})
+
+		assert.Equal(t, http.StatusUnsupportedMediaType, response.StatusCode)
+		assert.Empty(t, capturedRequests(t, id, ""))
+	})
+}
+
 func TestCaptureHeaders(t *testing.T) {
 	t.Run("leaves a caller's own headers alone", func(t *testing.T) {
 		withPlatform(t, "direct")
@@ -265,45 +358,18 @@ func TestFlattenHeaders(t *testing.T) {
 	})
 }
 
-// socketEmit is one fan-out dispatch: the sockets addressed and the payload
-// they were sent.
-type socketEmit struct {
-	uuids   []string
-	message []byte
-}
-
-// recordSocketEmits swaps the socket emitter for one that records what fan-out
-// dispatches. The emitter is process-wide, so a test that swaps it has to put
-// it back.
-func recordSocketEmits(t *testing.T) chan socketEmit {
-	t.Helper()
-	emits := make(chan socketEmit, 4)
-	previous := emitToSockets
-	emitToSockets = func(uuids []string, message []byte, _ ...int) {
-		emits <- socketEmit{uuids: uuids, message: message}
-	}
-	t.Cleanup(func() { emitToSockets = previous })
-	return emits
-}
-
-// awaitEmit returns the next dispatch. Fan-out runs in its own goroutine so
-// that a slow client cannot stall a capture, which means a test has to wait for
-// it rather than read the channel outright.
-func awaitEmit(t *testing.T, emits chan socketEmit) socketEmit {
-	t.Helper()
-	select {
-	case emit := <-emits:
-		return emit
-	case <-time.After(2 * time.Second):
-		t.Fatal("fan-out dispatched nothing")
-		return socketEmit{}
-	}
+// watching registers a subscriber on an endpoint and hands it back, so a test
+// can read what fan-out offered it straight from its outbox.
+func watching(registry *socketRegistry, endpointID string) *subscriber {
+	feed := newSubscriber()
+	registry.add(endpointID, feed)
+	return feed
 }
 
 // Fan-out is what makes the feed live, so what matters is that a capture
-// reaches every socket watching its own endpoint and no others. The emitter is
-// swapped rather than a socket opened: the payload a watching page receives is
-// the subject here, not the transport under it.
+// reaches every socket watching its own endpoint and no others. Outboxes are
+// read directly rather than through a socket: the payload a watching page
+// receives is the subject here, not the transport under it.
 func TestBroadcastCapture(t *testing.T) {
 	captured := database.Request{
 		UUID:       "capture-uuid",
@@ -313,21 +379,19 @@ func TestBroadcastCapture(t *testing.T) {
 	}
 
 	t.Run("every socket watching the endpoint receives the capture", func(t *testing.T) {
-		emits := recordSocketEmits(t)
 		registry := newSocketRegistry()
-		registry.add("watched", "socket-1")
-		registry.add("watched", "socket-2")
+		first, second := watching(registry, "watched"), watching(registry, "watched")
 
 		broadcastCapture(t.Context(), registry, captured)
 
-		emit := awaitEmit(t, emits)
-		assert.ElementsMatch(t, []string{"socket-1", "socket-2"}, emit.uuids)
-
-		var payload database.Request
-		require.NoError(t, json.Unmarshal(emit.message, &payload),
-			"a page parses the pushed payload as a capture")
-		assert.Equal(t, captured.UUID, payload.UUID)
-		assert.Equal(t, captured.Body, payload.Body)
+		for _, feed := range []*subscriber{first, second} {
+			require.Len(t, feed.outbox, 1)
+			var payload database.Request
+			require.NoError(t, json.Unmarshal(<-feed.outbox, &payload),
+				"a page parses the pushed payload as a capture")
+			assert.Equal(t, captured.UUID, payload.UUID)
+			assert.Equal(t, captured.Body, payload.Body)
+		}
 	})
 
 	// Fan-out is the one place a capture is re-serialised after it was stored,
@@ -335,10 +399,9 @@ func TestBroadcastCapture(t *testing.T) {
 	// Nothing above this reports it, and half a payload would reach the page as
 	// a capture it cannot parse, so the dispatch is dropped and logged.
 	t.Run("a capture that will not marshal is logged rather than dispatched", func(t *testing.T) {
-		emits := recordSocketEmits(t)
 		logs := captureLogs(t)
 		registry := newSocketRegistry()
-		registry.add("watched", "socket-1")
+		feed := watching(registry, "watched")
 
 		broadcastCapture(t.Context(), registry, database.Request{
 			UUID:       "capture-uuid",
@@ -346,21 +409,42 @@ func TestBroadcastCapture(t *testing.T) {
 			Headers:    datatypes.JSON("not json"),
 		})
 
-		assert.Empty(t, emits)
+		assert.Empty(t, feed.outbox)
 		assert.Contains(t, logs.String(), "websocket payload marshal failed")
 	})
 
 	// The endpoint ID is the only isolation between two users of one instance,
 	// so a page open on another endpoint must never be pushed this traffic.
 	t.Run("a socket watching another endpoint is left alone", func(t *testing.T) {
-		emits := recordSocketEmits(t)
 		registry := newSocketRegistry()
-		registry.add("other", "socket-1")
+		feed := watching(registry, "other")
 
 		broadcastCapture(t.Context(), registry, captured)
 
-		// Nothing is dispatched asynchronously either: with no socket on the
-		// endpoint, fan-out returns before it marshals or starts a goroutine.
-		assert.Empty(t, emits)
+		assert.Empty(t, feed.outbox)
 	})
+
+	// A socket whose client stopped reading must not hold every later capture
+	// in memory, and fan-out must not wait on it.
+	t.Run("a socket that stops keeping up is closed rather than queued for", func(t *testing.T) {
+		registry := newSocketRegistry()
+		feed := watching(registry, "watched")
+
+		for range outboxSize + 1 {
+			broadcastCapture(t.Context(), registry, captured)
+		}
+
+		assert.Len(t, feed.outbox, outboxSize)
+		assert.True(t, isClosed(feed), "the overflowing socket is told to stop")
+	})
+}
+
+// isClosed reports whether a subscriber has been told to stop.
+func isClosed(feed *subscriber) bool {
+	select {
+	case <-feed.closed:
+		return true
+	default:
+		return false
+	}
 }

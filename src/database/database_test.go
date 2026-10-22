@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/datatypes"
+	"gorm.io/gorm/logger"
 
 	"httphq/src/database"
 )
@@ -63,7 +64,8 @@ func withCreatedAt(at time.Time) requestOption {
 
 // storeRequest writes a valid request and returns it. The defaults are
 // deliberately uninteresting: a test that cares about a field sets it.
-func storeRequest(ctx context.Context, uuid string, options ...requestOption) database.Request {
+func storeRequest(t *testing.T, uuid string, options ...requestOption) database.Request {
+	t.Helper()
 	request := database.Request{
 		UUID:       uuid,
 		EndpointID: "test-id",
@@ -76,7 +78,7 @@ func storeRequest(ctx context.Context, uuid string, options ...requestOption) da
 	for _, option := range options {
 		option(&request)
 	}
-	database.CreateRequest(ctx, &request)
+	require.NoError(t, database.CreateRequest(t.Context(), &request))
 	return request
 }
 
@@ -147,6 +149,42 @@ func TestBrokenStore(t *testing.T) {
 	})
 }
 
+// A write is different: its caller tells a sender or a viewer that something
+// was stored or deleted, so a write the store refused has to say so.
+func TestBrokenStoreWrites(t *testing.T) {
+	writes := map[string]func() error{
+		"create": func() error {
+			return database.CreateRequest(context.Background(), &database.Request{UUID: "broken-uuid"})
+		},
+		"delete every capture": func() error {
+			return database.DeleteRequestsForEndpointID(context.Background(), "any-endpoint")
+		},
+		"delete one capture": func() error {
+			return database.DeleteRequestForUUID(context.Background(), "broken-uuid")
+		},
+	}
+	for name, write := range writes {
+		t.Run(name+" returns the store's error", func(t *testing.T) {
+			freshDB(t)
+			captureLogs(t)
+			require.NoError(t, database.DB.Migrator().DropTable(&database.Request{}))
+
+			assert.Error(t, write())
+		})
+	}
+}
+
+// GORM's own logger writes slow and failed statements to stdout with their
+// bound values inlined, which for a capture is its headers and body, and it
+// does so outside slog's redaction. The store has to run with it discarded.
+func TestStoreLogging(t *testing.T) {
+	t.Run("the store discards GORM's own statement log", func(t *testing.T) {
+		freshDB(t)
+
+		assert.Equal(t, logger.Discard, database.DB.Logger)
+	})
+}
+
 func TestCountRequests(t *testing.T) {
 	t.Run("returns zero when nothing is stored", func(t *testing.T) {
 		freshDB(t)
@@ -159,7 +197,7 @@ func TestCountRequests(t *testing.T) {
 
 		const stored = 3
 		for i := range stored {
-			storeRequest(t.Context(), fmt.Sprint(i), withEndpointID(fmt.Sprint(i)))
+			storeRequest(t, fmt.Sprint(i), withEndpointID(fmt.Sprint(i)))
 		}
 
 		assert.Equal(t, int64(stored), database.CountRequests(t.Context()))
@@ -170,9 +208,9 @@ func TestCountRequestsForEndpointID(t *testing.T) {
 	t.Run("counts only the named endpoint's requests", func(t *testing.T) {
 		freshDB(t)
 
-		storeRequest(t.Context(), "uuid-1", withEndpointID("wanted"))
-		storeRequest(t.Context(), "uuid-2", withEndpointID("wanted"))
-		storeRequest(t.Context(), "uuid-3", withEndpointID("other"))
+		storeRequest(t, "uuid-1", withEndpointID("wanted"))
+		storeRequest(t, "uuid-2", withEndpointID("wanted"))
+		storeRequest(t, "uuid-3", withEndpointID("other"))
 
 		assert.Equal(t, int64(2), database.CountRequestsForEndpointID(t.Context(), "wanted"))
 	})
@@ -195,7 +233,7 @@ func TestGetRequestsForEndpointID(t *testing.T) {
 	t.Run("round-trips every stored field", func(t *testing.T) {
 		freshDB(t)
 
-		stored := storeRequest(t.Context(), "uuid-1",
+		stored := storeRequest(t, "uuid-1",
 			withBody("test-body-1"),
 			withHeaders(`{ "Test": "Test-Header-1" }`),
 			withQueryString("a=1"))
@@ -217,9 +255,9 @@ func TestGetRequestsForEndpointID(t *testing.T) {
 	t.Run("returns only the requested endpoint's requests", func(t *testing.T) {
 		freshDB(t)
 
-		storeRequest(t.Context(), "uuid-1", withEndpointID("wanted"))
-		storeRequest(t.Context(), "uuid-2", withEndpointID("wanted"))
-		storeRequest(t.Context(), "uuid-3", withEndpointID("other"))
+		storeRequest(t, "uuid-1", withEndpointID("wanted"))
+		storeRequest(t, "uuid-2", withEndpointID("wanted"))
+		storeRequest(t, "uuid-3", withEndpointID("other"))
 
 		assert.Len(t, database.GetRequestsForEndpointID(t.Context(), "wanted", "", time.Time{}, 32), 2)
 	})
@@ -227,8 +265,8 @@ func TestGetRequestsForEndpointID(t *testing.T) {
 	t.Run("orders newest first", func(t *testing.T) {
 		freshDB(t)
 
-		storeRequest(t.Context(), "uuid-1", withBody("older"))
-		storeRequest(t.Context(), "uuid-2", withBody("newer"))
+		storeRequest(t, "uuid-1", withBody("older"))
+		storeRequest(t, "uuid-2", withBody("newer"))
 
 		items := database.GetRequestsForEndpointID(t.Context(), "test-id", "", time.Time{}, 32)
 
@@ -239,8 +277,8 @@ func TestGetRequestsForEndpointID(t *testing.T) {
 	t.Run("never returns more than the limit", func(t *testing.T) {
 		freshDB(t)
 
-		storeRequest(t.Context(), "uuid-1")
-		storeRequest(t.Context(), "uuid-2")
+		storeRequest(t, "uuid-1")
+		storeRequest(t, "uuid-2")
 
 		assert.Len(t, database.GetRequestsForEndpointID(t.Context(), "test-id", "", time.Time{}, 1), 1)
 	})
@@ -248,8 +286,8 @@ func TestGetRequestsForEndpointID(t *testing.T) {
 	t.Run("an empty search applies no filtering", func(t *testing.T) {
 		freshDB(t)
 
-		storeRequest(t.Context(), "uuid-1", withBody("alpha"))
-		storeRequest(t.Context(), "uuid-2", withBody("beta"))
+		storeRequest(t, "uuid-1", withBody("alpha"))
+		storeRequest(t, "uuid-2", withBody("beta"))
 
 		assert.Len(t, database.GetRequestsForEndpointID(t.Context(), "test-id", "", time.Time{}, 32), 2)
 	})
@@ -257,8 +295,8 @@ func TestGetRequestsForEndpointID(t *testing.T) {
 	t.Run("searches the body", func(t *testing.T) {
 		freshDB(t)
 
-		storeRequest(t.Context(), "uuid-1", withBody("test-body-1"))
-		storeRequest(t.Context(), "uuid-2", withBody("test-body-2"))
+		storeRequest(t, "uuid-1", withBody("test-body-1"))
+		storeRequest(t, "uuid-2", withBody("test-body-2"))
 
 		assert.Len(t, database.GetRequestsForEndpointID(t.Context(), "test-id", "test-body", time.Time{}, 32), 2)
 		assert.Len(t, database.GetRequestsForEndpointID(t.Context(), "test-id", "test-body-1", time.Time{}, 32), 1)
@@ -267,8 +305,8 @@ func TestGetRequestsForEndpointID(t *testing.T) {
 	t.Run("searches the headers", func(t *testing.T) {
 		freshDB(t)
 
-		storeRequest(t.Context(), "uuid-1", withHeaders(`{ "Test": "Test-Header-1" }`))
-		storeRequest(t.Context(), "uuid-2", withHeaders(`{ "Test": "Test-Header-2" }`))
+		storeRequest(t, "uuid-1", withHeaders(`{ "Test": "Test-Header-1" }`))
+		storeRequest(t, "uuid-2", withHeaders(`{ "Test": "Test-Header-2" }`))
 
 		assert.Len(t, database.GetRequestsForEndpointID(t.Context(), "test-id", "Test-Header", time.Time{}, 32), 2)
 		assert.Len(t, database.GetRequestsForEndpointID(t.Context(), "test-id", "Test-Header-1", time.Time{}, 32), 1)
@@ -277,8 +315,8 @@ func TestGetRequestsForEndpointID(t *testing.T) {
 	t.Run("searches the query string", func(t *testing.T) {
 		freshDB(t)
 
-		storeRequest(t.Context(), "uuid-1", withQueryString("event=charge.succeeded"))
-		storeRequest(t.Context(), "uuid-2", withQueryString("event=charge.failed"))
+		storeRequest(t, "uuid-1", withQueryString("event=charge.succeeded"))
+		storeRequest(t, "uuid-2", withQueryString("event=charge.failed"))
 
 		assert.Len(t, database.GetRequestsForEndpointID(t.Context(), "test-id", "event=charge", time.Time{}, 32), 2)
 		assert.Len(t, database.GetRequestsForEndpointID(t.Context(), "test-id", "charge.failed", time.Time{}, 32), 1)
@@ -287,7 +325,7 @@ func TestGetRequestsForEndpointID(t *testing.T) {
 	t.Run("a search that matches nothing returns an empty slice", func(t *testing.T) {
 		freshDB(t)
 
-		storeRequest(t.Context(), "uuid-1", withBody("alpha"))
+		storeRequest(t, "uuid-1", withBody("alpha"))
 
 		assert.Empty(t, database.GetRequestsForEndpointID(t.Context(), "test-id", "no-such-term", time.Time{}, 32))
 	})
@@ -333,9 +371,9 @@ func TestGetRequestsForEndpointIDSince(t *testing.T) {
 	t.Run("returns only captures strictly newer than the cursor", func(t *testing.T) {
 		freshDB(t)
 
-		storeRequest(t.Context(), "before", withCreatedAt(at(-time.Minute)))
-		storeRequest(t.Context(), "on-the-cursor", withCreatedAt(base))
-		storeRequest(t.Context(), "after", withCreatedAt(at(time.Minute)))
+		storeRequest(t, "before", withCreatedAt(at(-time.Minute)))
+		storeRequest(t, "on-the-cursor", withCreatedAt(base))
+		storeRequest(t, "after", withCreatedAt(at(time.Minute)))
 
 		items := database.GetRequestsForEndpointID(t.Context(), "test-id", "", base, 32)
 
@@ -345,9 +383,9 @@ func TestGetRequestsForEndpointIDSince(t *testing.T) {
 	t.Run("returns them oldest first", func(t *testing.T) {
 		freshDB(t)
 
-		storeRequest(t.Context(), "third", withCreatedAt(at(3*time.Minute)))
-		storeRequest(t.Context(), "first", withCreatedAt(at(time.Minute)))
-		storeRequest(t.Context(), "second", withCreatedAt(at(2*time.Minute)))
+		storeRequest(t, "third", withCreatedAt(at(3*time.Minute)))
+		storeRequest(t, "first", withCreatedAt(at(time.Minute)))
+		storeRequest(t, "second", withCreatedAt(at(2*time.Minute)))
 
 		items := database.GetRequestsForEndpointID(t.Context(), "test-id", "", base, 32)
 
@@ -357,8 +395,8 @@ func TestGetRequestsForEndpointIDSince(t *testing.T) {
 	t.Run("a zero cursor still returns newest first", func(t *testing.T) {
 		freshDB(t)
 
-		storeRequest(t.Context(), "older", withCreatedAt(at(time.Minute)))
-		storeRequest(t.Context(), "newer", withCreatedAt(at(2*time.Minute)))
+		storeRequest(t, "older", withCreatedAt(at(time.Minute)))
+		storeRequest(t, "newer", withCreatedAt(at(2*time.Minute)))
 
 		items := database.GetRequestsForEndpointID(t.Context(), "test-id", "", time.Time{}, 32)
 
@@ -368,8 +406,8 @@ func TestGetRequestsForEndpointIDSince(t *testing.T) {
 	t.Run("a zero cursor is still limited", func(t *testing.T) {
 		freshDB(t)
 
-		storeRequest(t.Context(), "older", withCreatedAt(at(time.Minute)))
-		storeRequest(t.Context(), "newer", withCreatedAt(at(2*time.Minute)))
+		storeRequest(t, "older", withCreatedAt(at(time.Minute)))
+		storeRequest(t, "newer", withCreatedAt(at(2*time.Minute)))
 
 		assert.Len(t, database.GetRequestsForEndpointID(t.Context(), "test-id", "", time.Time{}, 1), 1)
 	})
@@ -377,9 +415,9 @@ func TestGetRequestsForEndpointIDSince(t *testing.T) {
 	t.Run("the search and the cursor compose", func(t *testing.T) {
 		freshDB(t)
 
-		storeRequest(t.Context(), "old-match", withBody("alpha"), withCreatedAt(at(-time.Minute)))
-		storeRequest(t.Context(), "new-miss", withBody("beta"), withCreatedAt(at(time.Minute)))
-		storeRequest(t.Context(), "new-match", withBody("alpha"), withCreatedAt(at(2*time.Minute)))
+		storeRequest(t, "old-match", withBody("alpha"), withCreatedAt(at(-time.Minute)))
+		storeRequest(t, "new-miss", withBody("beta"), withCreatedAt(at(time.Minute)))
+		storeRequest(t, "new-match", withBody("alpha"), withCreatedAt(at(2*time.Minute)))
 
 		items := database.GetRequestsForEndpointID(t.Context(), "test-id", "alpha", base, 32)
 
@@ -389,8 +427,8 @@ func TestGetRequestsForEndpointIDSince(t *testing.T) {
 	t.Run("the cursor is scoped to its endpoint", func(t *testing.T) {
 		freshDB(t)
 
-		storeRequest(t.Context(), "wanted", withCreatedAt(at(time.Minute)))
-		storeRequest(t.Context(), "other", withEndpointID("other-id"), withCreatedAt(at(time.Minute)))
+		storeRequest(t, "wanted", withCreatedAt(at(time.Minute)))
+		storeRequest(t, "other", withEndpointID("other-id"), withCreatedAt(at(time.Minute)))
 
 		items := database.GetRequestsForEndpointID(t.Context(), "test-id", "", base, 32)
 
@@ -414,7 +452,7 @@ func TestGetRequestsForEndpointIDSince(t *testing.T) {
 		for i := range burst {
 			uuid := fmt.Sprintf("capture-%02d", i)
 			want = append(want, uuid)
-			storeRequest(t.Context(), uuid, withCreatedAt(at(time.Duration(i)*time.Second)))
+			storeRequest(t, uuid, withCreatedAt(at(time.Duration(i)*time.Second)))
 		}
 
 		seen, calls := drainWithCursor(t, "test-id", base.Add(-time.Second), limit)
@@ -428,7 +466,7 @@ func TestCreateRequest(t *testing.T) {
 	t.Run("stores a retrievable request stamped with the current time", func(t *testing.T) {
 		freshDB(t)
 
-		storeRequest(t.Context(), "test-uuid")
+		storeRequest(t, "test-uuid")
 
 		items := database.GetRequestsForEndpointID(t.Context(), "test-id", "", time.Time{}, 1)
 
@@ -446,7 +484,7 @@ func TestCreateRequest(t *testing.T) {
 		require.NoError(t, err)
 		stamp := time.Date(2026, 8, 8, 19, 36, 13, 0, brussels)
 
-		storeRequest(t.Context(), "zoned-uuid", withCreatedAt(stamp))
+		storeRequest(t, "zoned-uuid", withCreatedAt(stamp))
 
 		items := database.GetRequestsForEndpointID(t.Context(), "test-id", "", time.Time{}, 1)
 
@@ -459,10 +497,10 @@ func TestDeleteRequestsForEndpointID(t *testing.T) {
 	t.Run("deletes only the named endpoint's requests", func(t *testing.T) {
 		freshDB(t)
 
-		storeRequest(t.Context(), "test-uuid-1", withEndpointID("delete-id"))
-		storeRequest(t.Context(), "test-uuid-2", withEndpointID("keep-id"))
+		storeRequest(t, "test-uuid-1", withEndpointID("delete-id"))
+		storeRequest(t, "test-uuid-2", withEndpointID("keep-id"))
 
-		database.DeleteRequestsForEndpointID(t.Context(), "delete-id")
+		require.NoError(t, database.DeleteRequestsForEndpointID(t.Context(), "delete-id"))
 
 		assert.Equal(t, int64(1), database.CountRequests(t.Context()))
 		assert.Equal(t, "keep-id",
@@ -474,10 +512,10 @@ func TestDeleteRequestForUUID(t *testing.T) {
 	t.Run("deletes only the named request", func(t *testing.T) {
 		freshDB(t)
 
-		storeRequest(t.Context(), "delete-uuid")
-		storeRequest(t.Context(), "keep-uuid")
+		storeRequest(t, "delete-uuid")
+		storeRequest(t, "keep-uuid")
 
-		database.DeleteRequestForUUID(t.Context(), "delete-uuid")
+		require.NoError(t, database.DeleteRequestForUUID(t.Context(), "delete-uuid"))
 
 		assert.Equal(t, int64(1), database.CountRequests(t.Context()))
 		assert.Equal(t, "keep-uuid",
@@ -491,7 +529,7 @@ func TestDeleteOldRequests(t *testing.T) {
 	t.Run("deletes requests created before the threshold", func(t *testing.T) {
 		freshDB(t)
 
-		storeRequest(t.Context(), "uuid-delete", withCreatedAt(threshold.Add(-time.Hour)))
+		storeRequest(t, "uuid-delete", withCreatedAt(threshold.Add(-time.Hour)))
 
 		database.DeleteOldRequests(t.Context(), threshold)
 
@@ -501,7 +539,7 @@ func TestDeleteOldRequests(t *testing.T) {
 	t.Run("keeps requests created after the threshold", func(t *testing.T) {
 		freshDB(t)
 
-		storeRequest(t.Context(), "uuid-keep", withCreatedAt(threshold.Add(time.Hour)))
+		storeRequest(t, "uuid-keep", withCreatedAt(threshold.Add(time.Hour)))
 
 		database.DeleteOldRequests(t.Context(), threshold)
 

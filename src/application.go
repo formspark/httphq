@@ -17,6 +17,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/compress"
 	"github.com/gofiber/fiber/v3/middleware/limiter"
+	recoverer "github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/static"
 	"github.com/gofiber/template/html/v2"
 	"github.com/robfig/cron/v3"
@@ -34,9 +35,19 @@ const (
 	retentionWindow = 4 * time.Hour
 	retentionSweep  = "*/5 * * * *"
 
-	// WAL lets the retention sweep delete while captures are written, and the
-	// busy timeout rides out the lock one takes rather than failing the other.
-	databaseDSN = "file:local.db?_journal_mode=WAL&_busy_timeout=5000&_synchronous=NORMAL"
+	// WAL lets the retention sweep and the listings read while captures are
+	// written, and the busy timeout rides out the lock one writer takes rather
+	// than failing the other. The driver reads only `_pragma` keys, so a
+	// setting spelled any other way is silently ignored.
+	databaseDSN = "file:local.db?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=synchronous(NORMAL)"
+
+	// A connection that never finishes its request, never reads its response
+	// or sits idle on keep-alive would otherwise hold its slot and any buffered
+	// response for as long as it likes: the limiter only sees parsed requests.
+	// fasthttp clears these deadlines when a connection upgrades to a socket.
+	readTimeout  = 30 * time.Second
+	writeTimeout = 30 * time.Second
+	idleTimeout  = 2 * time.Minute
 
 	// shutdownTimeout bounds the drain after SIGTERM. Kubernetes sends SIGKILL
 	// 30 seconds after SIGTERM; a request still open after this is cut, which
@@ -82,9 +93,12 @@ func newApplication(config applicationConfig) *fiber.App {
 	}
 
 	application := fiber.New(fiber.Config{
-		Views:       engine,
-		ViewsLayout: "layouts/main",
-		BodyLimit:   bodyLimit,
+		Views:        engine,
+		ViewsLayout:  "layouts/main",
+		BodyLimit:    bodyLimit,
+		ReadTimeout:  readTimeout,
+		WriteTimeout: writeTimeout,
+		IdleTimeout:  idleTimeout,
 		// Trust the upstream proxy only when a PLATFORM is configured, so
 		// c.Scheme() honours X-Forwarded-Proto (correct ws/wss + EndpointURL).
 		// With no platform, the app is treated as directly exposed and
@@ -106,6 +120,10 @@ func newApplication(config applicationConfig) *fiber.App {
 	// correlation ID and a structured access-log line.
 	application.Use(requestLogger)
 
+	// Inside the logger, so a handler that panics is answered 500 and logged
+	// as one rather than taking the process and every open feed down with it.
+	application.Use(recoverer.New())
+
 	maxRequestsPerMinute := developmentRequestsPerMinute
 	if isProduction {
 		maxRequestsPerMinute = productionRequestsPerMinute
@@ -116,7 +134,7 @@ func newApplication(config applicationConfig) *fiber.App {
 		// Bucket on the spoof-resistant client IP (CF-Connecting-IP behind
 		// Cloudflare) rather than c.IP(), which trusts a client-supplied
 		// X-Forwarded-For and lets a caller reset its own limit.
-		KeyGenerator: func(c fiber.Ctx) string { return resolveClientIP(c) },
+		KeyGenerator: func(c fiber.Ctx) string { return rateLimitKey(resolveClientIP(c)) },
 	}))
 
 	application.Use(compress.New())

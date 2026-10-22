@@ -3,13 +3,15 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"maps"
 	"net/http"
+	"strings"
 
-	"github.com/gofiber/contrib/v3/socketio"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	"github.com/klauspost/compress/zstd"
 	"gorm.io/datatypes"
 
 	"httphq/src/database"
@@ -97,16 +99,12 @@ func flattenHeaders(headers map[string][]string) map[string]any {
 	return flat
 }
 
-// emitToSockets dispatches a payload to a list of live sockets. It is a
-// variable so a test can assert what fan-out sends without opening one.
-var emitToSockets = socketio.EmitToList
-
-// broadcastCapture pushes a stored capture to every socket watching its
-// endpoint. It marshals once and dispatches asynchronously so a slow client
-// does not stall the capture handler.
+// broadcastCapture offers a stored capture to every socket watching its
+// endpoint. It marshals once and never waits on a socket, so a slow client
+// cannot stall the capture handler or pin captures in memory.
 func broadcastCapture(ctx context.Context, registry *socketRegistry, request database.Request) {
-	uuids := registry.uuidsFor(request.EndpointID)
-	if len(uuids) == 0 {
+	feeds := registry.subscribersFor(request.EndpointID)
+	if len(feeds) == 0 {
 		return
 	}
 	marshalled, err := json.Marshal(request)
@@ -114,13 +112,74 @@ func broadcastCapture(ctx context.Context, registry *socketRegistry, request dat
 		slog.ErrorContext(ctx, "websocket payload marshal failed", "err", err)
 		return
 	}
-	go emitToSockets(uuids, marshalled)
+	for _, feed := range feeds {
+		feed.offer(marshalled)
+	}
+}
+
+// zstdDecoder decodes zstd capture bodies within the body limit. The
+// framework's own decoder accepts whatever window a frame declares and
+// allocates it up front, so a body of a few bytes could claim hundreds of
+// megabytes. This one refuses a window, or an output, larger than the limit.
+var zstdDecoder, _ = zstd.NewReader(nil,
+	zstd.WithDecoderMaxWindow(bodyLimit),
+	zstd.WithDecoderMaxMemory(bodyLimit),
+	zstd.WithDecoderConcurrency(1))
+
+// captureBody is the request body as the sender meant it, decoded from at most
+// one Content-Encoding. Each decoding stage is bounded by the body limit but
+// the number of stages is not, so a chain of them is refused outright: no
+// client needs to compress a payload twice.
+func captureBody(c fiber.Ctx) ([]byte, error) {
+	encoding := strings.TrimSpace(c.Get(fiber.HeaderContentEncoding))
+	if strings.Contains(encoding, ",") {
+		return nil, fiber.ErrUnsupportedMediaType
+	}
+	if strings.EqualFold(encoding, "zstd") {
+		return decodeZstd(c.Request().Body())
+	}
+	return c.Body(), nil
+}
+
+// decodeZstd decodes a zstd body. A frame that would need more than the body
+// limit to decode is answered 413, as an oversized body is; one that is not
+// valid zstd is answered 400.
+func decodeZstd(body []byte) ([]byte, error) {
+	decoded, err := zstdDecoder.DecodeAll(body, nil)
+	switch {
+	case err == nil:
+		return decoded, nil
+	case errors.Is(err, zstd.ErrWindowSizeExceeded), errors.Is(err, zstd.ErrDecoderSizeExceeded):
+		return nil, fiber.ErrRequestEntityTooLarge
+	default:
+		return nil, fiber.ErrBadRequest
+	}
+}
+
+// captureRecord builds the stored capture from an inbound request and its
+// decoded body.
+func captureRecord(c fiber.Ctx, body []byte) database.Request {
+	headers := captureHeaders(c.GetReqHeaders())
+	jsonHeaders, err := json.Marshal(flattenHeaders(headers))
+	if err != nil {
+		slog.ErrorContext(c.Context(), "request header marshal failed", "err", err)
+	}
+	return database.Request{
+		UUID:        uuid.NewString(),
+		EndpointID:  c.Params("endpoint"),
+		IP:          resolveClientIP(c),
+		Method:      c.Method(),
+		Path:        c.Path(),
+		QueryString: string(c.Request().URI().QueryString()),
+		Body:        string(body),
+		Headers:     datatypes.JSON(jsonHeaders),
+	}
 }
 
 // captureRequest stores an inbound request against its endpoint and pushes it to
-// every socket watching that endpoint. It answers 200 for anything within the
-// body limit: there is nothing else a caller can send that httphq will not
-// record.
+// every socket watching that endpoint. It answers 200 once the capture is
+// stored, so a sender is never handed the UUID of a capture that does not
+// exist; a store that refused the write is answered 503.
 func captureRequest(registry *socketRegistry) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		// The body limit is enforced around the handler rather than in front of
@@ -132,25 +191,14 @@ func captureRequest(registry *socketRegistry) fiber.Handler {
 			return c.SendStatus(http.StatusRequestEntityTooLarge)
 		}
 
-		endpointID := c.Params("endpoint")
-
-		headers := captureHeaders(c.GetReqHeaders())
-		jsonHeaders, err := json.Marshal(flattenHeaders(headers))
+		body, err := captureBody(c)
 		if err != nil {
-			slog.ErrorContext(c.Context(), "request header marshal failed", "err", err)
+			return err
 		}
-
-		request := database.Request{
-			UUID:        uuid.NewString(),
-			EndpointID:  endpointID,
-			IP:          resolveClientIP(c),
-			Method:      c.Method(),
-			Path:        c.Path(),
-			QueryString: string(c.Request().URI().QueryString()),
-			Body:        string(c.Body()),
-			Headers:     datatypes.JSON(jsonHeaders),
+		request := captureRecord(c, body)
+		if err := database.CreateRequest(c.Context(), &request); err != nil {
+			return fiber.ErrServiceUnavailable
 		}
-		database.CreateRequest(c.Context(), &request)
 
 		broadcastCapture(c.Context(), registry, request)
 

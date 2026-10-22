@@ -3,8 +3,10 @@ package main
 import (
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 
+	"github.com/atrox/haikunatorgo/v2"
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 )
@@ -129,5 +131,23 @@ func TestCreateEndpoint(t *testing.T) {
 		location := response.Header.Get(fiber.HeaderLocation)
 		assert.True(t, validEndpointID(strings.TrimPrefix(location, "/")),
 			"generated endpoint %q must satisfy the validator every route applies", location)
+	})
+}
+
+func TestIDMaker(t *testing.T) {
+	// Every POST /endpoint draws from one generator, and its random source is
+	// not safe for concurrent use. Run under -race, an unguarded draw is
+	// reported here.
+	t.Run("concurrent draws are safe", func(t *testing.T) {
+		ids := &idMaker{haikunator: haikunator.New()}
+		var wg sync.WaitGroup
+		for range 8 {
+			wg.Go(func() {
+				for range 200 {
+					assert.True(t, validEndpointID(ids.next()))
+				}
+			})
+		}
+		wg.Wait()
 	})
 }

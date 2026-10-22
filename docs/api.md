@@ -20,11 +20,20 @@ deployment answers on its own host.
 An endpoint ID is lowercase words and digits joined by hyphens, up to 64
 characters. Anything else is a 404.
 
+A delete answers `200` once the store has carried it out, or `503` if it could
+not, so a caller is never told captures are gone while they are still readable.
+
 ## Capturing
 
 Send anything at all to `/to/:endpoint`. Every method is accepted, anything
 within the body limit below answers `200`, and the capture's UUID comes back on
 the `Httphq-Request-Uuid` header.
+
+A `Content-Encoding` of `gzip`, `br`, `deflate` or `zstd` is decoded and the
+original payload is stored. A body that names more than one encoding is answered
+`415`, and one that would decode past the body limit is answered `413`. A
+capture the store could not record is answered `503`, so a `200` means it was
+stored.
 
 ```bash
 curl -X POST -d '{"hello":"world"}' https://httphq.com/to/purple-frog-0691
@@ -86,12 +95,16 @@ before the first request has something to advance from.
 
 ## Limits
 
-- **128 captures** per listing response.
+- **128 captures** per listing response, and a byte budget below that: a page of
+  large captures stops early and sets `hasMore`, so one page is always a bounded
+  size. A single capture larger than the budget is still returned on its own, so
+  a cursored poller never stalls.
 - **1 MiB** request body. Anything larger is answered `413` and stored
   nowhere, so an oversized payload leaves no capture behind.
 - **150 requests per minute per client IP** in production, across everything:
-  page loads, captures and API calls share one budget. The recommended
-  2 second poll is 30 a minute, which leaves room for the traffic under test.
+  page loads, captures and API calls share one budget. An IPv6 client is
+  counted by its `/64`. The recommended 2 second poll is 30 a minute, which
+  leaves room for the traffic under test.
 - **4 hour retention.** Captures are deleted after that, and on restart.
 
 Anyone holding an endpoint's URL can read everything sent to it. Nothing secret

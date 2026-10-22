@@ -7,11 +7,14 @@ import (
 	"net"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 
 	"httphq/src/database"
 )
@@ -20,18 +23,18 @@ import (
 // stamps CreatedAt when it is zero, so passing one keeps it.
 func storeCapture(t *testing.T, endpointID, uuid string, createdAt time.Time) {
 	t.Helper()
-	database.CreateRequest(t.Context(), &database.Request{
+	require.NoError(t, database.CreateRequest(t.Context(), &database.Request{
 		UUID:       uuid,
 		EndpointID: endpointID,
 		Method:     "POST",
 		Path:       "/",
 		CreatedAt:  createdAt,
-	})
+	}))
 }
 
-// storedUUIDs is what the database still holds for an endpoint. Named for the
-// store rather than the endpoint so it does not read as the socket registry's
-// uuidsFor, which answers a different question about the same ID.
+// storedUUIDs is what the database still holds for an endpoint, named for the
+// store rather than the endpoint so a reader is not left wondering whether it
+// is the socket registry being asked.
 func storedUUIDs(ctx context.Context, endpointID string) []string {
 	var uuids []string
 	for _, request := range database.GetRequestsForEndpointID(ctx, endpointID, "", time.Time{}, 10) {
@@ -88,6 +91,59 @@ func TestNewApplication(t *testing.T) {
 	t.Run("answers a method no page route takes with a 404", func(t *testing.T) {
 		put := do(t, testRequest{method: http.MethodPut, path: "/"})
 		assert.Equal(t, http.StatusNotFound, put.StatusCode)
+	})
+}
+
+func TestNewApplicationTimeouts(t *testing.T) {
+	// The limiter only sees requests that finished arriving, so without these a
+	// connection that never completes a request, never reads its response or
+	// idles on keep-alive holds its slot indefinitely.
+	t.Run("bounds how long a connection may read, write and idle", func(t *testing.T) {
+		config := application(t).Config()
+
+		assert.Equal(t, readTimeout, config.ReadTimeout)
+		assert.Equal(t, writeTimeout, config.WriteTimeout)
+		assert.Equal(t, idleTimeout, config.IdleTimeout)
+		assert.Positive(t, readTimeout)
+		assert.Positive(t, writeTimeout)
+		assert.Positive(t, idleTimeout)
+	})
+}
+
+func TestNewApplicationRecovers(t *testing.T) {
+	// A store that was never opened makes the debug route dereference nothing,
+	// which is the simplest real handler panic to provoke. One request failing
+	// must not take the process, and every open feed with it.
+	t.Run("a handler that panics is answered 500", func(t *testing.T) {
+		shared := database.DB
+		database.DB = nil
+		t.Cleanup(func() { database.DB = shared })
+		captureLogs(t)
+
+		assert.Equal(t, http.StatusInternalServerError, get(t, "/api/debug").StatusCode)
+	})
+}
+
+func TestDatabaseDSN(t *testing.T) {
+	// The driver reads only `_pragma` keys and ignores anything else in the
+	// DSN, so the settings are asserted on the store it actually opens.
+	t.Run("opens the store with the settings it names", func(t *testing.T) {
+		dsn := strings.Replace(databaseDSN, "local.db", filepath.Join(t.TempDir(), "local.db"), 1)
+		db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+		require.NoError(t, err)
+		pool, err := db.DB()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = pool.Close() })
+
+		var journalMode string
+		var busyTimeout, synchronous int
+		require.NoError(t, db.Raw("PRAGMA journal_mode").Scan(&journalMode).Error)
+		require.NoError(t, db.Raw("PRAGMA busy_timeout").Scan(&busyTimeout).Error)
+		require.NoError(t, db.Raw("PRAGMA synchronous").Scan(&synchronous).Error)
+
+		assert.Equal(t, "wal", journalMode, "readers must not block capture writes")
+		assert.Equal(t, 5000, busyTimeout)
+		assert.Equal(t, 1, synchronous, "NORMAL")
 	})
 }
 
