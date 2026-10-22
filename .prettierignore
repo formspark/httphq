@@ -11,6 +11,3 @@ bin
 node_modules
 e2e/test-results
 e2e/playwright-report
-
-# Impeccable critique archives are generated snapshots, not source.
-.impeccable/critique
