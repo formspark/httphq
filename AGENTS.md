@@ -127,8 +127,8 @@ key names one that exists. `pnpm check:doc-refs` enforces it
   reviewer's call.
 - `PLATFORM` trusts its platform's client-IP header unconditionally
   ([README.md](README.md#platform)). `platform_test.go` holds each strategy.
-- Headers and bodies are never logged, and paths are logged without their
-  query string (agents/go-application.md). The tests in `src/logging` hold
+- Headers, bodies and endpoint IDs are never logged, and access logs use
+  route patterns instead of raw paths (agents/go-application.md). The tests in `src/logging` hold
   the redaction backstop; the rest is unenforced: reviewer's call.
 - DESIGN.md's palette and `src/styles/theme.css` are held together by
   `src/design_test.go` (agents/testing.md).

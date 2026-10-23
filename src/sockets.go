@@ -148,7 +148,7 @@ func serveFeed(conn *websocket.Conn, registry *socketRegistry, endpointID string
 	feed := newSubscriber()
 	registry.add(endpointID, feed)
 	defer registry.remove(endpointID, feed.id)
-	slog.Info("websocket connected", "endpoint_id", endpointID)
+	slog.Info("websocket connected")
 
 	conn.SetReadLimit(socketReadLimit)
 	readerDone := make(chan struct{})

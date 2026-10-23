@@ -59,10 +59,11 @@ strategies and the security note; `platform_test.go` holds each one.
 ## Logging
 
 Structured JSON to stdout via `log/slog`, with OpenTelemetry field names
-(`service.name`, `http.request.method`, `url.path`, ...). Every request carries
+(`service.name`, `http.request.method`, `http.route`, ...). Every request carries
 a `request_id` that is reused from a valid inbound `X-Request-Id` or minted,
 echoed on the response, and stamped onto every line emitted while handling it.
 
-Headers and bodies are never logged and paths are logged without their query
-string; a denylist masks sensitive keys as a backstop. Probe traffic to
+Only route patterns are logged. Endpoint IDs, raw paths, query strings, headers
+and bodies are omitted. Sensitive attributes and arbitrary object values are
+masked as a backstop. Error attributes omit their original text. Probe traffic to
 `/api/health` logs at debug so it stays out of production logs.

@@ -102,6 +102,18 @@ func TestResolveLevel(t *testing.T) {
 }
 
 func TestReplaceAttr(t *testing.T) {
+	t.Run("omits object contents and raw error text", func(t *testing.T) {
+		record := capture(t, func(logger *slog.Logger) {
+			logger.Error("operation failed",
+				"err", "private-error",
+				"context", map[string]any{"nested": "private-value"},
+				"endpoint_id", "private-endpoint",
+				"Email", "private-address")
+		})
+		encoded, err := json.Marshal(record)
+		require.NoError(t, err)
+		assert.NotContains(t, string(encoded), "private-")
+	})
 	t.Run("lower-cases the level so it matches neighbouring services", func(t *testing.T) {
 		record := capture(t, func(logger *slog.Logger) {
 			logger.WarnContext(context.Background(), "hello")

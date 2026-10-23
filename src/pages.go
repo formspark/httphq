@@ -135,7 +135,7 @@ func createEndpoint(haikuMaker *haikunator.Haikunator) fiber.Handler {
 	ids := &idMaker{haikunator: haikuMaker}
 	return func(c fiber.Ctx) error {
 		endpointID := ids.next()
-		slog.InfoContext(c.Context(), "endpoint created", "endpoint_id", endpointID)
+		slog.InfoContext(c.Context(), "endpoint created")
 		return c.Redirect().To("/" + endpointID)
 	}
 }

@@ -76,6 +76,17 @@ func TestRequestIDPattern(t *testing.T) {
 // request was handled, so the echo is what makes a log line findable from
 // outside the process.
 func TestRequestLogger(t *testing.T) {
+	t.Run("omits capture credentials and caller-selected content", func(t *testing.T) {
+		out := captureLogs(t)
+		do(t, testRequest{
+			method:  http.MethodPost,
+			path:    "/to/private-endpoint/private-suffix?token=private-query",
+			body:    "private-body",
+			headers: map[string]string{"Authorization": "private-header"},
+		})
+		assert.NotContains(t, out.String(), "private-")
+		assert.Contains(t, out.String(), "http.route")
+	})
 	t.Run("a valid inbound request ID is echoed back", func(t *testing.T) {
 		response := do(t, testRequest{
 			method:  http.MethodGet,

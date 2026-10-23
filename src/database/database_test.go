@@ -144,8 +144,8 @@ func TestBrokenStore(t *testing.T) {
 
 		assert.Empty(t, listed, "a caller must not be handed a half-read page")
 		assert.Contains(t, logs.String(), "get requests failed")
-		assert.Contains(t, logs.String(), "any-endpoint",
-			"the log names the endpoint, or an operator cannot tell which one broke")
+		assert.NotContains(t, logs.String(), "any-endpoint",
+			"endpoint IDs grant access to captured requests")
 	})
 }
 

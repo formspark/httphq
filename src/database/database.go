@@ -90,7 +90,7 @@ func CountRequests(ctx context.Context) int64 {
 func CountRequestsForEndpointID(ctx context.Context, endpointID string) int64 {
 	var count int64
 	result := DB.Model(&Request{}).Where(&Request{EndpointID: endpointID}).Count(&count)
-	logQueryError(ctx, result, "count requests for endpoint failed", "endpoint_id", endpointID)
+	logQueryError(ctx, result, "count requests for endpoint failed")
 	return count
 }
 
@@ -122,7 +122,7 @@ func GetRequestsForEndpointID(
 	}
 
 	result := query.Find(&items)
-	logQueryError(ctx, result, "get requests failed", "endpoint_id", endpointID)
+	logQueryError(ctx, result, "get requests failed")
 	return items
 }
 
@@ -147,7 +147,7 @@ func CreateRequest(ctx context.Context, request *Request) error {
 
 func DeleteRequestsForEndpointID(ctx context.Context, endpointID string) error {
 	result := DB.Where(&Request{EndpointID: endpointID}).Delete(&Request{})
-	logQueryError(ctx, result, "delete requests failed", "endpoint_id", endpointID)
+	logQueryError(ctx, result, "delete requests failed")
 	return result.Error
 }
 
