@@ -46,8 +46,8 @@ func responseStatus(c fiber.Ctx, err error) int {
 // requestLogger assigns each request a correlation ID, reusing a valid inbound
 // X-Request-Id and otherwise minting one. It exposes that ID on the context and
 // the X-Request-Id response header, and emits one structured access-log line.
-// Request headers and bodies are never logged, and the path is logged without
-// its query string.
+// Only the matched route pattern is logged. Endpoint IDs, caller-selected
+// path suffixes, query strings, headers and bodies are omitted.
 //
 // The response header is written on the way out for the same reason the
 // security headers are: a handler that resets the response it is building would
@@ -68,13 +68,14 @@ func requestLogger(c fiber.Ctx) error {
 		level = slog.LevelDebug
 	}
 	attrs := []slog.Attr{
+		slog.String("event", "http_request"),
 		slog.String("http.request.method", c.Method()),
-		slog.String("url.path", c.Path()),
+		slog.String("http.route", c.Route().Path),
 		slog.Int("http.response.status_code", responseStatus(c, err)),
 		slog.Float64("http.server.request.duration", time.Since(start).Seconds()),
 	}
 	if err != nil {
-		attrs = append(attrs, slog.String("err", err.Error()))
+		attrs = append(attrs, slog.String("err", "request failed"))
 		level = slog.LevelError
 	}
 	slog.LogAttrs(c.Context(), level, "request", attrs...)

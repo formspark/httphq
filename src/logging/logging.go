@@ -53,15 +53,22 @@ func (h ctxHandler) WithGroup(name string) slog.Handler {
 // logs are already built from a fixed, safe field set; this is a backstop
 // against secrets reaching ad-hoc application logs.
 var sensitiveKeys = map[string]struct{}{
-	"authorization": {},
-	"cookie":        {},
-	"set-cookie":    {},
-	"x-api-key":     {},
-	"api_key":       {},
-	"password":      {},
-	"token":         {},
-	"secret":        {},
-	"bot_token":     {},
+	"authorization": {}, "cookie": {}, "setcookie": {}, "xapikey": {},
+	"apikey": {}, "password": {}, "token": {}, "secret": {}, "bottoken": {},
+	"email": {}, "to": {}, "cc": {}, "bcc": {}, "ip": {}, "clientip": {},
+	"body": {}, "headers": {}, "html": {}, "text": {}, "subject": {},
+	"content": {}, "input": {}, "output": {}, "answers": {}, "prompt": {},
+	"query": {}, "variables": {}, "params": {}, "parameters": {}, "endpointid": {},
+}
+
+func sensitiveKey(key string) bool {
+	for _, fragment := range []string{"secret", "token", "password", "cookie", "authorization", "apikey", "email", "recipient"} {
+		if strings.Contains(key, fragment) {
+			return true
+		}
+	}
+	_, found := sensitiveKeys[key]
+	return found
 }
 
 func replaceAttr(groups []string, a slog.Attr) slog.Attr {
@@ -69,8 +76,21 @@ func replaceAttr(groups []string, a slog.Attr) slog.Attr {
 	if len(groups) == 0 && a.Key == slog.LevelKey {
 		return slog.String(slog.LevelKey, strings.ToLower(a.Value.String()))
 	}
-	if _, ok := sensitiveKeys[strings.ToLower(a.Key)]; ok {
+	return redactedAttr(a)
+}
+
+func opaqueAttr(a slog.Attr) bool {
+	return a.Key == "err" || a.Key == "error" || a.Value.Kind() == slog.KindAny
+}
+
+func redactedAttr(a slog.Attr) slog.Attr {
+	key := strings.NewReplacer("-", "", "_", "", ".", "").Replace(strings.ToLower(a.Key))
+	if sensitiveKey(key) {
 		return slog.String(a.Key, "[redacted]")
+	}
+	// Error strings and arbitrary objects can carry values under unknown keys.
+	if opaqueAttr(a) {
+		return slog.String(a.Key, "[omitted]")
 	}
 	return a
 }
