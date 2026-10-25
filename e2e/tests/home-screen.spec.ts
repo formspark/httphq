@@ -19,9 +19,16 @@ test.describe("Home screen", () => {
     });
 
     // The landing page is the one surface a visitor judges the product on
-    // before trusting it with traffic, so it stays a pure document.
+    // before trusting it with traffic, so it stays a pure document. Its
+    // JSON-LD block is a data block the browser never executes, so it is the
+    // one script element allowed.
     test("the page ships no javascript", async ({ page }) => {
-      await expect(page.locator("script")).toHaveCount(0);
+      await expect(
+        page.locator('script:not([type="application/ld+json"])'),
+      ).toHaveCount(0);
+      await expect(
+        page.locator('script[type="application/ld+json"]'),
+      ).toHaveCount(1);
     });
   });
 

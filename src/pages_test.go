@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 	"sync"
@@ -9,6 +10,7 @@ import (
 	"github.com/atrox/haikunatorgo/v2"
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Every page's head fields come from pageMeta, so what it emits is what the
@@ -62,6 +64,28 @@ func TestRenderIndex(t *testing.T) {
 		assert.Equal(t, http.StatusOK, response.StatusCode)
 		assert.Contains(t, body, "<title>httphq: inspect HTTP requests in real time</title>")
 		assert.Contains(t, body, `<link rel="canonical" href="http://example.com/" />`)
+	})
+
+	// A rich result is built from the structured data alone, so it has to parse
+	// as JSON and describe the page it sits on with the copy its head states.
+	t.Run("carries WebApplication structured data that parses", func(t *testing.T) {
+		body := bodyOf(t, get(t, "/"))
+		_, script, found := strings.Cut(body, `<script type="application/ld+json">`)
+		require.True(t, found, "the home page carries no JSON-LD")
+		script, _, _ = strings.Cut(script, "</script>")
+
+		var data map[string]any
+		require.NoError(t, json.Unmarshal([]byte(script), &data))
+		assert.Equal(t, "https://schema.org", data["@context"])
+		assert.Equal(t, "WebApplication", data["@type"])
+		assert.Equal(t, "httphq", data["name"])
+		assert.Equal(t, "http://example.com/", data["url"])
+		assert.Equal(t, indexDescription, data["description"])
+		assert.Equal(t, "DeveloperApplication", data["applicationCategory"])
+		assert.Equal(t, "Any", data["operatingSystem"])
+		assert.Equal(t, true, data["isAccessibleForFree"])
+		assert.Equal(t, map[string]any{"@type": "Offer", "price": "0", "priceCurrency": "USD"}, data["offers"])
+		assert.Equal(t, repositoryURL, data["sameAs"])
 	})
 }
 
