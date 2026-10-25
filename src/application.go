@@ -140,7 +140,9 @@ func newApplication(config applicationConfig) *fiber.App {
 	application.Use(compress.New())
 	application.Use(securityHeaders(contentSecurityPolicy(!isProduction)))
 
-	application.Add(readMethods, "/*", static.New(config.publicDir))
+	application.Add(readMethods, "/*", static.New(config.publicDir, static.Config{
+		ModifyResponse: cacheVersionedFile,
+	}))
 
 	registerWebSockets(application, config.registry)
 

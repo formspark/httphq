@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -229,5 +230,36 @@ func TestAssetIndex(t *testing.T) {
 		index := newAssetIndex(assetDir(t), true)
 
 		assert.Equal(t, index.url("/app.css"), index.url("/app.css"))
+	})
+}
+
+// A hashed URL names one version of a file, so it can be cached for good. A
+// plain URL, or a page that happens to be asked for with a ?v= query, moves
+// under the same address and must be revalidated.
+func TestCacheVersionedFile(t *testing.T) {
+	t.Run("a file asked for by its hash is cached as immutable", func(t *testing.T) {
+		urls := regexp.MustCompile(`"(?:http://example\.com)?(/[^"?]+\?v=[0-9a-f]+)"`).
+			FindAllStringSubmatch(bodyOf(t, get(t, "/")), -1)
+		require.NotEmpty(t, urls)
+		for _, match := range urls {
+			url := match[1]
+			response := get(t, url)
+
+			assert.Equal(t, http.StatusOK, response.StatusCode, url)
+			assert.Equal(t, immutableCacheControl, response.Header.Get("Cache-Control"), url)
+		}
+	})
+
+	t.Run("a file asked for without a hash is not", func(t *testing.T) {
+		assert.Empty(t, get(t, "/app.css").Header.Get("Cache-Control"))
+	})
+
+	t.Run("a page asked for with a hash is not", func(t *testing.T) {
+		for _, path := range []string{"/?v=0123456789", "/contact?v=0123456789", "/llms.txt?v=0123456789"} {
+			response := get(t, path)
+
+			assert.Equal(t, http.StatusOK, response.StatusCode, path)
+			assert.NotContains(t, response.Header.Get("Cache-Control"), "immutable", path)
+		}
 	})
 }
