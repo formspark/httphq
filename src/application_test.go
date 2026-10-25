@@ -120,6 +120,13 @@ var versionedAssetPattern = regexp.MustCompile(`"(?:http://example\.com)?(/[^"?]
 // invisible to a crawler until a rule names it. Google renders the favicon in
 // search results only when it can fetch it.
 func TestRobots(t *testing.T) {
+	t.Run("allows each page a crawler may index by its exact path", func(t *testing.T) {
+		robots := bodyOf(t, get(t, "/robots.txt"))
+		for _, rule := range []string{"Allow: /$", "Allow: /contact$", "Allow: /llms.txt$"} {
+			assert.Contains(t, robots, rule)
+		}
+	})
+
 	t.Run("allows every asset the crawlable pages reference", func(t *testing.T) {
 		prefixes := robotsAllowPrefixes(t)
 		for _, page := range []string{"/", "/contact"} {
