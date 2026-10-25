@@ -139,6 +139,7 @@ func newApplication(config applicationConfig) *fiber.App {
 
 	application.Use(compress.New())
 	application.Use(securityHeaders(contentSecurityPolicy(!isProduction)))
+	application.Use(redirectWWW)
 
 	application.Add(readMethods, "/*", static.New(config.publicDir, static.Config{
 		ModifyResponse: cacheVersionedFile,

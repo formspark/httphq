@@ -4,6 +4,9 @@ import (
 	"html/template"
 	"log/slog"
 	"maps"
+	"net/http"
+	"slices"
+	"strings"
 	"sync"
 
 	"github.com/atrox/haikunatorgo/v2"
@@ -32,6 +35,21 @@ const (
 // advertises itself, not httphq.com.
 func pageBaseURL(c fiber.Ctx) string {
 	return c.Scheme() + "://" + string(c.Request().Host())
+}
+
+// redirectWWW sends a page read on a www. host to the same path on the bare
+// host, so a site reachable under both names has one canonical address
+// instead of two that each canonicalise to themselves. It strips the prefix
+// rather than naming a hostname, so a self-hosted deployment gets the same
+// treatment. Only reads are redirected: a capture sent to a www. URL is
+// stored where it landed, because most webhook senders do not follow a
+// redirect and the capture would be lost.
+func redirectWWW(c fiber.Ctx) error {
+	host, found := strings.CutPrefix(string(c.Request().Host()), "www.")
+	if !found || !slices.Contains(readMethods, c.Method()) {
+		return c.Next()
+	}
+	return c.Redirect().Status(http.StatusMovedPermanently).To(c.Scheme() + "://" + host + c.OriginalURL())
 }
 
 // pageMeta builds the head fields layouts/main renders. Every page goes through

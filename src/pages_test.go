@@ -56,6 +56,33 @@ func TestPageMeta(t *testing.T) {
 	})
 }
 
+// A host served under both its bare and its www. name would have two
+// addresses that each canonicalise to themselves.
+func TestRedirectWWW(t *testing.T) {
+	t.Run("a read on a www. host moves permanently to the bare host", func(t *testing.T) {
+		for _, method := range readMethods {
+			response := do(t, testRequest{method: method, path: "http://www.example.com/contact?ref=a&b=c"})
+
+			assert.Equal(t, http.StatusMovedPermanently, response.StatusCode, method)
+			assert.Equal(t, "http://example.com/contact?ref=a&b=c", response.Header.Get(fiber.HeaderLocation), method)
+		}
+	})
+
+	// Webhook senders mostly do not follow redirects, so a capture sent to a
+	// www. URL is stored rather than bounced.
+	t.Run("a capture on a www. host is stored where it landed", func(t *testing.T) {
+		id := endpointID(t)
+		response := do(t, testRequest{method: http.MethodPost, path: "http://www.example.com/to/" + id, body: "{}"})
+
+		assert.Equal(t, http.StatusOK, response.StatusCode)
+		assert.Len(t, capturedRequests(t, id, ""), 1)
+	})
+
+	t.Run("the bare host is served as it is", func(t *testing.T) {
+		assert.Equal(t, http.StatusOK, get(t, "http://example.com/contact").StatusCode)
+	})
+}
+
 func TestRenderIndex(t *testing.T) {
 	t.Run("renders with its title and canonical tag", func(t *testing.T) {
 		response := get(t, "/")
