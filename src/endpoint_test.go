@@ -82,6 +82,24 @@ func TestValidEndpointID(t *testing.T) {
 	})
 }
 
+func TestReservedPaths(t *testing.T) {
+	// A slug-shaped path renders an endpoint page, so a word a visitor or a
+	// crawler would guess as a page of the site has to be refused by name.
+	t.Run("rejects the words reserved for pages of the site", func(t *testing.T) {
+		for _, id := range []string{"about", "pricing", "docs", "login", "sitemap"} {
+			assert.Falsef(t, validEndpointID(id), "%q should be rejected", id)
+		}
+	})
+
+	// Every minted ID carries a numeric token after a hyphen, which no
+	// reserved word has, so the list can never refuse an ID the site handed out.
+	t.Run("no reserved word has the shape a minted ID takes", func(t *testing.T) {
+		for word := range reservedPaths {
+			assert.NotContainsf(t, word, "-", "%q could collide with a minted ID", word)
+		}
+	})
+}
+
 // The guard runs before the handler, so no route can reach the database, a
 // template or a log line with an unvalidated ID. Every route carrying an
 // :endpoint parameter has to be behind it.

@@ -139,8 +139,11 @@ func newApplication(config applicationConfig) *fiber.App {
 
 	application.Use(compress.New())
 	application.Use(securityHeaders(contentSecurityPolicy(!isProduction)))
+	application.Use(redirectWWW)
 
-	application.Add(readMethods, "/*", static.New(config.publicDir))
+	application.Add(readMethods, "/*", static.New(config.publicDir, static.Config{
+		ModifyResponse: cacheVersionedFile,
+	}))
 
 	registerWebSockets(application, config.registry)
 
@@ -152,6 +155,7 @@ func newApplication(config applicationConfig) *fiber.App {
 
 	application.Add(readMethods, "/", renderIndex(assets))
 	application.Add(readMethods, "/contact", renderContact(assets))
+	application.Add(readMethods, "/llms.txt", renderLLMs)
 	application.Add(readMethods, "/:endpoint", requireValidEndpoint, renderEndpoint(assets))
 	application.Post("/endpoint", createEndpoint(haikunator.New()))
 

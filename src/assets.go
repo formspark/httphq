@@ -8,6 +8,8 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	"github.com/gofiber/fiber/v3"
 )
 
 // versionedAssets are the first-party files referenced from the templates whose
@@ -103,4 +105,21 @@ func (a *assetIndex) hash(path string) string {
 		return ""
 	}
 	return hex.EncodeToString(h.Sum(nil))[:10]
+}
+
+// immutableCacheControl lets a browser and a CDN keep a file for a year
+// without revalidating it. It is only true of a URL that names its content.
+const immutableCacheControl = "public, max-age=31536000, immutable"
+
+// cacheVersionedFile runs after the static handler has served a file. A
+// request carrying the ?v= hash that url appends asks for one exact version
+// of the file, and a changed file is a different URL, so the response can be
+// cached for good. A file asked for without the hash keeps the default, since
+// its contents move under the same URL. Only served files reach this, so a
+// page rendered for a path with a ?v= query is never marked immutable.
+func cacheVersionedFile(c fiber.Ctx) error {
+	if c.Query("v") != "" {
+		c.Set(fiber.HeaderCacheControl, immutableCacheControl)
+	}
+	return nil
 }

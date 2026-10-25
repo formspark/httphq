@@ -1,7 +1,10 @@
 User-agent: *
 Allow: /$
 Allow: /contact$
+Allow: /llms.txt$
 Allow: /app.css
 Allow: /social-card.png
 Allow: /logo.svg
+Allow: /favicon.ico
+Allow: /apple-touch-icon.png
 Disallow: /

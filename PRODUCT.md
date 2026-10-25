@@ -110,9 +110,11 @@ Technical constraints:
 - Endpoint IDs are generated words, not secrets. There is no authentication and
   no access control on an endpoint; possession of the URL is the only gate, and
   IDs are guessable in principle.
-- `robots.txt` allows `/` and `/contact` plus the three assets a crawler needs
-  to render them (`/app.css`, `/social-card.png`, `/logo.svg`); everything else,
-  endpoint pages included, is disallowed.
+- `robots.txt` allows `/`, `/contact` and `/llms.txt` plus the assets a
+  crawler needs to render them (the stylesheet, the social card, the logo and
+  the icons the layout links); everything else, endpoint pages included, is
+  disallowed.
+  `TestRobots` fails when a crawlable page references a file it does not allow.
 
 Terminology: _endpoint_ (the generated capture target), _request_ (one captured
 call), _capture URL_ (`/to/<id>`), _HAR_ (the export shape).

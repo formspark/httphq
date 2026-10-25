@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 	"sync"
@@ -9,6 +10,7 @@ import (
 	"github.com/atrox/haikunatorgo/v2"
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Every page's head fields come from pageMeta, so what it emits is what the
@@ -54,6 +56,33 @@ func TestPageMeta(t *testing.T) {
 	})
 }
 
+// A host served under both its bare and its www. name would have two
+// addresses that each canonicalise to themselves.
+func TestRedirectWWW(t *testing.T) {
+	t.Run("a read on a www. host moves permanently to the bare host", func(t *testing.T) {
+		for _, method := range readMethods {
+			response := do(t, testRequest{method: method, path: "http://www.example.com/contact?ref=a&b=c"})
+
+			assert.Equal(t, http.StatusMovedPermanently, response.StatusCode, method)
+			assert.Equal(t, "http://example.com/contact?ref=a&b=c", response.Header.Get(fiber.HeaderLocation), method)
+		}
+	})
+
+	// Webhook senders mostly do not follow redirects, so a capture sent to a
+	// www. URL is stored rather than bounced.
+	t.Run("a capture on a www. host is stored where it landed", func(t *testing.T) {
+		id := endpointID(t)
+		response := do(t, testRequest{method: http.MethodPost, path: "http://www.example.com/to/" + id, body: "{}"})
+
+		assert.Equal(t, http.StatusOK, response.StatusCode)
+		assert.Len(t, capturedRequests(t, id, ""), 1)
+	})
+
+	t.Run("the bare host is served as it is", func(t *testing.T) {
+		assert.Equal(t, http.StatusOK, get(t, "http://example.com/contact").StatusCode)
+	})
+}
+
 func TestRenderIndex(t *testing.T) {
 	t.Run("renders with its title and canonical tag", func(t *testing.T) {
 		response := get(t, "/")
@@ -62,6 +91,28 @@ func TestRenderIndex(t *testing.T) {
 		assert.Equal(t, http.StatusOK, response.StatusCode)
 		assert.Contains(t, body, "<title>httphq: inspect HTTP requests in real time</title>")
 		assert.Contains(t, body, `<link rel="canonical" href="http://example.com/" />`)
+	})
+
+	// A rich result is built from the structured data alone, so it has to parse
+	// as JSON and describe the page it sits on with the copy its head states.
+	t.Run("carries WebApplication structured data that parses", func(t *testing.T) {
+		body := bodyOf(t, get(t, "/"))
+		_, script, found := strings.Cut(body, `<script type="application/ld+json">`)
+		require.True(t, found, "the home page carries no JSON-LD")
+		script, _, _ = strings.Cut(script, "</script>")
+
+		var data map[string]any
+		require.NoError(t, json.Unmarshal([]byte(script), &data))
+		assert.Equal(t, "https://schema.org", data["@context"])
+		assert.Equal(t, "WebApplication", data["@type"])
+		assert.Equal(t, "httphq", data["name"])
+		assert.Equal(t, "http://example.com/", data["url"])
+		assert.Equal(t, indexDescription, data["description"])
+		assert.Equal(t, "DeveloperApplication", data["applicationCategory"])
+		assert.Equal(t, "Any", data["operatingSystem"])
+		assert.Equal(t, true, data["isAccessibleForFree"])
+		assert.Equal(t, map[string]any{"@type": "Offer", "price": "0", "priceCurrency": "USD"}, data["offers"])
+		assert.Equal(t, repositoryURL, data["sameAs"])
 	})
 }
 
@@ -109,6 +160,14 @@ func TestRenderEndpoint(t *testing.T) {
 
 		assert.Contains(t, body, "http://example.com/api/endpoints/"+id+"/requests")
 		assert.Contains(t, body, "150 requests per minute")
+	})
+
+	// A path a visitor guesses as a page of the site has to be missing, not an
+	// empty capture stream answering 200 for a search engine to index.
+	t.Run("a reserved word or a dotted file name is a 404, not an endpoint page", func(t *testing.T) {
+		for _, path := range []string{"/about", "/pricing", "/docs", "/sitemap.xml", "/favicon.svg"} {
+			assert.Equal(t, http.StatusNotFound, get(t, path).StatusCode, path)
+		}
 	})
 
 	// robots.txt excludes endpoint pages, so a canonical URL pointing them at a

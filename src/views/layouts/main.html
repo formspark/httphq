@@ -8,6 +8,10 @@
     <meta name="description" content="{{.Description}}" />
     {{if .Canonical}}
     <link rel="canonical" href="{{.Canonical}}" />
+    {{end}} {{if .StructuredData}}
+    <script type="application/ld+json">
+      {{.StructuredData}}
+    </script>
     {{end}}
 
     <link rel="icon" href="{{asset `/favicon.ico`}}" />

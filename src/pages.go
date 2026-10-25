@@ -4,6 +4,9 @@ import (
 	"html/template"
 	"log/slog"
 	"maps"
+	"net/http"
+	"slices"
+	"strings"
 	"sync"
 
 	"github.com/atrox/haikunatorgo/v2"
@@ -14,12 +17,39 @@ import (
 // whole site: an unfurled link is a link to httphq, whichever page it points at.
 const socialImagePath = "/social-card.png"
 
+// repositoryURL is where the source lives. The footer links it on every page
+// and the home page's structured data names it, so both read it from here.
+const repositoryURL = "https://github.com/formspark/httphq"
+
+// The home page's title and description are stated once and shared by its head
+// tags and its structured data, so a search result and a rich result never
+// describe the product two ways.
+const (
+	indexTitle       = "httphq: inspect HTTP requests in real time"
+	indexDescription = "Generate a unique URL, point any client at it, and watch every request arrive: method, headers, body, query string, client IP. No account, free forever."
+)
+
 // pageBaseURL is the scheme+host a rendered page is being served from, used to
 // build the absolute URLs that canonical and Open Graph tags require. It tracks
 // the request rather than a configured hostname so a self-hosted deployment
 // advertises itself, not httphq.com.
 func pageBaseURL(c fiber.Ctx) string {
 	return c.Scheme() + "://" + string(c.Request().Host())
+}
+
+// redirectWWW sends a page read on a www. host to the same path on the bare
+// host, so a site reachable under both names has one canonical address
+// instead of two that each canonicalise to themselves. It strips the prefix
+// rather than naming a hostname, so a self-hosted deployment gets the same
+// treatment. Only reads are redirected: a capture sent to a www. URL is
+// stored where it landed, because most webhook senders do not follow a
+// redirect and the capture would be lost.
+func redirectWWW(c fiber.Ctx) error {
+	host, found := strings.CutPrefix(string(c.Request().Host()), "www.")
+	if !found || !slices.Contains(readMethods, c.Method()) {
+		return c.Next()
+	}
+	return c.Redirect().Status(http.StatusMovedPermanently).To(c.Scheme() + "://" + host + c.OriginalURL())
 }
 
 // pageMeta builds the head fields layouts/main renders. Every page goes through
@@ -44,6 +74,7 @@ func pageMeta(c fiber.Ctx, assets *assetIndex, title, description, canonicalPath
 		"Description":     description,
 		"SocialImage":     base + assets.url(socialImagePath),
 		"RetentionPhrase": retentionPhrase(retentionWindow),
+		"RepositoryURL":   repositoryURL,
 	}
 	if canonicalPath != "" {
 		meta["Canonical"] = base + canonicalPath
@@ -60,11 +91,47 @@ func renderPage(assets *assetIndex, view, title, description, canonicalPath stri
 	}
 }
 
+// webApplication is the schema.org description of httphq that the home page
+// carries as JSON-LD. html/template marshals it to JSON inside the script
+// element and escapes anything that could close the element early.
+type webApplication struct {
+	Context             string `json:"@context"`
+	Type                string `json:"@type"`
+	Name                string `json:"name"`
+	URL                 string `json:"url"`
+	Description         string `json:"description"`
+	ApplicationCategory string `json:"applicationCategory"`
+	OperatingSystem     string `json:"operatingSystem"`
+	IsAccessibleForFree bool   `json:"isAccessibleForFree"`
+	Offers              offer  `json:"offers"`
+	SameAs              string `json:"sameAs"`
+}
+
+type offer struct {
+	Type          string `json:"@type"`
+	Price         string `json:"price"`
+	PriceCurrency string `json:"priceCurrency"`
+}
+
+// renderIndex is the one page that carries structured data. Its URL is the
+// page's own canonical, so a self-hosted deployment describes itself.
 func renderIndex(assets *assetIndex) fiber.Handler {
-	return renderPage(assets, "index",
-		"httphq: inspect HTTP requests in real time",
-		"Generate a unique URL, point any client at it, and watch every request arrive: method, headers, body, query string, client IP. No account, free forever.",
-		"/")
+	return func(c fiber.Ctx) error {
+		page := pageMeta(c, assets, indexTitle, indexDescription, "/")
+		page["StructuredData"] = webApplication{
+			Context:             "https://schema.org",
+			Type:                "WebApplication",
+			Name:                "httphq",
+			URL:                 pageBaseURL(c) + "/",
+			Description:         indexDescription,
+			ApplicationCategory: "DeveloperApplication",
+			OperatingSystem:     "Any",
+			IsAccessibleForFree: true,
+			Offers:              offer{Type: "Offer", Price: "0", PriceCurrency: "USD"},
+			SameAs:              repositoryURL,
+		}
+		return c.Render("index", page)
+	}
 }
 
 func renderContact(assets *assetIndex) fiber.Handler {

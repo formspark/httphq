@@ -13,8 +13,24 @@ import (
 // the rendered pages, the database, and the logs.
 var endpointIDPattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 
+// reservedPaths are words a visitor or a crawler guesses as a site's own pages.
+// Any slug-shaped path renders an endpoint page, so without this list
+// /pricing would answer 200 with an empty capture stream and search engines
+// would index it as a page of the site. They are refused as endpoint IDs
+// everywhere, not only as pages, so no capture can be stored under an ID whose
+// page cannot be opened. Minted IDs never collide: haikunator always appends a
+// numeric token after a hyphen, and none of these carries one.
+var reservedPaths = map[string]bool{
+	"about": true, "admin": true, "api": true, "blog": true, "changelog": true,
+	"contact": true, "dashboard": true, "docs": true, "faq": true,
+	"features": true, "help": true, "llms": true, "login": true, "logout": true,
+	"pricing": true, "privacy": true, "register": true, "security": true,
+	"signin": true, "signup": true, "sitemap": true, "status": true,
+	"support": true, "terms": true,
+}
+
 func validEndpointID(id string) bool {
-	return len(id) <= 64 && endpointIDPattern.MatchString(id)
+	return len(id) <= 64 && endpointIDPattern.MatchString(id) && !reservedPaths[id]
 }
 
 // requireValidEndpoint guards every route carrying an :endpoint parameter. It
