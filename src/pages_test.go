@@ -78,6 +78,19 @@ func TestRedirectWWW(t *testing.T) {
 		assert.Len(t, capturedRequests(t, id, ""), 1)
 	})
 
+	// Behind a proxy that terminates TLS the connection itself is plain HTTP,
+	// so the redirect has to keep the scheme the proxy reports or it would
+	// send an HTTPS visitor to an HTTP address.
+	t.Run("the redirect keeps the scheme a trusted proxy reports", func(t *testing.T) {
+		c := contextWith(t, proxyTrustApp(), "10.0.0.1", map[string]string{fiber.HeaderXForwardedProto: "https"})
+		c.Request().SetRequestURI("/contact?ref=a")
+		c.Request().SetHost("www.example.com")
+
+		require.NoError(t, redirectWWW(c))
+		assert.Equal(t, http.StatusMovedPermanently, c.Response().StatusCode())
+		assert.Equal(t, "https://example.com/contact?ref=a", string(c.Response().Header.Peek(fiber.HeaderLocation)))
+	})
+
 	t.Run("the bare host is served as it is", func(t *testing.T) {
 		assert.Equal(t, http.StatusOK, get(t, "http://example.com/contact").StatusCode)
 	})
