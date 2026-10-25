@@ -7,6 +7,8 @@ import (
 	"net"
 	"net/http"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -91,6 +93,43 @@ func TestNewApplication(t *testing.T) {
 	t.Run("answers a method no page route takes with a 404", func(t *testing.T) {
 		put := do(t, testRequest{method: http.MethodPut, path: "/"})
 		assert.Equal(t, http.StatusNotFound, put.StatusCode)
+	})
+}
+
+// robotsAllowPrefixes reads the Allow rules robots.txt states as plain path
+// prefixes. Rules anchored with $ allow one page rather than a family of
+// files, so they are left out.
+func robotsAllowPrefixes(t *testing.T) []string {
+	t.Helper()
+	var prefixes []string
+	for line := range strings.Lines(bodyOf(t, get(t, "/robots.txt"))) {
+		rule, found := strings.CutPrefix(strings.TrimSpace(line), "Allow: ")
+		if found && !strings.HasSuffix(rule, "$") {
+			prefixes = append(prefixes, rule)
+		}
+	}
+	return prefixes
+}
+
+// versionedAssetPattern finds every first-party file a page references
+// through `asset`, with or without the absolute base Open Graph needs.
+var versionedAssetPattern = regexp.MustCompile(`"(?:http://example\.com)?(/[^"?]+)\?v=`)
+
+// robots.txt is an allowlist, so a file a crawlable page references is
+// invisible to a crawler until a rule names it. Google renders the favicon in
+// search results only when it can fetch it.
+func TestRobots(t *testing.T) {
+	t.Run("allows every asset the crawlable pages reference", func(t *testing.T) {
+		prefixes := robotsAllowPrefixes(t)
+		for _, page := range []string{"/", "/contact"} {
+			matches := versionedAssetPattern.FindAllStringSubmatch(bodyOf(t, get(t, page)), -1)
+			require.NotEmpty(t, matches)
+			for _, match := range matches {
+				assert.True(t, slices.ContainsFunc(prefixes, func(prefix string) bool {
+					return strings.HasPrefix(match[1], prefix)
+				}), "%s references %s, which robots.txt does not allow", page, match[1])
+			}
+		}
 	})
 }
 
