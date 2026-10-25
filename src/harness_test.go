@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -204,6 +205,30 @@ func bodyOf(t *testing.T, response *http.Response) string {
 func prose(t *testing.T, response *http.Response) string {
 	t.Helper()
 	return strings.Join(strings.Fields(bodyOf(t, response)), " ")
+}
+
+// versionedAssetLink matches a first-party file a page links through `asset`,
+// with or without the absolute base Open Graph needs. The first group is the
+// URL as linked, the second the path of the file it names.
+var versionedAssetLink = regexp.MustCompile(`"(?:http://example\.com)?((/[^"?]+)\?v=[0-9a-f]+)"`)
+
+// assetLink is one hashed file a rendered page links.
+type assetLink struct {
+	url  string
+	path string
+}
+
+// versionedAssetLinks renders page and returns every hashed file it links,
+// failing when it links none so a broken pattern cannot pass vacuously.
+func versionedAssetLinks(t *testing.T, page string) []assetLink {
+	t.Helper()
+	matches := versionedAssetLink.FindAllStringSubmatch(bodyOf(t, get(t, page)), -1)
+	require.NotEmpty(t, matches, "%s links no hashed file", page)
+	links := make([]assetLink, 0, len(matches))
+	for _, match := range matches {
+		links = append(links, assetLink{url: match[1], path: match[2]})
+	}
+	return links
 }
 
 // requestListing is the listing response, decoded. Tests read what an endpoint

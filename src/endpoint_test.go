@@ -102,21 +102,22 @@ func TestReservedPaths(t *testing.T) {
 
 // The guard runs before the handler, so no route can reach the database, a
 // template or a log line with an unvalidated ID. Every route carrying an
-// :endpoint parameter has to be behind it.
+// :endpoint parameter has to be behind it. A reserved word is refused on every
+// route too, so no capture can be stored under an ID whose page cannot open.
 func TestRequireValidEndpoint(t *testing.T) {
-	malformed := "Not_A_Valid_ID"
+	for _, id := range []string{"Not_A_Valid_ID", "about"} {
+		routes := []testRequest{
+			{method: http.MethodGet, path: "/" + id},
+			{method: http.MethodGet, path: "/api/endpoints/" + id + "/requests"},
+			{method: http.MethodDelete, path: "/api/endpoints/" + id + "/requests"},
+			{method: http.MethodDelete, path: "/api/endpoints/" + id + "/requests/some-uuid"},
+			{method: http.MethodPost, path: "/to/" + id},
+		}
 
-	routes := []testRequest{
-		{method: http.MethodGet, path: "/" + malformed},
-		{method: http.MethodGet, path: "/api/endpoints/" + malformed + "/requests"},
-		{method: http.MethodDelete, path: "/api/endpoints/" + malformed + "/requests"},
-		{method: http.MethodDelete, path: "/api/endpoints/" + malformed + "/requests/some-uuid"},
-		{method: http.MethodPost, path: "/to/" + malformed},
-	}
-
-	for _, route := range routes {
-		t.Run(route.method+" "+route.path, func(t *testing.T) {
-			assert.Equal(t, http.StatusNotFound, do(t, route).StatusCode)
-		})
+		for _, route := range routes {
+			t.Run(route.method+" "+route.path, func(t *testing.T) {
+				assert.Equal(t, http.StatusNotFound, do(t, route).StatusCode)
+			})
+		}
 	}
 }

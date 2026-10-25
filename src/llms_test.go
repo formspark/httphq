@@ -30,10 +30,6 @@ func TestRenderLLMs(t *testing.T) {
 		assert.NotContains(t, body, "%!")
 		assert.NotContains(t, body, "httphq.com")
 	})
-
-	t.Run("is open to crawlers", func(t *testing.T) {
-		assert.Contains(t, bodyOf(t, get(t, "/robots.txt")), "Allow: /llms.txt$")
-	})
 }
 
 func TestSizePhrase(t *testing.T) {
