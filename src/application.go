@@ -152,6 +152,7 @@ func newApplication(config applicationConfig) *fiber.App {
 
 	application.Add(readMethods, "/", renderIndex(assets))
 	application.Add(readMethods, "/contact", renderContact(assets))
+	application.Add(readMethods, "/llms.txt", renderLLMs)
 	application.Add(readMethods, "/:endpoint", requireValidEndpoint, renderEndpoint(assets))
 	application.Post("/endpoint", createEndpoint(haikunator.New()))
 

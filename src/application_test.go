@@ -70,6 +70,7 @@ func TestNewApplication(t *testing.T) {
 			"/contact",
 			"/" + id,
 			"/robots.txt",
+			"/llms.txt",
 			"/api/health",
 			"/api/endpoints/" + id + "/requests",
 		}
