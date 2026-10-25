@@ -111,6 +111,14 @@ func TestRenderEndpoint(t *testing.T) {
 		assert.Contains(t, body, "150 requests per minute")
 	})
 
+	// A path a visitor guesses as a page of the site has to be missing, not an
+	// empty capture stream answering 200 for a search engine to index.
+	t.Run("a reserved word or a dotted file name is a 404, not an endpoint page", func(t *testing.T) {
+		for _, path := range []string{"/about", "/pricing", "/docs", "/sitemap.xml", "/favicon.svg"} {
+			assert.Equal(t, http.StatusNotFound, get(t, path).StatusCode, path)
+		}
+	})
+
 	// robots.txt excludes endpoint pages, so a canonical URL pointing them at a
 	// shared address would be a claim nothing else in the site makes.
 	t.Run("carries no canonical URL", func(t *testing.T) {
