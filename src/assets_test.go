@@ -238,15 +238,11 @@ func TestAssetIndex(t *testing.T) {
 // under the same address and must be revalidated.
 func TestCacheVersionedFile(t *testing.T) {
 	t.Run("a file asked for by its hash is cached as immutable", func(t *testing.T) {
-		urls := regexp.MustCompile(`"(?:http://example\.com)?(/[^"?]+\?v=[0-9a-f]+)"`).
-			FindAllStringSubmatch(bodyOf(t, get(t, "/")), -1)
-		require.NotEmpty(t, urls)
-		for _, match := range urls {
-			url := match[1]
-			response := get(t, url)
+		for _, link := range versionedAssetLinks(t, "/") {
+			response := get(t, link.url)
 
-			assert.Equal(t, http.StatusOK, response.StatusCode, url)
-			assert.Equal(t, immutableCacheControl, response.Header.Get("Cache-Control"), url)
+			assert.Equal(t, http.StatusOK, response.StatusCode, link.url)
+			assert.Equal(t, immutableCacheControl, response.Header.Get("Cache-Control"), link.url)
 		}
 	})
 

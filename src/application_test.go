@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -112,10 +111,6 @@ func robotsAllowPrefixes(t *testing.T) []string {
 	return prefixes
 }
 
-// versionedAssetPattern finds every first-party file a page references
-// through `asset`, with or without the absolute base Open Graph needs.
-var versionedAssetPattern = regexp.MustCompile(`"(?:http://example\.com)?(/[^"?]+)\?v=`)
-
 // robots.txt is an allowlist, so a file a crawlable page references is
 // invisible to a crawler until a rule names it. Google renders the favicon in
 // search results only when it can fetch it.
@@ -130,12 +125,10 @@ func TestRobots(t *testing.T) {
 	t.Run("allows every asset the crawlable pages reference", func(t *testing.T) {
 		prefixes := robotsAllowPrefixes(t)
 		for _, page := range []string{"/", "/contact"} {
-			matches := versionedAssetPattern.FindAllStringSubmatch(bodyOf(t, get(t, page)), -1)
-			require.NotEmpty(t, matches)
-			for _, match := range matches {
+			for _, link := range versionedAssetLinks(t, page) {
 				assert.True(t, slices.ContainsFunc(prefixes, func(prefix string) bool {
-					return strings.HasPrefix(match[1], prefix)
-				}), "%s references %s, which robots.txt does not allow", page, match[1])
+					return strings.HasPrefix(link.path, prefix)
+				}), "%s references %s, which robots.txt does not allow", page, link.path)
 			}
 		}
 	})
