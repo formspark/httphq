@@ -193,6 +193,97 @@ func TestRenderEndpoint(t *testing.T) {
 	})
 }
 
+// browserRequest asks the way a browser navigating to a page does, naming
+// text/html in Accept.
+func browserRequest(method, path string) testRequest {
+	return testRequest{method: method, path: path, headers: map[string]string{
+		fiber.HeaderAccept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+	}}
+}
+
+// A person who misses gets a page with a way on; anything calling httphq as a
+// service keeps the bare status, so no client receives markup it did not ask
+// for.
+func TestRenderNotFound(t *testing.T) {
+	t.Run("answers a browser with the page and a 404", func(t *testing.T) {
+		response := do(t, browserRequest(http.MethodGet, "/no/such/page"))
+		body := prose(t, response)
+
+		assert.Equal(t, http.StatusNotFound, response.StatusCode)
+		assert.Contains(t, response.Header.Get(fiber.HeaderContentType), "text/html")
+		assert.Contains(t, body, "<title>Page not found | httphq</title>")
+		assert.Contains(t, body, "There is no page here")
+		assert.Contains(t, body, ">/no/such/page</code")
+		assert.NotContains(t, body, `rel="canonical"`)
+	})
+
+	t.Run("links every place httphq serves and offers a new endpoint", func(t *testing.T) {
+		body := bodyOf(t, do(t, browserRequest(http.MethodGet, "/no/such/page")))
+
+		for _, place := range notFoundDestinations {
+			assert.Contains(t, body, `href="`+place.Href+`"`)
+		}
+		assert.Contains(t, body, `action="/endpoint"`)
+	})
+
+	// A guessed page and a mistyped ID reach the endpoint route, so the page
+	// has to answer there too rather than only at the fallthrough.
+	t.Run("answers a refused endpoint ID with the page", func(t *testing.T) {
+		for _, path := range []string{"/pricing", "/Quiet-Sunset-4821", "/sitemap.xml"} {
+			response := do(t, browserRequest(http.MethodGet, path))
+
+			assert.Equal(t, http.StatusNotFound, response.StatusCode, path)
+			assert.Contains(t, bodyOf(t, response), "There is no page here", path)
+		}
+	})
+
+	// The browser percent-encodes what the reader typed, and the page decodes
+	// it to show it back, so the decoded text has to be escaped as markup.
+	t.Run("shows the requested path decoded and escaped", func(t *testing.T) {
+		body := bodyOf(t, do(t, browserRequest(http.MethodGet, "/%C3%BCber/%3Ci%3E")))
+
+		assert.Contains(t, body, ">/über/&lt;i&gt;</code")
+		assert.NotContains(t, body, "<i>")
+	})
+
+	t.Run("answers HEAD with the status and type GET would, without a body", func(t *testing.T) {
+		head := do(t, browserRequest(http.MethodHead, "/no/such/page"))
+
+		assert.Equal(t, http.StatusNotFound, head.StatusCode)
+		assert.Contains(t, head.Header.Get(fiber.HeaderContentType), "text/html")
+		assert.Empty(t, bodyOf(t, head))
+	})
+
+	t.Run("keeps the bare status for everything but a browser reading a page", func(t *testing.T) {
+		requests := map[string]testRequest{
+			"a client that does not name html": {method: http.MethodGet, path: "/no/such/page", headers: map[string]string{fiber.HeaderAccept: "*/*"}},
+			"a client that sends no accept":    {method: http.MethodGet, path: "/pricing"},
+			"a method no page takes":           browserRequest(http.MethodPost, "/no/such/page"),
+			"the api":                          browserRequest(http.MethodGet, "/api/no-such-route"),
+			"a refused id on the api":          browserRequest(http.MethodGet, "/api/endpoints/Not_Valid/requests"),
+			"the capture route":                browserRequest(http.MethodGet, "/to/Not_Valid"),
+		}
+		for name, request := range requests {
+			t.Run(name, func(t *testing.T) {
+				response := do(t, request)
+
+				assert.Equal(t, http.StatusNotFound, response.StatusCode)
+				assert.NotContains(t, bodyOf(t, response), "There is no page here")
+			})
+		}
+	})
+
+	// The page shows the path back to the reader, but the access log keeps to
+	// route patterns: a missed address can carry an endpoint ID.
+	t.Run("keeps the requested path out of the access log", func(t *testing.T) {
+		out := captureLogs(t)
+
+		do(t, browserRequest(http.MethodGet, "/Quiet-Sunset-4821"))
+
+		assert.NotContains(t, out.String(), "Quiet-Sunset-4821")
+	})
+}
+
 func TestCreateEndpoint(t *testing.T) {
 	t.Run("redirects to a valid endpoint page", func(t *testing.T) {
 		response := do(t, testRequest{method: http.MethodPost, path: "/endpoint"})

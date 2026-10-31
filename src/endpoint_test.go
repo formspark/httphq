@@ -2,10 +2,13 @@ package main
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestEndpointURLs(t *testing.T) {
@@ -119,5 +122,34 @@ func TestRequireValidEndpoint(t *testing.T) {
 				assert.Equal(t, http.StatusNotFound, do(t, route).StatusCode)
 			})
 		}
+	}
+}
+
+// The endpoint page answers a refused ID with whatever handler it is given, so
+// a person reads the not-found page and the page handler never runs.
+func TestRequireValidEndpointPage(t *testing.T) {
+	app := fiber.New()
+	missing := func(c fiber.Ctx) error { return c.Status(http.StatusTeapot).SendString("missing") }
+	app.Get("/:endpoint", requireValidEndpointPage(missing), func(c fiber.Ctx) error {
+		return c.SendString("page")
+	})
+
+	cases := map[string]struct {
+		status int
+		body   string
+	}{
+		"/quiet-sunset-4821": {http.StatusOK, "page"},
+		"/Quiet-Sunset-4821": {http.StatusTeapot, "missing"},
+		"/about":             {http.StatusTeapot, "missing"},
+	}
+	for path, want := range cases {
+		t.Run(path, func(t *testing.T) {
+			response, err := app.Test(httptest.NewRequest(http.MethodGet, path, nil))
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = response.Body.Close() })
+
+			assert.Equal(t, want.status, response.StatusCode)
+			assert.Equal(t, want.body, bodyOf(t, response))
+		})
 	}
 }

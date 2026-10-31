@@ -33,14 +33,27 @@ func validEndpointID(id string) bool {
 	return len(id) <= 64 && endpointIDPattern.MatchString(id) && !reservedPaths[id]
 }
 
-// requireValidEndpoint guards every route carrying an :endpoint parameter. It
-// runs before the handler so no route can reach the database, a template or a
-// log line with an unvalidated ID.
+// requireValidEndpoint guards every route carrying an :endpoint parameter
+// except the endpoint page. It runs before the handler so no route can reach
+// the database, a template or a log line with an unvalidated ID. The API, the
+// capture route and the socket answer machines, so a refusal is a bare status.
 func requireValidEndpoint(c fiber.Ctx) error {
 	if !validEndpointID(c.Params("endpoint")) {
 		return c.SendStatus(http.StatusNotFound)
 	}
 	return c.Next()
+}
+
+// requireValidEndpointPage is the same guard for the endpoint page, where the
+// caller is usually a person: a refused ID is answered by notFound, so a
+// guessed or mistyped address reads like any other missing page.
+func requireValidEndpointPage(notFound fiber.Handler) fiber.Handler {
+	return func(c fiber.Ctx) error {
+		if !validEndpointID(c.Params("endpoint")) {
+			return notFound(c)
+		}
+		return c.Next()
+	}
 }
 
 // endpointURLs builds the three public URLs for an endpoint: where captures are
