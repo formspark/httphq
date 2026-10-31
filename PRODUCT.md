@@ -91,6 +91,10 @@ Confirmed functionality:
   and that loop.
 - Pages: home (`/`), endpoint (`/<id>`), contact (`/contact`). `/api/health`
   and `/api/debug` exist for operations, not for users.
+- A browser that reads a missing page, a reserved word or a malformed ID gets
+  a not-found page with a 404 status, the requested path and a fixed list of
+  destinations. It never guesses what was meant. The API, the capture route,
+  the socket and any client that does not ask for HTML keep a bare 404.
 
 Technical constraints:
 

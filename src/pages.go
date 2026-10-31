@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"maps"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 	"sync"
@@ -178,6 +179,71 @@ func renderEndpoint(assets *assetIndex) fiber.Handler {
 			""))
 
 		return c.Render("endpoint", page)
+	}
+}
+
+// machinePrefixes are the surfaces clients and scripts call rather than people
+// read. A miss under them keeps a bare 404, so a webhook sender, a poller or a
+// socket client never receives a page of markup it did not ask for.
+var machinePrefixes = []string{"/api/", "/to/", "/ws/"}
+
+// wantsNotFoundPage reports whether a miss should be answered with the page.
+// Browsers name text/html in Accept; a client sending */* or nothing at all
+// keeps the bare status it has always had.
+func wantsNotFoundPage(c fiber.Ctx) bool {
+	path := c.Path()
+	machine := slices.ContainsFunc(machinePrefixes, func(prefix string) bool {
+		return strings.HasPrefix(path, prefix)
+	})
+	return !machine && slices.Contains(readMethods, c.Method()) &&
+		strings.Contains(c.Get(fiber.HeaderAccept), "text/html")
+}
+
+// destination is one place the not-found page offers in place of the missing
+// one.
+type destination struct {
+	Name    string
+	Summary string
+	Href    string
+}
+
+// notFoundDestinations is everything httphq serves to a reader, so the list is
+// the same whatever address was missed: it never guesses at what was meant.
+var notFoundDestinations = []destination{
+	{Name: "Home", Summary: "Create an endpoint and watch requests arrive", Href: "/"},
+	{Name: "API docs", Summary: "List and delete captured requests as JSON", Href: repositoryURL + "/blob/master/docs/api.md"},
+	{Name: "/llms.txt", Summary: "httphq described in plain text", Href: "/llms.txt"},
+	{Name: "Contact", Summary: "Report a bug or send feedback", Href: "/contact"},
+}
+
+// readablePath shows a path the way the reader typed it rather than as the
+// percent-encoding the browser sent. html/template escapes the result, so a
+// decoded quote or angle bracket renders as text. A path that does not decode
+// is shown as it arrived.
+func readablePath(path string) string {
+	decoded, err := url.PathUnescape(path)
+	if err != nil {
+		return path
+	}
+	return decoded
+}
+
+// renderNotFound answers every request no route takes, and every endpoint page
+// whose ID the validator refuses. The page carries no canonical URL and shows
+// the requested path back to the reader; the access log still records only the
+// route pattern, never the path.
+func renderNotFound(assets *assetIndex) fiber.Handler {
+	return func(c fiber.Ctx) error {
+		if !wantsNotFoundPage(c) {
+			return c.SendStatus(http.StatusNotFound)
+		}
+		page := pageMeta(c, assets,
+			"Page not found | httphq",
+			"This address is not a page of httphq or one of its endpoints.",
+			"")
+		page["RequestedPath"] = readablePath(c.Path())
+		page["Destinations"] = notFoundDestinations
+		return c.Status(http.StatusNotFound).Render("not-found", page)
 	}
 }
 

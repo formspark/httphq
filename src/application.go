@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
-	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -156,16 +155,15 @@ func newApplication(config applicationConfig) *fiber.App {
 	application.Add(readMethods, "/", renderIndex(assets))
 	application.Add(readMethods, "/contact", renderContact(assets))
 	application.Add(readMethods, "/llms.txt", renderLLMs)
-	application.Add(readMethods, "/:endpoint", requireValidEndpoint, renderEndpoint(assets))
+	notFound := renderNotFound(assets)
+	application.Add(readMethods, "/:endpoint", requireValidEndpointPage(notFound), renderEndpoint(assets))
 	application.Post("/endpoint", createEndpoint(haikunator.New()))
 
 	// Prefix-matched so everything after the endpoint ID is captured as the
 	// request path, and method-agnostic because any method is a valid capture.
 	application.Use("/to/:endpoint", requireValidEndpoint, captureRequest(config.registry))
 
-	application.Use(func(c fiber.Ctx) error {
-		return c.SendStatus(http.StatusNotFound)
-	})
+	application.Use(notFound)
 
 	return application
 }
