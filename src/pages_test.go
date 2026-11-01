@@ -286,6 +286,22 @@ func TestRenderNotFound(t *testing.T) {
 	})
 }
 
+// A browser can send a path that is not valid percent-encoding, which
+// httptest refuses to build, so the fallback is held here rather than through
+// a request.
+func TestReadablePath(t *testing.T) {
+	cases := map[string]string{
+		"/%C3%BCber/%3Ci%3E": "/über/<i>",
+		"/100%zz":            "/100%zz",
+		"/plain":             "/plain",
+	}
+	for path, want := range cases {
+		t.Run(path, func(t *testing.T) {
+			assert.Equal(t, want, readablePath(path))
+		})
+	}
+}
+
 func TestCreateEndpoint(t *testing.T) {
 	t.Run("redirects to a valid endpoint page", func(t *testing.T) {
 		response := do(t, testRequest{method: http.MethodPost, path: "/endpoint"})
