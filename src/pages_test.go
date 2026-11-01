@@ -230,10 +230,12 @@ func TestRenderNotFound(t *testing.T) {
 	// has to answer there too rather than only at the fallthrough.
 	t.Run("answers a refused endpoint ID with the page", func(t *testing.T) {
 		for _, path := range []string{"/pricing", "/Quiet-Sunset-4821", "/sitemap.xml"} {
-			response := do(t, browserRequest(http.MethodGet, path))
+			t.Run(path, func(t *testing.T) {
+				response := do(t, browserRequest(http.MethodGet, path))
 
-			assert.Equal(t, http.StatusNotFound, response.StatusCode, path)
-			assert.Contains(t, bodyOf(t, response), "There is no page here", path)
+				assert.Equal(t, http.StatusNotFound, response.StatusCode)
+				assert.Contains(t, bodyOf(t, response), "There is no page here")
+			})
 		}
 	})
 
