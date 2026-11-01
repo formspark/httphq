@@ -189,7 +189,7 @@ var machinePrefixes = []string{"/api/", "/to/", "/ws/"}
 
 // wantsNotFoundPage reports whether a miss should be answered with the page.
 // Browsers name text/html in Accept; a client sending */* or nothing at all
-// keeps the bare status it has always had.
+// gets the bare status, so a script never has to tell a page from an answer.
 func wantsNotFoundPage(c fiber.Ctx) bool {
 	path := c.Path()
 	machine := slices.ContainsFunc(machinePrefixes, func(prefix string) bool {
