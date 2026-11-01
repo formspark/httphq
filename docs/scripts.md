@@ -39,7 +39,7 @@ pipeline.
 | `pnpm go:lint`            | golangci-lint, which runs `go vet` among its linters                                 |
 | `pnpm go:deadcode`        | Fails on a Go function that no entry point reaches                                   |
 | `pnpm go:cyclo`           | gocyclo's ceiling for the Go code                                                    |
-| `pnpm go:coverage:check`  | Fails when the total in `coverage.out` is under the 93% floor                        |
+| `pnpm go:coverage:check`  | Fails when the total in `coverage.out` is under the 94% floor                        |
 | `pnpm lint`               | ESLint, with warnings failing like errors                                            |
 | `pnpm format:check`       | Fails when Prettier would rewrite a file                                             |
 | `pnpm check:lint-staged`  | Fails when Prettier formats an extension the pre-commit hook does not cover          |
@@ -112,7 +112,7 @@ go tool cover -html=coverage.out
 ```
 
 CI prints the total to the job summary, and `go:coverage:check` fails when it
-drops under the 93% floor.
+drops under the 94% floor.
 
 ## Formatting
 
