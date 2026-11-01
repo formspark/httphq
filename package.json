@@ -17,7 +17,7 @@
     "dev": "go run ./src",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "go:coverage:check": "total=$(go tool cover -func=coverage.out | tail -1 | grep -oE '[0-9.]+%' | tr -d '%'); awk -v t=\"$total\" -v f=93 'BEGIN { if (t+0 < f+0) { printf \"Go coverage %.1f%% is under the %d%% floor.\\n\", t, f > \"/dev/stderr\"; exit 1 } printf \"Go coverage %.1f%% (floor %d%%).\\n\", t, f }'",
+    "go:coverage:check": "total=$(go tool cover -func=coverage.out | tail -1 | grep -oE '[0-9.]+%' | tr -d '%'); awk -v t=\"$total\" -v f=94 'BEGIN { if (t+0 < f+0) { printf \"Go coverage %.1f%% is under the %d%% floor.\\n\", t, f > \"/dev/stderr\"; exit 1 } printf \"Go coverage %.1f%% (floor %d%%).\\n\", t, f }'",
     "go:cyclo": "go run github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0 -over 4 ./src",
     "go:deadcode": "found=\"$(go run golang.org/x/tools/cmd/deadcode@v0.50.0 ./src/...)\"; [ -z \"$found\" ] || { echo \"unreachable from any entry point:\" >&2; echo \"$found\" >&2; exit 1; }",
     "go:format:check": "files=\"$(gofmt -l ./src)\"; [ -z \"$files\" ] || { echo \"gofmt disagrees with: $files. Run 'go fmt ./src/...'.\" >&2; exit 1; }",

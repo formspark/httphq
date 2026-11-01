@@ -100,7 +100,7 @@ key names one that exists. `pnpm check:doc-refs` enforces it
   `knip.ts` for dead code.
 - The caps only go down. `gocyclo -over 4` for Go, and `complexity`,
   `max-params` and `max-depth` in ESLint, sit at the worst function that
-  exists, and the 93% coverage floor in `go:coverage:check` sits where the
+  exists, and the 94% coverage floor in `go:coverage:check` sits where the
   suite stands. When a new function trips a cap, split the function; lower a
   cap when its worst offender is split, and raise the floor when coverage
   rises. `pnpm go:cyclo`, `pnpm lint` and `pnpm go:coverage:check` enforce the

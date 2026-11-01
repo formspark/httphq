@@ -6,7 +6,7 @@ the way it is. The one-line summary of every script is in
 
 ## The coverage floor
 
-`go:coverage:check` reads the total out of `coverage.out` and fails under 93%,
+`go:coverage:check` reads the total out of `coverage.out` and fails under 94%,
 which is where the suite stands. AGENTS.md has the ratchet rule it follows. The
 Go and the npm sides are measured
 differently and the npm side has no suite to speak of, so there is one floor
