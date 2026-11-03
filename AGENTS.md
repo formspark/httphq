@@ -114,6 +114,12 @@ key names one that exists. `pnpm check:doc-refs` enforces it
 
 ## Invariants and traps
 
+- Compile fixed Go regexes at package scope. Hoist fixed JavaScript regexes;
+  shared `g`/`y` expressions need `lastIndex` handling with `test`/`exec`.
+- Reuse parsed URL parts without bypassing security normalization or validation.
+- Parallelize independent reads without bypassing request validation or changing
+  failure precedence or write/transaction order.
+
 - The toolchain pins move together; agents/dependencies.md lists them.
   Unenforced: reviewer's call.
 - Every Go command is scoped to `./src`, never `./...`; docs/scripts.md says

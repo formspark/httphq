@@ -16,6 +16,11 @@ questions go through `sqlite_schema` and the pragmas.
 Nothing carries `updated_at`, because a capture is written once and never
 edited, so the test does not ask for one.
 
+## Queries
+
+Select only consumed columns. Use existence/count queries for predicates and
+batch related lookups rather than reading one row per item.
+
 ## Captured data is ephemeral
 
 SQLite writes to the container's writable layer, so capture history is lost on

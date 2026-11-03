@@ -1,3 +1,5 @@
+const LEADING_SLASHES = /^\/+/;
+
 /* Endpoint page: Alpine store + WebSocket + favicon/title indicator. */
 
 (function () {
@@ -408,7 +410,7 @@
       // Where the compose form points. Leading slashes are dropped from the
       // sub-path so "foo" and "/foo" address the same capture path.
       _sendTarget() {
-        const path = this.sendForm.path.replace(/^\/+/, "");
+        const path = this.sendForm.path.replace(LEADING_SLASHES, "");
         return `/to/${this.store.endpointId}${path ? "/" + path : ""}`;
       },
 

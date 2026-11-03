@@ -1,3 +1,5 @@
+const HEADER_LINE_BREAK = /\r?\n/;
+
 /* Shared helpers for the endpoint page. Loaded only where the capture stream
    renders; the marketing and contact pages ship no JavaScript at all. */
 
@@ -114,7 +116,7 @@ window.parseHeaderLines = function (text) {
   /** @type {InvalidHeaderLine[]} */
   const invalid = [];
   if (!text) return { headers, invalid };
-  text.split(/\r?\n/).forEach((line, i) => {
+  text.split(HEADER_LINE_BREAK).forEach((line, i) => {
     const trimmed = line.trim();
     if (!trimmed) return;
     const idx = trimmed.indexOf(":");
