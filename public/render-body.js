@@ -1,3 +1,11 @@
+const LEADING_LINE_BREAK = /^\r?\n/;
+const TRAILING_LINE_BREAK = /\r?\n$/;
+const PART_SEPARATOR = /\r?\n\r?\n/;
+const PART_BODY = /^\r?\n\r?\n([\s\S]*)$/;
+const LINE_BREAK = /\r?\n/;
+const DISPOSITION_NAME = /(?:^|;)\s*name="([^"]*)"/i;
+const DISPOSITION_FILENAME = /(?:^|;)\s*filename="([^"]*)"/i;
+
 /* Body rendering: best-effort content-type-aware display for a captured
    request body (JSON pretty-print, multipart/form-data part list, XML
    highlighting, or escaped raw text). Loaded on the endpoint page only. */
@@ -102,7 +110,9 @@ function multipartBoundary(contentType) {
  * @param {string} segment
  */
 function trimPartFraming(segment) {
-  return segment.replace(/^\r?\n/, "").replace(/\r?\n$/, "");
+  return segment
+    .replace(LEADING_LINE_BREAK, "")
+    .replace(TRAILING_LINE_BREAK, "");
 }
 
 /**
@@ -113,11 +123,11 @@ function trimPartFraming(segment) {
  * @param {string} segment
  */
 function splitPart(segment) {
-  const headerEnd = segment.search(/\r?\n\r?\n/);
+  const headerEnd = segment.search(PART_SEPARATOR);
   if (headerEnd === -1) return null;
-  const contentMatch = segment.slice(headerEnd).match(/^\r?\n\r?\n([\s\S]*)$/);
+  const contentMatch = segment.slice(headerEnd).match(PART_BODY);
   return {
-    headerLines: segment.slice(0, headerEnd).split(/\r?\n/),
+    headerLines: segment.slice(0, headerEnd).split(LINE_BREAK),
     content: contentMatch?.[1] ?? "",
   };
 }
@@ -159,12 +169,11 @@ function partFromHeaders(headerLines, content) {
   const disposition = partHeader(headerLines, "content-disposition");
   // Matched as a whole parameter, because "filename" ends in "name" and
   // parameter order is not fixed.
-  const nameMatch =
-    disposition && disposition.match(/(?:^|;)\s*name="([^"]*)"/i);
+  const nameMatch = disposition && disposition.match(DISPOSITION_NAME);
   if (!nameMatch) return null;
   const name = nameMatch[1];
 
-  const filenameMatch = disposition.match(/(?:^|;)\s*filename="([^"]*)"/i);
+  const filenameMatch = disposition.match(DISPOSITION_FILENAME);
   if (!filenameMatch) return { name, value: content };
 
   return {
