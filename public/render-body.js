@@ -1,3 +1,7 @@
+/* Body rendering: best-effort content-type-aware display for a captured
+   request body (JSON pretty-print, multipart/form-data part list, XML
+   highlighting, or escaped raw text). Loaded on the endpoint page only. */
+
 const LEADING_LINE_BREAK = /^\r?\n/;
 const TRAILING_LINE_BREAK = /\r?\n$/;
 const PART_SEPARATOR = /\r?\n\r?\n/;
@@ -5,10 +9,6 @@ const PART_BODY = /^\r?\n\r?\n([\s\S]*)$/;
 const LINE_BREAK = /\r?\n/;
 const DISPOSITION_NAME = /(?:^|;)\s*name="([^"]*)"/i;
 const DISPOSITION_FILENAME = /(?:^|;)\s*filename="([^"]*)"/i;
-
-/* Body rendering: best-effort content-type-aware display for a captured
-   request body (JSON pretty-print, multipart/form-data part list, XML
-   highlighting, or escaped raw text). Loaded on the endpoint page only. */
 
 /* Above this many characters the body is shown as plain escaped text.
    Highlighting runs synchronously on the main thread and emits roughly one
