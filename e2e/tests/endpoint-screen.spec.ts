@@ -1015,6 +1015,14 @@ test.describe("Endpoint screen", () => {
       );
     });
 
+    test("several leading slashes collapse to one", async ({ page }) => {
+      await submitSendPanel(page, { path: "///orders/8821" });
+
+      await expect(newestCard(page).getByTestId("request-path")).toContainText(
+        `${endpointPath}/orders/8821`,
+      );
+    });
+
     // Silently discarding a line that is one typo away from an Authorization
     // header, and then reporting success, sends the user chasing an auth bug
     // that does not exist. The report names the line as the user counts it.

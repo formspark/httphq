@@ -1,9 +1,8 @@
-const LEADING_SLASHES = /^\/+/;
-
 /* Endpoint page: Alpine store + WebSocket + favicon/title indicator. */
 
 (function () {
   const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
+  const LEADING_SLASHES = /^\/+/;
 
   // Palette for each HTTP method badge. Every ink is built at one lightness and
   // every wash at another, so the seven read as one family rather than as seven

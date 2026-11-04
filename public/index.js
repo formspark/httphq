@@ -1,5 +1,3 @@
-const HEADER_LINE_BREAK = /\r?\n/;
-
 /* Shared helpers for the endpoint page. Loaded only where the capture stream
    renders; the marketing and contact pages ship no JavaScript at all. */
 
@@ -109,6 +107,8 @@ window.headerValue = function (headers, name) {
    Malformed lines are returned rather than dropped. Silently discarding a line
    that is one typo away from an Authorization header, and then reporting
    success, sends the user chasing an auth bug that does not exist. */
+
+const HEADER_LINE_BREAK = /\r?\n/;
 
 window.parseHeaderLines = function (text) {
   /** @type {Record<string, string>} */
