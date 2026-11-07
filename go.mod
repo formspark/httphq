@@ -18,7 +18,7 @@ require (
 	github.com/gofiber/fiber/v3 v3.4.0
 	github.com/gofiber/template/html/v2 v2.1.3
 	github.com/google/uuid v1.6.0
-	github.com/klauspost/compress v1.20.0
+	github.com/klauspost/compress v1.20.2
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/stretchr/testify v1.11.1
 	github.com/valyala/fasthttp v1.72.0
@@ -28,7 +28,7 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
-	github.com/andybalholm/brotli v1.2.2 // indirect
+	github.com/andybalholm/brotli v1.2.7 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/glebarez/go-sqlite v1.21.2 // indirect

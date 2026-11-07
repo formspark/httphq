@@ -11,7 +11,6 @@ on:
       - opened
       - synchronize
     branches:
-      - develop
       - master
 
 # A superseded pull request run tells you about a commit that is no longer the

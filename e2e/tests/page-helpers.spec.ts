@@ -190,6 +190,21 @@ test.describe("Page helpers", () => {
       expect(parsed.invalid).toEqual([]);
     });
 
+    // Text pasted from a Windows editor breaks lines with CRLF. Each pair is one
+    // break, so a reported line number still matches the line the user sees.
+    test("lines broken by CRLF split the same as LF", async ({ page }) => {
+      const parsed = await parse(
+        page,
+        "Content-Type: application/json\r\n\r\nnot a header\r\nX-Token: abc",
+      );
+
+      expect(parsed.headers).toEqual({
+        "Content-Type": "application/json",
+        "X-Token": "abc",
+      });
+      expect(parsed.invalid).toEqual([{ line: 3, text: "not a header" }]);
+    });
+
     test("whitespace around a key and its value is trimmed", async ({
       page,
     }) => {

@@ -1,11 +1,11 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Not found screen", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto("/no/such/page");
-  });
-
   test.describe("Page", () => {
+    test.beforeEach(async ({ page }) => {
+      await page.goto("/no/such/page");
+    });
+
     test("the title and heading say the page is missing", async ({ page }) => {
       await expect(page).toHaveTitle("Page not found | httphq");
       await expect(
@@ -48,6 +48,7 @@ test.describe("Not found screen", () => {
     test("the create button lands on a working endpoint screen", async ({
       page,
     }) => {
+      await page.goto("/no/such/page");
       await page.getByTestId("create-endpoint").click();
       await expect(page).toHaveURL(/\/[a-z0-9]+(-[a-z0-9]+)+$/);
       await expect(page.getByTestId("endpoint-url")).toBeVisible();
