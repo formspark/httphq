@@ -1,6 +1,7 @@
 # Scripts
 
-Install dependencies:
+The toolchain is Go at the `go` line in go.mod, and Node and pnpm at the
+versions in `.tool-versions`. Install dependencies:
 
 ```bash
 go mod download
@@ -13,6 +14,21 @@ suite in `e2e`, so one install at the root covers both. The browser download is
 separate because pnpm installs the Playwright package, not the Chromium it
 drives, and it is filtered to `e2e` because that is the project Playwright
 belongs to: a bare `pnpm exec playwright` at the root does not resolve.
+
+A Go newer than go.mod's on the PATH runs the scripts too, except
+`pnpm go:lint`: the pinned golangci-lint cannot read that Go's standard library
+and fails with `typecheck` errors. Name the pinned toolchain for it, or for
+`pnpm verify`:
+
+```bash
+GOTOOLCHAIN=go1.26.10 pnpm go:lint
+```
+
+Run the server, on <http://localhost:8080> unless `PORT` names another port:
+
+```bash
+pnpm dev
+```
 
 Upkeep dependencies:
 
@@ -117,14 +133,18 @@ pnpm worktree:setup
 pnpm dev
 ```
 
-`scripts/worktree-setup` claims the lowest free slot from 1 to 9 (kept in
+`scripts/worktree-setup` claims the lowest free slot N from 1 to 9 (kept in
 `.dev-slot`), copies the files `.worktreeinclude` lists from the main checkout,
-and writes `PORT=11700 + 10N` into the worktree's `.env`. It then downloads the
+and writes `PORT=11700 + 10N` into the worktree's `.env`. Slot N owns the ten
+ports from that one up, and the server takes the first. It then downloads the
 Go modules, installs, fetches Chromium for the Playwright suite and runs
 `pnpm build`, and prints the URL. Rerunning it is safe. `pnpm dev` and
 `pnpm test:e2e` read that `.env`; `./bin/httphq` reads only its environment,
 so run it as `PORT=11710 ./bin/httphq` in slot 1. The main checkout has no
-`.env` and keeps 8080.
+`.env` and keeps 8080, and the script refuses to run there.
+
+`git worktree remove` deletes the worktree with its `.env` and `local.db`, and
+frees its slot for the next setup.
 
 ## Coverage
 
