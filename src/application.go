@@ -26,8 +26,10 @@ import (
 )
 
 const (
-	port      = 8080
-	bodyLimit = 1 << 20 // 1 MiB
+	// defaultPort is the port the server binds when PORT is unset, and the one
+	// the image exposes.
+	defaultPort = 8080
+	bodyLimit   = 1 << 20 // 1 MiB
 
 	// Captured data is ephemeral by design. The window is stated on the landing
 	// page and on every endpoint page; changing it here changes a promise.
@@ -199,10 +201,24 @@ func applicationEnv() string {
 	return "development"
 }
 
+// listenPort reads the port to bind from PORT's value, defaultPort when it is
+// empty. Zero is refused rather than read as "any free port", because the
+// address has to be known to the client that is meant to reach it.
+func listenPort(value string) (int, error) {
+	if value == "" {
+		return defaultPort, nil
+	}
+	port, err := strconv.ParseUint(value, 10, 16)
+	if err != nil || port == 0 {
+		return 0, fmt.Errorf("PORT %q is not a port number from 1 to 65535", value)
+	}
+	return int(port), nil
+}
+
 // listenAddress is where the server binds. Development binds loopback only, so
 // a work-in-progress capture surface is not reachable from the network the
 // machine happens to be on.
-func listenAddress() string {
+func listenAddress(port int) string {
 	host := "localhost:"
 	if isProduction {
 		host = ":"
@@ -258,8 +274,12 @@ func main() {
 	slog.Info("platform resolved",
 		"platform", os.Getenv("PLATFORM"), "ip_header", currentPlatform.ipHeader)
 
+	port, err := listenPort(os.Getenv("PORT"))
+	if err != nil {
+		exit("cannot read the port", err)
+	}
 	// tcp4 is the network Fiber's own listener defaults to.
-	address := listenAddress()
+	address := listenAddress(port)
 	listener, err := net.Listen("tcp4", address)
 	if err != nil {
 		exit("cannot listen", err)

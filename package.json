@@ -14,7 +14,7 @@
     "css": "tailwindcss --input ./src/styles/app.css --output ./public/app.css --minify",
     "css:check": "pnpm run css && git diff --exit-code --stat public/app.css || { echo \"public/app.css is stale. Commit the rebuilt sheet.\" >&2; exit 1; }",
     "css:watch": "tailwindcss --input ./src/styles/app.css --output ./public/app.css --watch",
-    "dev": "go run ./src",
+    "dev": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; go run ./src",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "go:coverage:check": "total=$(go tool cover -func=coverage.out | tail -1 | grep -oE '[0-9.]+%' | tr -d '%'); awk -v t=\"$total\" -v f=94 'BEGIN { if (t+0 < f+0) { printf \"Go coverage %.1f%% is under the %d%% floor.\\n\", t, f > \"/dev/stderr\"; exit 1 } printf \"Go coverage %.1f%% (floor %d%%).\\n\", t, f }'",
@@ -32,7 +32,8 @@
     "test:e2e": "pnpm --filter httphq-e2e test",
     "test:scripts": "vitest run --dir tests/scripts",
     "typecheck": "tsc --noEmit -p . && tsc --noEmit -p tests && pnpm --filter httphq-e2e exec tsc --noEmit",
-    "verify": "pnpm go:vuln && pnpm go:format:check && pnpm go:lint && pnpm go:deadcode && pnpm go:cyclo && pnpm test:coverage && pnpm go:coverage:check && pnpm lint && pnpm format:check && pnpm check:lint-staged && pnpm check:package-json && pnpm check:prose && pnpm check:doc-refs && pnpm check:typos && pnpm check:dead-code && pnpm check:audit && pnpm typecheck && pnpm test:scripts && pnpm css:check && pnpm build && pnpm test:e2e"
+    "verify": "pnpm go:vuln && pnpm go:format:check && pnpm go:lint && pnpm go:deadcode && pnpm go:cyclo && pnpm test:coverage && pnpm go:coverage:check && pnpm lint && pnpm format:check && pnpm check:lint-staged && pnpm check:package-json && pnpm check:prose && pnpm check:doc-refs && pnpm check:typos && pnpm check:dead-code && pnpm check:audit && pnpm typecheck && pnpm test:scripts && pnpm css:check && pnpm build && pnpm test:e2e",
+    "worktree:setup": "scripts/worktree-setup"
   },
   "lint-staged": {
     "package.json": "sort-package-json",

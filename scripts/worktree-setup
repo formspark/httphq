@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Prepares a linked worktree to run beside the main checkout and any other
+# worktree: claims a slot, copies the ignored files .worktreeinclude lists from
+# the main checkout, gives the slot its own port in .env, then installs and
+# builds. Safe to rerun; it never overwrites a copied file.
+set -euo pipefail
+
+# Slot N (1-9) uses ports BASE + N*10 to BASE + N*10 + 9.
+BASE=11700
+
+cd "$(git rev-parse --show-toplevel)"
+if [ "$(git rev-parse --path-format=absolute --git-dir)" = "$(git rev-parse --path-format=absolute --git-common-dir)" ]; then
+  echo "This is the main checkout, which keeps the default ports. Run this in a linked worktree." >&2
+  exit 1
+fi
+main=$(git worktree list --porcelain | sed -n '1s/^worktree //p')
+
+if [ -f .dev-slot ]; then
+  slot=$(cat .dev-slot)
+else
+  taken=$(git worktree list --porcelain | sed -n 's/^worktree //p' | while read -r dir; do cat "$dir/.dev-slot" 2>/dev/null || true; done)
+  slot=
+  for n in 1 2 3 4 5 6 7 8 9; do
+    if ! grep -qx "$n" <<<"$taken"; then slot=$n; break; fi
+  done
+  if [ -z "$slot" ]; then
+    echo "All nine worktree slots are taken. Remove a worktree to free one." >&2
+    exit 1
+  fi
+  echo "$slot" >.dev-slot
+fi
+port() { echo $((BASE + slot * 10 + $1)); }
+
+while IFS= read -r path || [ -n "$path" ]; do
+  case "$path" in '' | '#'*) continue ;; esac
+  if [ ! -e "$path" ] && [ -e "$main/$path" ]; then
+    mkdir -p "$(dirname "$path")"
+    cp -p "$main/$path" "$path"
+    echo "Copied $path from the main checkout"
+  fi
+done <.worktreeinclude
+
+# Sets KEY in .env, replacing its line or appending one.
+set_env() {
+  if grep -q "^$1=" .env; then
+    awk -v key="$1" -v value="$2" 'index($0, key "=") == 1 { print key "=" value; next } { print }' .env >.env.tmp
+    cat .env.tmp >.env
+    rm .env.tmp
+  else
+    printf '%s=%s\n' "$1" "$2" >>.env
+  fi
+}
+
+# The main checkout needs no .env, because it binds the server's default port.
+touch .env
+set_env PORT "$(port 0)"
+
+go mod download
+pnpm install --frozen-lockfile
+pnpm --filter httphq-e2e exec playwright install chromium
+pnpm build
+
+cat <<EOF
+
+Worktree slot $slot is ready. \`pnpm dev\` and \`pnpm test:e2e\` read PORT from .env:
+  App  http://localhost:$(port 0)
+EOF

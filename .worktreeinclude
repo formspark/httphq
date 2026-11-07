@@ -1,0 +1,2 @@
+# Ignored files a linked worktree copies from the main checkout when
+# `pnpm worktree:setup` runs: one path per line, from the repository root.

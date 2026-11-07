@@ -110,7 +110,7 @@ Technical constraints:
   on the platform-resolved IP.
 - Client IP resolution is a trust decision driven by the `PLATFORM` env var;
   setting it trusts that platform's header unconditionally.
-- The listen port (8080) is a constant, not configurable.
+- The listen port is 8080 unless `PORT` names another.
 - Endpoint IDs are generated words, not secrets. There is no authentication and
   no access control on an endpoint; possession of the URL is the only gate, and
   IDs are guessable in principle.

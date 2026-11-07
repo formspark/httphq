@@ -28,12 +28,13 @@ pipeline.
 
 | Script                    | What it does                                                                         |
 | ------------------------- | ------------------------------------------------------------------------------------ |
-| `pnpm dev`                | `go run ./src`, bound to localhost                                                   |
+| `pnpm dev`                | `go run ./src`, bound to localhost, with the variables in `.env` when it exists      |
 | `pnpm build`              | The production binary in `bin/httphq`, with the image's flags                        |
 | `pnpm test`               | The Go tests, with the race detector                                                 |
 | `pnpm test:coverage`      | The same, writing `coverage.out` and printing the total                              |
 | `pnpm test:e2e`           | The Playwright suite, against `bin/httphq`                                           |
 | `pnpm test:scripts`       | The Vitest suites for the checks under `scripts/`                                    |
+| `pnpm worktree:setup`     | Gives a linked worktree its own port and installs it ([Worktrees](#worktrees))       |
 | `pnpm go:vuln`            | govulncheck: advisories whose vulnerable symbol this code actually reaches           |
 | `pnpm go:format:check`    | Fails when `gofmt` would rewrite a file                                              |
 | `pnpm go:lint`            | golangci-lint, which runs `go vet` among its linters                                 |
@@ -96,13 +97,34 @@ go run github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0 -top 10 ./src
 
 `pnpm test:e2e` starts `bin/httphq` itself, so build it first with
 `pnpm build`. The suite drives a real browser against a real binary, so it needs
-the port that binary listens on. `port` in `src/application.go` is a constant;
-to run beside something already holding 8080, change it and point the suite at
-the same place:
+the port that binary listens on: `PORT` from the shell or from `.env`, and 8080
+without either. To run beside something already holding 8080:
 
 ```bash
-HTTPHQ_BASE_URL=http://localhost:8099 pnpm test:e2e
+PORT=8099 pnpm test:e2e
 ```
+
+A server already answering on that port is reused rather than started, outside
+CI. `HTTPHQ_BASE_URL` points the suite at a server somewhere else.
+
+## Worktrees
+
+A linked worktree (`git worktree add`) runs beside the main checkout and other
+worktrees with its own port and its own `local.db`. In a new worktree, once:
+
+```bash
+pnpm worktree:setup
+pnpm dev
+```
+
+`scripts/worktree-setup` claims the lowest free slot from 1 to 9 (kept in
+`.dev-slot`), copies the files `.worktreeinclude` lists from the main checkout,
+and writes `PORT=11700 + 10N` into the worktree's `.env`. It then downloads the
+Go modules, installs, fetches Chromium for the Playwright suite and runs
+`pnpm build`, and prints the URL. Rerunning it is safe. `pnpm dev` and
+`pnpm test:e2e` read that `.env`; `./bin/httphq` reads only its environment,
+so run it as `PORT=11710 ./bin/httphq` in slot 1. The main checkout has no
+`.env` and keeps 8080.
 
 ## Coverage
 

@@ -38,9 +38,10 @@ the people self-hosting httphq read that file.
 script and the Dockerfile link it in, release.yml passes the image tag, and
 `/api/health` reports it.
 
-The listen port is not configurable: `port` in `src/application.go` is a
-constant, and [docs/scripts.md](../docs/scripts.md#the-playwright-suite) says
-how to run beside something already holding 8080.
+`PORT` moves the listen port off `defaultPort` (8080), and `APPLICATION_ENV`
+alone decides whether it binds loopback or every interface. A linked worktree
+sets `PORT` in its `.env`
+([docs/scripts.md](../docs/scripts.md#worktrees)).
 
 ## Shutdown
 

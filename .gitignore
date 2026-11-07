@@ -3,6 +3,10 @@
 .claude/
 .idea/
 
+# Local settings, written by `pnpm worktree:setup` in a linked worktree
+.dev-slot
+.env
+
 # Dependencies and build output
 bin/
 node_modules/
