@@ -1,6 +1,7 @@
 # Scripts
 
-Install dependencies:
+The toolchain is Go at the `go` line in go.mod, and Node and pnpm at the
+versions in `.tool-versions`. Install dependencies:
 
 ```bash
 go mod download
@@ -13,6 +14,21 @@ suite in `e2e`, so one install at the root covers both. The browser download is
 separate because pnpm installs the Playwright package, not the Chromium it
 drives, and it is filtered to `e2e` because that is the project Playwright
 belongs to: a bare `pnpm exec playwright` at the root does not resolve.
+
+A Go newer than go.mod's on the PATH runs the scripts too, except
+`pnpm go:lint`: the pinned golangci-lint cannot read that Go's standard library
+and fails with `typecheck` errors. Name the pinned toolchain for it, or for
+`pnpm verify`:
+
+```bash
+GOTOOLCHAIN=go1.26.10 pnpm go:lint
+```
+
+Run the server, on <http://localhost:8080> unless `PORT` names another port:
+
+```bash
+pnpm dev
+```
 
 Upkeep dependencies:
 
@@ -28,12 +44,13 @@ pipeline.
 
 | Script                    | What it does                                                                         |
 | ------------------------- | ------------------------------------------------------------------------------------ |
-| `pnpm dev`                | `go run ./src`, bound to localhost                                                   |
+| `pnpm dev`                | `go run ./src`, bound to localhost, with the variables in `.env` when it exists      |
 | `pnpm build`              | The production binary in `bin/httphq`, with the image's flags                        |
 | `pnpm test`               | The Go tests, with the race detector                                                 |
 | `pnpm test:coverage`      | The same, writing `coverage.out` and printing the total                              |
 | `pnpm test:e2e`           | The Playwright suite, against `bin/httphq`                                           |
 | `pnpm test:scripts`       | The Vitest suites for the checks under `scripts/`                                    |
+| `pnpm worktree:setup`     | Gives a linked worktree its own port and installs it ([Worktrees](#worktrees))       |
 | `pnpm go:vuln`            | govulncheck: advisories whose vulnerable symbol this code actually reaches           |
 | `pnpm go:format:check`    | Fails when `gofmt` would rewrite a file                                              |
 | `pnpm go:lint`            | golangci-lint, which runs `go vet` among its linters                                 |
@@ -96,13 +113,38 @@ go run github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0 -top 10 ./src
 
 `pnpm test:e2e` starts `bin/httphq` itself, so build it first with
 `pnpm build`. The suite drives a real browser against a real binary, so it needs
-the port that binary listens on. `port` in `src/application.go` is a constant;
-to run beside something already holding 8080, change it and point the suite at
-the same place:
+the port that binary listens on: `PORT` from the shell or from `.env`, and 8080
+without either. To run beside something already holding 8080:
 
 ```bash
-HTTPHQ_BASE_URL=http://localhost:8099 pnpm test:e2e
+PORT=8099 pnpm test:e2e
 ```
+
+A server already answering on that port is reused rather than started, outside
+CI. `HTTPHQ_BASE_URL` points the suite at a server somewhere else.
+
+## Worktrees
+
+A linked worktree (`git worktree add`) runs beside the main checkout and other
+worktrees with its own port and its own `local.db`. In a new worktree, once:
+
+```bash
+pnpm worktree:setup
+pnpm dev
+```
+
+`scripts/worktree-setup` claims the lowest free slot N from 1 to 9 (kept in
+`.dev-slot`), copies the files `.worktreeinclude` lists from the main checkout,
+and writes `PORT=11700 + 10N` into the worktree's `.env`. Slot N owns the ten
+ports from that one up, and the server takes the first. It then downloads the
+Go modules, installs, fetches Chromium for the Playwright suite and runs
+`pnpm build`, and prints the URL. Rerunning it is safe. `pnpm dev` and
+`pnpm test:e2e` read that `.env`; `./bin/httphq` reads only its environment,
+so run it as `PORT=11710 ./bin/httphq` in slot 1. The main checkout has no
+`.env` and keeps 8080, and the script refuses to run there.
+
+`git worktree remove` deletes the worktree with its `.env` and `local.db`, and
+frees its slot for the next setup.
 
 ## Coverage
 

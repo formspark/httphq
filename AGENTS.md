@@ -127,6 +127,9 @@ key names one that exists. `pnpm check:doc-refs` enforces it
   need no Node. `pnpm css:check` enforces its freshness.
 - A new background task that writes to the store has to stop before the store
   closes on SIGTERM (agents/go-application.md). Unenforced: reviewer's call.
+- A linked worktree runs `pnpm worktree:setup` first. It gives the worktree its
+  own port in `.env` ([docs/scripts.md](docs/scripts.md#worktrees)), so read
+  the port from there rather than assuming 8080.
 - `newApplication` builds the routing surface from arguments; anything that
   reads the environment belongs in `main`, not in a handler. Unenforced:
   reviewer's call.

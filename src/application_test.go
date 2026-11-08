@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -252,18 +253,55 @@ func TestApplicationEnv(t *testing.T) {
 	})
 }
 
+func TestListenPort(t *testing.T) {
+	t.Run("is 8080 when PORT is unset", func(t *testing.T) {
+		port, err := listenPort("")
+
+		require.NoError(t, err)
+		assert.Equal(t, 8080, port)
+	})
+
+	t.Run("is whatever PORT names", func(t *testing.T) {
+		port, err := listenPort("11710")
+
+		require.NoError(t, err)
+		assert.Equal(t, 11710, port)
+	})
+
+	t.Run("accepts the highest port", func(t *testing.T) {
+		port, err := listenPort("65535")
+
+		require.NoError(t, err)
+		assert.Equal(t, 65535, port)
+	})
+
+	for _, value := range []string{"0", "65536", "-1", "80a", " 8080", "http"} {
+		t.Run("refuses "+strconv.Quote(value), func(t *testing.T) {
+			_, err := listenPort(value)
+
+			assert.ErrorContains(t, err, "is not a port number")
+		})
+	}
+}
+
 // isProduction is read once at startup, so the tests set it directly.
 func TestListenAddress(t *testing.T) {
 	t.Run("binds loopback only outside production", func(t *testing.T) {
 		setProduction(t, false)
 
-		assert.Equal(t, "localhost:8080", listenAddress())
+		assert.Equal(t, "localhost:8080", listenAddress(8080))
 	})
 
 	t.Run("binds every interface in production", func(t *testing.T) {
 		setProduction(t, true)
 
-		assert.Equal(t, ":8080", listenAddress())
+		assert.Equal(t, ":8080", listenAddress(8080))
+	})
+
+	t.Run("binds the port it is given", func(t *testing.T) {
+		setProduction(t, false)
+
+		assert.Equal(t, "localhost:11710", listenAddress(11710))
 	})
 }
 

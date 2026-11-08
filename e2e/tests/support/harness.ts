@@ -1,16 +1,24 @@
 import type { APIRequestContext, Page } from "@playwright/test";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { z } from "zod";
+
+// The repository's .env, which a linked worktree's `pnpm worktree:setup`
+// writes, sets the PORT the server under test binds. Loading it here reaches
+// the server too: the Playwright config starts it with this process's
+// environment. A variable already set in the shell wins over the file.
+const localEnv = resolve(__dirname, "../../../.env");
+if (existsSync(localEnv)) process.loadEnvFile(localEnv);
 
 /**
  * Where the server under test is reachable. Spelled once: the Playwright config
  * reads it as both its baseURL and its readiness probe, so the suite and the
- * server it starts cannot disagree about where to look.
- *
- * `port` in src/application.go is a constant, so the override is for the one
- * case that constant anticipates: running beside something that already holds
- * 8080, with the constant changed to match.
+ * server it starts cannot disagree about where to look. `HTTPHQ_BASE_URL`
+ * points the suite at a server it did not start.
  */
-export const BASE_URL = process.env.HTTPHQ_BASE_URL ?? "http://localhost:8080";
+export const BASE_URL =
+  process.env.HTTPHQ_BASE_URL ??
+  `http://localhost:${process.env.PORT ?? "8080"}`;
 
 /**
  * A fresh endpoint ID for one test. Endpoints are implicit, in that a page

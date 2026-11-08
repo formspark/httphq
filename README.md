@@ -33,6 +33,7 @@ httphq is configured entirely through environment variables.
 | `APPLICATION_ENV` | no       | `development` | no     | Set to `production` to bind all interfaces, raise the rate limit, and default logging to `info`.           |
 | `LOG_LEVEL`       | no       | env-dependent | no     | Overrides the log level: `debug`, `info`, `warn`, or `error`.                                              |
 | `PLATFORM`        | no       | `direct`      | no     | The hosting platform in front of httphq. Selects which header the real client IP is read from (see below). |
+| `PORT`            | no       | `8080`        | no     | The port to listen on, from 1 to 65535. The image exposes 8080.                                            |
 
 ### `PLATFORM`
 

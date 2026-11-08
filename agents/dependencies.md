@@ -24,9 +24,10 @@ covers the Go side the same way.
 
 `nodejs` and `pnpm` in `.tool-versions`, `packageManager` and `engines` in
 package.json, the `go` line in go.mod (the Dockerfile's `GOTOOLCHAIN=auto`
-fetches it), and the Go tool versions in the package.json scripts. CI reads
-`.tool-versions` and go.mod, so a pin changed in one place and not the others
-builds one thing locally and another in CI.
+fetches it, and docs/scripts.md names it for `pnpm go:lint`), and the Go tool
+versions in the package.json scripts. CI reads `.tool-versions` and go.mod, so
+a pin changed in one place and not the others builds one thing locally and
+another in CI.
 
 ## New releases wait a day
 
