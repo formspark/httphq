@@ -42,13 +42,14 @@ done <.worktreeinclude
 
 # Sets KEY in .env, replacing its line or appending one.
 set_env() {
-  if grep -q "^$1=" .env; then
-    awk -v key="$1" -v value="$2" 'index($0, key "=") == 1 { print key "=" value; next } { print }' .env >.env.tmp
-    cat .env.tmp >.env
-    rm .env.tmp
-  else
-    printf '%s=%s\n' "$1" "$2" >>.env
-  fi
+  # Printing records keeps an appended key separate even without a final newline.
+  awk -v key="$1" -v value="$2" '
+    index($0, key "=") == 1 { print key "=" value; found = 1; next }
+    { print }
+    END { if (!found) print key "=" value }
+  ' .env >.env.tmp
+  cat .env.tmp >.env
+  rm .env.tmp
 }
 
 # The main checkout needs no .env, because it binds the server's default port.
