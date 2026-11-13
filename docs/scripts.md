@@ -21,7 +21,7 @@ and fails with `typecheck` errors. Name the pinned toolchain for it, or for
 `pnpm verify`:
 
 ```bash
-GOTOOLCHAIN=go1.26.10 pnpm go:lint
+GOTOOLCHAIN=go1.26.11 pnpm go:lint
 ```
 
 Run the server, on <http://localhost:8080> unless `PORT` names another port:

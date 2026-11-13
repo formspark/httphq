@@ -141,6 +141,41 @@ key names one that exists. `pnpm check:doc-refs` enforces it
 - DESIGN.md's palette and `src/styles/theme.css` are held together by
   `src/design_test.go` (agents/testing.md).
 
+## Checking a UI change
+
+A change to a template, a page script or `src/styles/` is checked in a browser
+beyond the happy path, against DESIGN.md's Layout rules. Tests prove behaviour,
+not that a page fits a phone or survives a slow link.
+
+- Serve it with `pnpm dev` (8080, or the port in `.env`) and drive it with the
+  `chrome-devtools` MCP server: `resize_page`, `emulate` for touch and
+  throttling, `take_screenshot`. Templates and `public/` reload in
+  development, so a page refresh shows an edit without a restart.
+- Seed an endpoint with `curl` before opening it: a capture sent to
+  `/to/<id>` appears on the page at `/<id>`.
+- Every page it touches at 320, 375, 414, 768, 1024 and 1440px. Nothing
+  scrolls sideways, rows wrap rather than squeeze, and a request path stays
+  readable.
+- Touch emulation at the phone and tablet widths: buttons, fields and inline
+  card actions reach 44px, field text is 16px, and nothing needs hover.
+- No touch emulation at 1024 and 1440px: the `pointer-coarse:` rules stay off,
+  so buttons, fields and inline actions keep their desktop size, and the gaps
+  between controls match the code on the base branch.
+- Long content (a long path, header and body), and the loading, waiting,
+  filtered-empty and disconnected states of the stream. Offline emulation
+  leaves an open live connection standing, so stop the server to see the
+  disconnected state.
+- Slow 3G with the cache disabled for each page it changes: the first paint,
+  the loading state, layout shift and the font swap. The server serves the
+  same assets in development, so `pnpm dev` is representative. Measure layout
+  shift on a fresh navigation from the top, since a reload restores the
+  scroll position and counts the stream filling in as shift.
+- Close the pages you opened with `close_page` when done.
+
+A layout fix gets a Playwright test where it can fail: the endpoint spec's
+`Phone` block runs at 320px under touch through `test.use`, so a new phone
+check joins it rather than adding a project.
+
 ## Reading CI
 
 - `pipeline.yml` is the single definition of what verified means, and both

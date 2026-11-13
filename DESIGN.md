@@ -392,6 +392,21 @@ filter bar become horizontal, and secondary button labels appear next to their
 icons. Design new surfaces to the same discipline: if a layout needs a second
 breakpoint, it is probably too complex for this product.
 
+**Touch is an input, not a breakpoint.** On a coarse pointer, whatever the
+width, every button and field reaches a 44px target height and field text is
+set at 1rem, because iOS zooms the page into any field set smaller when it takes
+focus. The inline card actions grow their hit area without growing their row.
+The components carry this (`pointer-coarse:` in `src/styles/components.css`),
+so templates never respell it. Nothing depends on hover: a control that a
+mouse reveals on hover is in view or reachable by focus on a touch screen too.
+
+**Wrap, never squeeze.** At 320px nothing scrolls sideways. A button label
+never wraps (`.btn` is `whitespace-nowrap`), so a row of controls is a
+`.toolbar`, which wraps: when the row runs out of room an item drops to the
+next line rather than folding a label or truncating a path to nothing. A
+request path or an endpoint ID that cannot wrap truncates deliberately, and
+only once its row has wrapped.
+
 A label belongs to its field, so the gap above a field is smaller than the gap
 below it: 0.5rem from label to control, 0.75rem from control to the note that
 follows. Equal gaps make a label read as floating between two things rather than
@@ -510,8 +525,8 @@ file:
 
 - **Buttons:** `.btn` (the shared geometry), `.btn-primary`, `.btn-secondary`, `.btn-danger`, `.btn-lg`, `.btn-inline`, `.btn-inline-danger`.
 - **Fields:** `.field`, `.field-mono` (family only, for captured-data entry), `.app-select`, `.field-label`, `.region-label`.
-- **Surfaces:** `.panel`, `.panel-summary`, `.panel-body`.
-- **Rows:** `.kv-row`, `.kv-row-tight`, `.kv-key`, `.kv-value`.
+- **Surfaces:** `.panel`, `.panel-summary`, `.panel-body`, `.stream-state`.
+- **Rows:** `.kv-row`, `.kv-row-tight`, `.kv-key`, `.kv-value`, `.toolbar`.
 - **Data and marks:** `.badge`, `.code-block`, `.empty-value`, `.icon`.
 - **Behaviour:** `.focus-ring`, `.loading-dots`.
 
@@ -663,6 +678,15 @@ a 1rem line reading _Waiting for requests_ followed by an animated ellipsis, and
 a 0.875rem line explaining that requests will appear in real time. The ellipsis
 is a CSS `content` animation on four steps over 1.2s: the only looping motion
 in the product.
+
+### Loading State
+
+Until the first fetch answers, the stream cannot know whether anything was
+captured, so it claims neither: it shows a plain centred neutral-500 line
+reading _Loading requests…_, with no dashed border. The waiting state and an
+empty filter result appear only once the stream has loaded. On a slow
+connection this is what keeps an endpoint full of captures from saying it is
+waiting for its first one.
 
 ### Liveness Indicator
 

@@ -1,4 +1,10 @@
-import { test, expect, type APIResponse, type Page } from "@playwright/test";
+import {
+  test,
+  expect,
+  type APIResponse,
+  type Locator,
+  type Page,
+} from "@playwright/test";
 import {
   captureUrl,
   newEndpointId,
@@ -91,6 +97,17 @@ const capturedUuid = (response: APIResponse): string => {
  */
 const cardFor = (page: Page, uuid: string) => page.locator(`#request-${uuid}`);
 
+/** Where an element is drawn, failing the test when it is not drawn at all. */
+const boxOf = async (locator: Locator) => {
+  const box = await locator.boundingBox();
+  if (box === null) throw new Error("The element is not rendered");
+  return box;
+};
+
+/** Matches the page's fetch of an endpoint's capture list, and nothing else. */
+const isRequestList = (endpointId: string) => (url: URL) =>
+  url.pathname === `/api/endpoints/${endpointId}/requests`;
+
 test.describe("Endpoint screen", () => {
   let endpointId: string;
   let endpointPath: string;
@@ -132,9 +149,129 @@ test.describe("Endpoint screen", () => {
     });
   });
 
+  // The narrowest phone, under touch. A row that squeezes instead of wrapping
+  // scrolls the whole page sideways or truncates a path to nothing, and a
+  // control under 44px is missed by a thumb.
+  test.describe("Phone", () => {
+    test.use({
+      viewport: { width: 320, height: 640 },
+      isMobile: true,
+      hasTouch: true,
+    });
+
+    test("a capture with a long path fits the screen with thumb-sized controls", async ({
+      page,
+      request,
+    }) => {
+      await send(request, `${endpointUrl}/${"segment/".repeat(12)}end`);
+      await expect(requestCards(page)).toHaveCount(1);
+
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      );
+      expect(overflow).toBeLessThanOrEqual(0);
+
+      const path = await boxOf(newestCard(page).getByTestId("request-path"));
+      expect(path.width).toBeGreaterThan(100);
+
+      const button = await boxOf(page.getByTestId("copy-all-har"));
+      expect(button.height).toBeGreaterThanOrEqual(44);
+    });
+
+    // iOS zooms the page into any field set under 16px when it takes focus.
+    test("fields are set at 16px and reach 44px, so focusing one does not zoom", async ({
+      page,
+    }) => {
+      for (const field of [
+        searchBox(page),
+        page.getByTestId("method-filter"),
+      ]) {
+        await expect(field).toHaveCSS("font-size", "16px");
+        expect((await boxOf(field)).height).toBeGreaterThanOrEqual(44);
+      }
+    });
+
+    test("the inline card actions reach 44px", async ({ page, request }) => {
+      await send(request, endpointUrl);
+      await expect(requestCards(page)).toHaveCount(1);
+
+      for (const testId of ["copy-request-har", "delete-request"]) {
+        const action = await boxOf(newestCard(page).getByTestId(testId));
+        expect(action.height).toBeGreaterThanOrEqual(44);
+      }
+    });
+  });
+
+  // A mouse at desktop width. The touch sizes are keyed to a coarse pointer
+  // rather than to a width, so none of them may reach this layout.
+  test.describe("Desktop", () => {
+    test("a mouse keeps the compact control sizes", async ({
+      page,
+      request,
+    }) => {
+      await send(request, endpointUrl);
+      await expect(requestCards(page)).toHaveCount(1);
+
+      await expect(searchBox(page)).toHaveCSS("font-size", "14px");
+      for (const control of [
+        page.getByTestId("copy-all-har"),
+        newestCard(page).getByTestId("copy-request-har"),
+      ]) {
+        expect((await boxOf(control)).height).toBeLessThan(44);
+      }
+    });
+
+    test("the filter bar keeps its controls on one row, 12px apart", async ({
+      page,
+    }) => {
+      const filterBar = searchBox(page).locator("..");
+      await expect(filterBar).toHaveCSS("column-gap", "12px");
+
+      const select = await boxOf(page.getByTestId("method-filter"));
+      const search = await boxOf(searchBox(page));
+      expect(search.y).toBe(select.y);
+    });
+  });
+
   test.describe("Capture stream", () => {
     test("an endpoint with no traffic says it is waiting", async ({ page }) => {
       await expect(stream(page)).toContainText("Waiting for requests");
+    });
+
+    test("an endpoint with captures is never called empty while its list loads", async ({
+      page,
+      request,
+    }) => {
+      await send(request, endpointUrl, { data: "Held-payload" });
+      let release: () => void = () => {};
+      const held = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      await page.route(isRequestList(endpointId), async (route) => {
+        await held;
+        await route.continue();
+      });
+      await page.reload();
+      await expect(page.getByTestId("connection-status")).toContainText(
+        "Live",
+        { timeout: HYDRATION_TIMEOUT_MS },
+      );
+      await expect(page.getByTestId("empty-waiting")).toHaveCount(0);
+      await expect(page.getByTestId("stream-loading")).toBeVisible();
+      release();
+      await expect(stream(page)).toContainText("Held-payload");
+      await expect(page.getByTestId("stream-loading")).toHaveCount(0);
+    });
+
+    test("a first fetch that fails settles on waiting rather than loading", async ({
+      page,
+    }) => {
+      await page.route(isRequestList(endpointId), (route) => route.abort());
+      await page.reload();
+      await expect(page.getByTestId("empty-waiting")).toBeVisible({
+        timeout: HYDRATION_TIMEOUT_MS,
+      });
+      await expect(page.getByTestId("stream-loading")).toHaveCount(0);
     });
 
     test("the waiting state goes once a request arrives", async ({

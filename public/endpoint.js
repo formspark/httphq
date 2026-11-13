@@ -65,6 +65,9 @@
       // what any control acting on the whole endpoint has to report.
       requests: [],
       total: 0,
+      // False until the first fetch settles. Before then an empty list means
+      // "not known yet", not "nothing captured".
+      loaded: false,
       search: "",
       methodFilter: "",
 
@@ -108,7 +111,10 @@
             this.requests = (d.requests || []).map(transformRequest);
             this.total = d.total ?? this.requests.length;
           })
-          .catch((err) => console.error(err));
+          .catch((err) => console.error(err))
+          .finally(() => {
+            this.loaded = true;
+          });
       },
 
       addRequest(request) {
@@ -237,6 +243,7 @@
       // their traffic never landed.
       get streamState() {
         if (this.store.visibleRequests.length > 0) return "list";
+        if (!this.store.loaded) return "loading";
         if (this.store.filtered) return "filtered";
         return "waiting";
       },
