@@ -196,9 +196,7 @@
     </details>
   </section>
 
-  <div
-    class="mb-4 flex items-center justify-between gap-4 text-sm text-neutral-500"
-  >
+  <div class="toolbar mb-4 justify-between text-sm text-neutral-500">
     <p data-test="connection-status" class="inline-flex items-center gap-2">
       <!-- The static class and the fallback text both state the connecting
            state, because that is what the component initialises to. A
@@ -218,7 +216,7 @@
         >Connecting…</span
       >
     </p>
-    <div class="flex items-center gap-2">
+    <div class="toolbar">
       <button
         type="button"
         data-test="copy-all-har"
@@ -287,15 +285,19 @@
     </div>
   </div>
 
+  <!-- Below the breakpoint the method filter shares a row with the result
+       count and the search takes the full row under them, so the bar stays
+       short enough on a phone to leave the stream readable under it while the
+       search keeps room for its placeholder. -->
   <div
-    class="sticky top-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-neutral-50/95 backdrop-blur border-y border-neutral-200 mb-4 flex flex-col sm:flex-row gap-3 sm:items-center"
+    class="sticky top-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-neutral-50/95 backdrop-blur border-y border-neutral-200 mb-4 toolbar sm:flex-nowrap sm:gap-3"
   >
     <label for="method-filter" class="sr-only">Filter by method</label>
     <select
       id="method-filter"
       data-test="method-filter"
       x-model="$store.main.methodFilter"
-      class="field app-select sm:w-40"
+      class="field app-select w-36 shrink-0 sm:w-40"
     >
       <option value="">Any method</option>
       <template x-for="m in METHODS" :key="m">
@@ -311,11 +313,11 @@
       type="search"
       x-model.debounce="$store.main.search"
       placeholder="Search headers, query string, and body..."
-      class="field flex-1"
+      class="field min-w-0 basis-full order-last sm:order-none sm:basis-0 sm:flex-1"
     />
     <span
       data-test="search-results"
-      class="text-sm text-neutral-500 sm:text-right shrink-0"
+      class="flex-1 sm:flex-none text-right text-sm text-neutral-500 shrink-0"
       x-text="pluralize($store.main.visibleRequests.length, 'result')"
     ></span>
   </div>
@@ -325,13 +327,21 @@
     class="space-y-4"
     aria-label="Captured requests"
   >
+    <!-- Loading: the first fetch has not answered yet. Until it does the page
+         cannot know whether anything was captured, so it claims neither. -->
+    <template x-if="streamState === 'loading'">
+      <div data-test="stream-loading" class="stream-state text-sm">
+        Loading requests…
+      </div>
+    </template>
+
     <!-- Waiting: genuinely nothing captured yet. The dashed border means
          correctly empty and expecting content, so it is reserved for this state
          and never used for a filtered or disconnected stream. -->
     <template x-if="streamState === 'waiting'">
       <div
         data-test="empty-waiting"
-        class="rounded-lg border border-dashed border-neutral-300 bg-white py-12 px-4 text-center text-neutral-500"
+        class="stream-state rounded-lg border border-dashed border-neutral-300 bg-white"
       >
         <p class="text-base">
           Waiting for requests<span
@@ -348,10 +358,7 @@
     <!-- Filtered to zero: the stream is not empty, the view is. Solid border, so
          it never reads as "nothing has arrived". -->
     <template x-if="streamState === 'filtered'">
-      <div
-        data-test="empty-filtered"
-        class="panel py-12 px-4 text-center text-neutral-500"
-      >
+      <div data-test="empty-filtered" class="panel stream-state">
         <p class="text-base text-neutral-900">No requests match this filter.</p>
         <p class="mt-2 text-sm">
           <span x-text="$store.main.total"></span> captured on this endpoint.
@@ -374,10 +381,12 @@
         class="panel overflow-hidden scroll-mt-24"
         :aria-label="`${request.method} ${request.path}`"
       >
+        <!-- The basis on the method and path is what makes the actions wrap
+             under them on a phone rather than squeeze the path. -->
         <header
-          class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-neutral-200"
+          class="toolbar justify-between sm:gap-3 px-4 sm:px-5 py-3 border-b border-neutral-200"
         >
-          <div class="flex items-center gap-3 min-w-0">
+          <div class="flex items-center gap-3 min-w-0 flex-1 basis-40">
             <span
               data-test="request-method"
               x-text="request.method"

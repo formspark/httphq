@@ -46,4 +46,32 @@ test.describe("Contact screen", () => {
       await expect(honeypot).toHaveAttribute("tabindex", "-1");
     });
   });
+
+  // The narrowest phone, under touch. iOS zooms the page into any field set
+  // under 16px when it takes focus, and a control under 44px is missed by a
+  // thumb.
+  test.describe("Phone", () => {
+    test.use({
+      viewport: { width: 320, height: 640 },
+      isMobile: true,
+      hasTouch: true,
+    });
+
+    test("every field is set at 16px and reaches 44px", async ({ page }) => {
+      for (const label of ["Name", "Email", "Message"]) {
+        const field = page.getByLabel(label, { exact: true });
+        await expect(field).toHaveCSS("font-size", "16px");
+        const box = await field.boundingBox();
+        expect(box?.height).toBeGreaterThanOrEqual(44);
+      }
+    });
+
+    test("the send button keeps its label on one line at 44px", async ({
+      page,
+    }) => {
+      const box = await page.getByTestId("send-form").boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeLessThan(50);
+    });
+  });
 });

@@ -42,9 +42,13 @@
     @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500;
   }
 
-  /* Buttons. One geometry, one focus treatment; variants change colour only. */
+  /* Buttons. One geometry, one focus treatment; variants change colour only.
+     A label never wraps, so a row that runs out of room wraps its buttons
+     instead of stacking a label inside one. On a touch screen every button
+     reaches the 44px target height. */
   .btn {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium whitespace-nowrap;
+    @apply pointer-coarse:min-h-11;
     @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500;
     @apply disabled:opacity-50 disabled:cursor-not-allowed;
   }
@@ -72,10 +76,21 @@
     @apply px-6 py-3 text-base;
   }
 
+  /* A row of controls or labels that wraps rather than squeezes: when the row
+     runs out of room an item drops to the next line, so a label never folds
+     inside a button and a path is never truncated to nothing. The caller adds
+     the justification and any breakpoint layout. */
+  .toolbar {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
   /* Text-only action inside a card. Padded to clear the 24px target minimum
-     without changing where the label sits. */
+     without changing where the label sits. On a touch screen the hit area
+     grows to 44px tall, and the negative margin keeps the row it sits in at
+     the height the label needs. */
   .btn-inline {
     @apply inline-flex items-center gap-1 rounded-md px-1 py-1 text-sm text-neutral-500;
+    @apply pointer-coarse:min-h-11 pointer-coarse:-my-2;
     @apply hover:text-brand-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500;
   }
 
@@ -83,9 +98,12 @@
     @apply hover:text-danger-600 focus-visible:ring-danger-500;
   }
 
-  /* Form fields. The mono variant is for captured-data entry. */
+  /* Form fields. The mono variant is for captured-data entry. On a touch
+     screen the text is 16px, because iOS zooms the page into any field set
+     smaller when it takes focus, and the field reaches the 44px target
+     height. */
   .field {
-    @apply block w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm;
+    @apply block w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm pointer-coarse:text-base pointer-coarse:min-h-11;
     @apply focus:outline-none focus-visible:ring-1 focus-visible:ring-brand-400 focus-visible:border-brand-500;
   }
 
@@ -129,6 +147,13 @@
 
   .panel-body {
     @apply border-t border-neutral-200 p-4 sm:p-5;
+  }
+
+  /* The block that stands in for the stream while it has no cards: loading,
+     waiting or filtered to nothing. One geometry, so the stream does not jump
+     when one state gives way to another; each state adds its own border. */
+  .stream-state {
+    @apply py-12 px-4 text-center text-neutral-500;
   }
 
   /* Key/value row. Stacks below the breakpoint so a value is never squeezed
