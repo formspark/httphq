@@ -6,10 +6,10 @@ toolchain or a dependency changes.
 ## Advisories
 
 `check:audit` is `pnpm audit --prod --audit-level high`, over the Node
-periphery. The Go side has govulncheck, which gates on reachability rather
-than presence, and is the stricter of the two: it is why `golang.org/x/net` and
-`golang.org/x/crypto` carry advisories at module level while verify stays
-green. The npm scan has no such filter, so it is scoped to what ships and to
+periphery. The Go side uses govulncheck, which gates on reachability rather
+than module presence. The OpenPGP advisory in `golang.org/x/crypto` does not
+fail verify because this application does not reach that package. The npm
+scan has no such filter, so it is scoped to what ships and to
 what is worth stopping for. An advisory that has no fix, or one that cannot be
 reached from this code, goes in `audit.ignore` (a list of GHSA ids) in
 `pnpm-workspace.yaml`, with the reason in a comment beside it. Nothing is ignored
