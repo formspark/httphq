@@ -43,6 +43,11 @@ func contentSecurityPolicy(allowDesignTooling bool) string {
 // deployment served over HTTP or for development on localhost.
 const strictTransportSecurity = "max-age=31536000; includeSubDomains"
 
+// permissionsPolicy turns off the powerful browser features no page uses, so
+// a script injected into a page cannot reach them either. Clipboard writes
+// from the copy buttons are not on the list and stay allowed.
+const permissionsPolicy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+
 // securityHeaders stamps the fixed security headers onto every response.
 //
 // They are set on the way out, after the rest of the chain has run. A handler
@@ -59,6 +64,7 @@ func securityHeaders(policy string) fiber.Handler {
 		c.Set(fiber.HeaderXFrameOptions, "DENY")
 		c.Set(fiber.HeaderStrictTransportSecurity, strictTransportSecurity)
 		c.Set(fiber.HeaderContentSecurityPolicy, policy)
+		c.Set(fiber.HeaderPermissionsPolicy, permissionsPolicy)
 		return err
 	}
 }
