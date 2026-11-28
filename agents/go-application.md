@@ -11,7 +11,8 @@ beside it: `application.go` (wiring, the process lifecycle and the entry point),
 URLs), `capture.go` (the capture handler), `api.go` (the JSON API and the health
 check), `pages.go` (page rendering), `agent.go` (the prompt an endpoint page
 hands to a coding agent), `llms.go` (the `/llms.txt` summary, built from the
-same constants), `assets.go` (content-hashed asset URLs), `security.go`
+same constants), `securitytxt.go` (the `/.well-known/security.txt` contact
+file), `assets.go` (content-hashed asset URLs), `security.go`
 (CSP and security headers), `sockets.go` (the live feed), `requestlog.go`
 (correlation IDs and the access log).
 
