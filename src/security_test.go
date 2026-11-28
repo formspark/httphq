@@ -63,6 +63,8 @@ func TestSecurityHeaders(t *testing.T) {
 				assert.Equal(t, "max-age=31536000; includeSubDomains",
 					response.Header.Get("Strict-Transport-Security"))
 				assert.Contains(t, response.Header.Get(fiber.HeaderContentSecurityPolicy), "frame-ancestors 'none'")
+				assert.Equal(t, "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+					response.Header.Get("Permissions-Policy"))
 			})
 		}
 	})

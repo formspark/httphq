@@ -71,6 +71,7 @@ func TestNewApplication(t *testing.T) {
 			"/" + id,
 			"/robots.txt",
 			"/llms.txt",
+			"/.well-known/security.txt",
 			"/api/health",
 			"/api/endpoints/" + id + "/requests",
 		}
